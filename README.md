@@ -45,24 +45,24 @@ Advantages: security, consistency, extensibility
 
 ## Chapter: Creating a Docker EMQX Container
 
-EMQX est un broker MQTT open-source et scalable. L'exécuter dans un conteneur Docker est une méthode rapide pour démarrer en développement ou test.
+EMQX is an open-source, scalable MQTT broker. Running it in a Docker container is a quick way to start for development or testing.
 
-### Prérequis
+### Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) installé sur votre machine.
+- [Docker](https://docs.docker.com/get-docker/) installed on your machine.
 
-### Étapes
+### Steps
 
-1. **Récupérer l'image Docker EMQX**
+1. **Pull the EMQX Docker image**
 
-	Ouvrez votre terminal et lancez :
+	Open your terminal and run:
 	```
 	docker pull emqx/emqx:latest
 	```
 
-2. **Démarrer le conteneur EMQX**
+2. **Start the EMQX container**
 
-	Pour lancer EMQX avec les ports standards :
+	To start EMQX with standard ports:
 	```
 	docker run -d --name emqx \
 	  -p 1883:1883 \
@@ -73,29 +73,29 @@ EMQX est un broker MQTT open-source et scalable. L'exécuter dans un conteneur D
 	  emqx/emqx:latest
 	```
 
-	- `-d` : mode détaché
-	- `--name emqx` : nom du conteneur
-	- `-p` : mappage des ports
+	- `-d`: detached mode
+	- `--name emqx`: container name
+	- `-p`: port mapping
 
-3. **Accéder au dashboard EMQX**
+3. **Access the EMQX dashboard**
 
-	Ouvrez votre navigateur sur [http://localhost:18083](http://localhost:18083)
-	Identifiants par défaut :
-	- Utilisateur : `admin`
-	- Mot de passe : `public`
+	Open your browser at [http://localhost:18083](http://localhost:18083)
+	Default credentials:
+	- Username: `admin`
+	- Password: `public`
 
-4. **Arrêter et supprimer le conteneur**
+4. **Stop and remove the container**
 
-	Pour arrêter :
+	To stop:
 	```
 	docker stop emqx
 	```
-	Pour supprimer :
+	To remove:
 	```
 	docker rm emqx
 	```
 
 ### Notes
 
-- Pour la production, pensez à personnaliser la configuration et à utiliser des volumes Docker.
-- Voir la documentation officielle : [EMQX Docker](https://hub.docker.com/r/emqx/emqx)
+- For production, consider customizing the configuration and using Docker volumes.
+- See the official documentation: [EMQX Docker](https://hub.docker.com/r/emqx/emqx)

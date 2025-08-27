@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build whisper.cpp example",
+      "type": "shell",
+      "command": "Backend/build-whisper-example.cmd",
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Test whisper.cpp sample",
+      "type": "shell",
+      "command": "Backend/whisper.cpp/examples/main.exe",
+      "args": ["-m", "Backend/whisper.cpp/models/ggml-base.en.bin", "-f", "Backend/whisper.cpp/samples/jfk.wav"],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    }
+  ]
+}

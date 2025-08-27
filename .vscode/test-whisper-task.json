@@ -1,0 +1,8 @@
+{
+  "label": "Test whisper.cpp sample",
+  "type": "shell",
+  "command": "Backend/whisper.cpp/examples/main.exe",
+  "args": ["-m", "Backend/whisper.cpp/models/ggml-base.en.bin", "-f", "Backend/whisper.cpp/samples/jfk.wav"],
+  "group": "test",
+  "problemMatcher": []
+}

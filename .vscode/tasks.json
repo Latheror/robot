@@ -2,10 +2,10 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build whisper.cpp example",
-      "type": "shell",
-      "command": "cmake",
-      "args": ["-S", "Backend/whisper.cpp", "-B", "Backend/whisper.cpp/build"],
+  "label": "Build whisper.cpp example",
+  "type": "shell",
+  "command": "cmake",
+  "args": ["-S", "Backend/whisper.cpp", "-B", "Backend/whisper.cpp/build", "-G", "Visual Studio 17 2022"],
       "group": "build",
       "presentation": {
         "reveal": "always"

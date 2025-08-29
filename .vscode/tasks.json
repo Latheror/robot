@@ -4,7 +4,18 @@
     {
       "label": "Build whisper.cpp example",
       "type": "shell",
-      "command": "Backend/build-whisper-example.cmd",
+      "command": "cmake",
+      "args": ["-S", "Backend/whisper.cpp", "-B", "Backend/whisper.cpp/build"],
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Build whisper.cpp binaries",
+      "type": "shell",
+      "command": "cmake",
+      "args": ["--build", "Backend/whisper.cpp/build"],
       "group": "build",
       "presentation": {
         "reveal": "always"

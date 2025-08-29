@@ -20,6 +20,9 @@ int pos = 0;    // variable to store the servo position
 
 void setup() {
   delay(2000);
+  Serial.begin(115200);
+  while (!Serial) { delay(10); } // Attendre que le port série soit prêt
+  Serial.println("Init PCA9685 pour servos sur ESP8266...");
   Wire.begin();
   pwm.begin();
   pwm.setPWMFreq(50);  // Fréquence pour servos (50 Hz)
@@ -39,14 +42,28 @@ void setup() {
 void loop() {
   for (pos = 0; pos <= 180; pos += 1) {
     int pulse = map(pos, 0, 180, SERVOMIN, SERVOMAX);
-    pwm.setPWM(0, 0, pulse); // Servo 1 sur canal 0
-    pwm.setPWM(1, 0, pulse); // Servo 2 sur canal 1
+    for (int ch = 0; ch < 4; ch++) {
+      pwm.setPWM(ch, 0, pulse); // Servo sur canal ch
+    }
+    Serial.print("Position: ");
+    Serial.print(pos);
+    Serial.print(" | pulse: ");
+    Serial.print(pulse);
+    Serial.print(" | channels: 0-3");
+    Serial.println();
     delay(15);
   }
   for (pos = 180; pos >= 0; pos -= 1) {
     int pulse = map(pos, 0, 180, SERVOMIN, SERVOMAX);
-    pwm.setPWM(0, 0, pulse);
-    pwm.setPWM(1, 0, pulse);
+    for (int ch = 0; ch < 4; ch++) {
+      pwm.setPWM(ch, 0, pulse);
+    }
+    Serial.print("Position: ");
+    Serial.print(pos);
+    Serial.print(" | pulse: ");
+    Serial.print(pulse);
+    Serial.print(" | channels: 0-3");
+    Serial.println();
     delay(15);
   }
 }

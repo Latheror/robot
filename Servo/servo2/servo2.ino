@@ -28,43 +28,51 @@ void setup() {
   pwm.setPWMFreq(50);  // Fréquence pour servos (50 Hz)
 
   /* Pour ESP8266, LED_BUILTIN est généralement sur GPIO 2 */
-  // pinMode(LED_BUILTIN, OUTPUT);
-  // for (int i = 0; i < 8; i++) {
-  //   digitalWrite(LED_BUILTIN, HIGH);
-  //   delay(125);
-  //   digitalWrite(LED_BUILTIN, LOW);
-  //   delay(125);
-  // }
-  // digitalWrite(LED_BUILTIN, LOW);
+  pinMode(LED_BUILTIN, OUTPUT);
+  for (int i = 0; i < 8; i++) {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(125);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(125);
+  }
+  digitalWrite(LED_BUILTIN, LOW);
 
 }
 
 void loop() {
-  for (pos = 0; pos <= 180; pos += 1) {
-    int pulse = map(pos, 0, 180, SERVOMIN, SERVOMAX);
-    for (int ch = 0; ch < 4; ch++) {
-      pwm.setPWM(ch, 0, pulse); // Servo sur canal ch
-    }
-    Serial.print("Position: ");
-    Serial.print(pos);
-    Serial.print(" | pulse: ");
-    Serial.print(pulse);
-    Serial.print(" | channels: 0-3");
-    Serial.println();
-    delay(15);
-  }
-  for (pos = 180; pos >= 0; pos -= 1) {
-    int pulse = map(pos, 0, 180, SERVOMIN, SERVOMAX);
-    for (int ch = 0; ch < 4; ch++) {
+  // Pour chaque servo (0 à 3)
+  for (int ch = 0; ch < 4; ch++) {
+    Serial.print("Contrôle du servo ");
+    Serial.println(ch);
+    
+    // Mouvement de 10 à 170 degrés
+    for (pos = 70; pos <= 140; pos += 1) {
+      int pulse = map(pos, 0, 180, SERVOMIN, SERVOMAX);
       pwm.setPWM(ch, 0, pulse);
+      Serial.print("Canal: ");
+      Serial.print(ch);
+      Serial.print(" | Position: ");
+      Serial.print(pos);
+      Serial.print(" | pulse: ");
+      Serial.println(pulse);
+      delay(15);
     }
-    Serial.print("Position: ");
-    Serial.print(pos);
-    Serial.print(" | pulse: ");
-    Serial.print(pulse);
-    Serial.print(" | channels: 0-3");
-    Serial.println();
-    delay(15);
+    
+    // Mouvement de 170 à 10 degrés
+    for (pos = 140; pos >= 70; pos -= 1) {
+      int pulse = map(pos, 0, 180, SERVOMIN, SERVOMAX);
+      pwm.setPWM(ch, 0, pulse);
+      Serial.print("Canal: ");
+      Serial.print(ch);
+      Serial.print(" | Position: ");
+      Serial.print(pos);
+      Serial.print(" | pulse: ");
+      Serial.println(pulse);
+      delay(15);
+    }
+    
+    // Pause entre chaque servo
+    delay(500);
   }
 }
 

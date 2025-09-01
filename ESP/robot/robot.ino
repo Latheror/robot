@@ -25,6 +25,10 @@ float targetAngles[6] = {90, 90, 90, 90, 90, 90};
 // Speed factors (degrees per step, larger = faster)
 float speedFactors[6] = {1.0, 0.5, 0.5, 0.7, 0.7, 1.0};  
 
+// Timer for periodic MQTT messages
+unsigned long lastMqttMessage = 0;
+const unsigned long mqttInterval = 2000; // Send message every 2 seconds
+
 void setup() {
   Serial.begin(9600);
   Wire.begin();
@@ -79,13 +83,34 @@ void loop() {
   // Handle MQTT messages and maintain connection
   handleMQTT();
   
-  // If the robot is moving, publish its position
-  if (moving) {
-    char positionMsg[128];
-    snprintf(positionMsg, sizeof(positionMsg), 
-             "{\"angles\":[%.2f,%.2f,%.2f,%.2f,%.2f,%.2f]}", 
-             currentAngles[0], currentAngles[1], currentAngles[2],
-             currentAngles[3], currentAngles[4], currentAngles[5]);
-    publishMessage(MQTT_TOPIC_POSITION, positionMsg);
+  // Send periodic sensor message every 2 seconds
+  unsigned long currentTime = millis();
+  if (currentTime - lastMqttMessage >= mqttInterval) {
+    char sensorMsg[256];
+    
+    // Simulate some sensor data
+    float temperature = 22.5 + (random(-100, 100) / 100.0); // Random temp between 21.5 and 23.5°C
+    float humidity = 45.0 + (random(-50, 50) / 10.0);      // Random humidity between 40-50%
+    int light = random(800, 1000);                         // Random light level
+    
+    // Create JSON message with sensor data
+    snprintf(sensorMsg, sizeof(sensorMsg), 
+             "{"
+             "\"timestamp\":%lu,"
+             "\"sensors\":{"
+               "\"temperature\":%.2f,"
+               "\"humidity\":%.1f,"
+               "\"light\":%d"
+             "},"
+             "\"units\":{"
+               "\"temperature\":\"celsius\","
+               "\"humidity\":\"percent\","
+               "\"light\":\"lux\""
+             "}"
+             "}", 
+             currentTime, temperature, humidity, light);
+             
+    publishMessage(MQTT_TOPIC_SENSORS, sensorMsg);
+    lastMqttMessage = currentTime;
   }
 }

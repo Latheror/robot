@@ -21,11 +21,7 @@ void setupMQTT() {
         Serial.print("[MQTT] Message: ");
         Serial.println(message);
         
-        // Handle incoming messages
-        if (strcmp(topic, MQTT_TOPIC_COMMAND) == 0) {
-            // TODO: Implement command handling
-            Serial.println("[MQTT] Command received, processing...");
-        }
+        // Handle incoming messages if needed in the future
     });
 
     // Initial connection attempt
@@ -40,12 +36,8 @@ void reconnectMQTT() {
         if (mqttClient.connect(mqtt_client_id)) {
             Serial.println("[MQTT] Connected successfully");
             
-            // Subscribe to command topic
-            mqttClient.subscribe(MQTT_TOPIC_COMMAND);
-            Serial.printf("[MQTT] Subscribed to %s\n", MQTT_TOPIC_COMMAND);
-            
-            // Publish online status
-            mqttClient.publish(MQTT_TOPIC_STATUS, "online");
+            // Connection successful
+            Serial.println("[MQTT] Ready to publish messages");
         } else {
             attempts++;
             Serial.print("[MQTT] Connection failed, rc=");

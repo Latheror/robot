@@ -1,0 +1,8 @@
+# ESP Settings
+ESP/robot/settings.h
+
+# Arduino / ESP build files
+*.hex
+*.elf
+*.bin
+build/

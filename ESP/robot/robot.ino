@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include "wifi.h"
+#include "mqtt_handler.h"
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
@@ -33,6 +34,9 @@ void setup() {
   // Connect to WiFi
   setupWiFi();
   delay(100);
+  
+  // Setup MQTT
+  setupMQTT();
 }
 
 void loop() {
@@ -71,4 +75,17 @@ void loop() {
   
   // Check WiFi connection periodically
   checkWiFiConnection();
+  
+  // Handle MQTT messages and maintain connection
+  handleMQTT();
+  
+  // If the robot is moving, publish its position
+  if (moving) {
+    char positionMsg[128];
+    snprintf(positionMsg, sizeof(positionMsg), 
+             "{\"angles\":[%.2f,%.2f,%.2f,%.2f,%.2f,%.2f]}", 
+             currentAngles[0], currentAngles[1], currentAngles[2],
+             currentAngles[3], currentAngles[4], currentAngles[5]);
+    publishMessage(MQTT_TOPIC_POSITION, positionMsg);
+  }
 }

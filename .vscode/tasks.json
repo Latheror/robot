@@ -2,30 +2,60 @@
   "version": "2.0.0",
   "tasks": [
     {
-  "label": "Build whisper.cpp example",
-  "type": "shell",
-  "command": "cmake",
-  "args": ["-S", "Backend/whisper.cpp", "-B", "Backend/whisper.cpp/build", "-G", "Visual Studio 17 2022"],
-      "group": "build",
+      "label": "[ESP] Get PC IP Address",
+      "type": "shell",
+      "command": "ipconfig | Select-String -Pattern 'IPv4' | Select-String -Pattern '192|172|10'",
+      "problemMatcher": [],
       "presentation": {
-        "reveal": "always"
-      }
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "group": "test"
     },
     {
-      "label": "Build whisper.cpp binaries",
+      "label": "[WHISPER] Build Example",
       "type": "shell",
       "command": "cmake",
-      "args": ["--build", "Backend/whisper.cpp/build"],
+      "args": [
+        "-S",
+        "Backend/whisper.cpp",
+        "-B",
+        "Backend/whisper.cpp/build",
+        "-G",
+        "Visual Studio 17 2022"
+      ],
       "group": "build",
       "presentation": {
         "reveal": "always"
       }
     },
     {
-      "label": "Test whisper.cpp sample",
+      "label": "[WHISPER] Build Binaries",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "Backend/whisper.cpp/build"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "[WHISPER] Test Sample",
       "type": "shell",
       "command": "Backend/whisper.cpp/examples/main.exe",
-      "args": ["-m", "Backend/whisper.cpp/models/ggml-base.en.bin", "-f", "Backend/whisper.cpp/samples/jfk.wav"],
+      "args": [
+        "-m",
+        "Backend/whisper.cpp/models/ggml-base.en.bin",
+        "-f",
+        "Backend/whisper.cpp/samples/jfk.wav"
+      ],
       "group": "test",
       "presentation": {
         "reveal": "always"

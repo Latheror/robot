@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
+#include "wifi.h"
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
@@ -28,6 +29,9 @@ void setup() {
   Wire.begin();
   pwm.begin();
   pwm.setPWMFreq(50); // Standard servo frequency
+  
+  // Connect to WiFi
+  setupWiFi();
   delay(100);
 }
 
@@ -64,4 +68,7 @@ void loop() {
   pwm.setPWM(SERVO_GRIPPER, 0, map(currentAngles[5], 0, 180, SERVOMIN, SERVOMAX));
 
   delay(20); // Adjust this for overall smoothness
+  
+  // Check WiFi connection periodically
+  checkWiFiConnection();
 }

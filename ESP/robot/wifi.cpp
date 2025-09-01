@@ -1,3 +1,4 @@
+#include "wifi_credentials.h"
 #include "wifi.h"
 
 void setupWiFi() {

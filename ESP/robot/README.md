@@ -4,9 +4,10 @@ This folder contains code for controlling servos using an ESP8266 and a PCA9685 
 
 ## Required Libraries
 
-Before uploading the code, install the following library through the Arduino Library Manager:
+Before uploading the code, install the following libraries through the Arduino Library Manager:
 
-- **Adafruit PWM Servo Driver** (`Adafruit_PWMServoDriver`)
+- **Adafruit PWM Servo Driver** (`Adafruit_PWMServoDriver`) - For servo control
+- **PubSubClient** - For MQTT communication
 
 The `Wire` library is typically included automatically with ESP8266 support.
 

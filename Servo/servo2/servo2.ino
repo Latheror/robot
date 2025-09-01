@@ -1,85 +1,67 @@
-/* Sweep
- by BARRAGAN <http://barraganstudio.com>
- This example code is in the public domain.
-
- modified 8 Nov 2013
- by Scott Fitzgerald
- https://www.arduino.cc/en/Tutorial/LibraryExamples/Sweep
-*/
-
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
-// twelve Servo objects can be created on most boards
 
-int pos = 0;    // variable to store the servo position
-// Plage de pulse pour servo standard
-#define SERVOMIN  150 // valeur minimale du pulse
-#define SERVOMAX  600 // valeur maximale du pulse
+// Define servos
+#define SERVO_ROOT    0
+#define SERVO_ARM_A1  1
+#define SERVO_ARM_A2  2
+#define SERVO_ARM_B   3
+#define SERVO_WRIST_A 4
+#define SERVO_WRIST_B 5
+#define SERVO_GRIPPER 6
+
+// Safe pulse range for your servos
+#define SERVOMIN  150
+#define SERVOMAX  600
+
+// Initial servo positions
+float currentAngles[6] = {90, 90, 90, 90, 90, 90};
+float targetAngles[6] = {90, 90, 90, 90, 90, 90};
+
+// Speed factors (degrees per step, larger = faster)
+float speedFactors[6] = {1.0, 0.5, 0.5, 0.7, 0.7, 1.0};  
 
 void setup() {
-  delay(2000);
-  Serial.begin(115200);
-  while (!Serial) { delay(10); } // Attendre que le port série soit prêt
-  Serial.println("Init PCA9685 pour servos sur ESP8266...");
+  Serial.begin(9600);
   Wire.begin();
   pwm.begin();
-  pwm.setPWMFreq(50);  // Fréquence pour servos (50 Hz)
-
-  /* Pour ESP8266, LED_BUILTIN est généralement sur GPIO 2 */
-  pinMode(LED_BUILTIN, OUTPUT);
-  for (int i = 0; i < 8; i++) {
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(125);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(125);
-  }
-  digitalWrite(LED_BUILTIN, LOW);
-
+  pwm.setPWMFreq(50); // Standard servo frequency
+  delay(100);
 }
 
 void loop() {
-  // Pour chaque servo (0 à 3)
-  for (int ch = 0; ch < 4; ch++) {
-    Serial.print("Contrôle du servo ");
-    Serial.println(ch);
-    
-    // Mouvement de 10 à 170 degrés
-    for (pos = 70; pos <= 140; pos += 1) {
-      int pulse = map(pos, 0, 180, SERVOMIN, SERVOMAX);
-      pwm.setPWM(ch, 0, pulse);
-      Serial.print("Canal: ");
-      Serial.print(ch);
-      Serial.print(" | Position: ");
-      Serial.print(pos);
-      Serial.print(" | pulse: ");
-      Serial.println(pulse);
-      delay(15);
+  // Read new target angles from Serial
+  if (Serial.available() >= 6) {
+    for (int i = 0; i < 6; i++) {
+      targetAngles[i] = Serial.parseInt();
     }
-    
-    // Mouvement de 170 à 10 degrés
-    for (pos = 140; pos >= 70; pos -= 1) {
-      int pulse = map(pos, 0, 180, SERVOMIN, SERVOMAX);
-      pwm.setPWM(ch, 0, pulse);
-      Serial.print("Canal: ");
-      Serial.print(ch);
-      Serial.print(" | Position: ");
-      Serial.print(pos);
-      Serial.print(" | pulse: ");
-      Serial.println(pulse);
-      delay(15);
-    }
-    
-    // Pause entre chaque servo
-    delay(500);
   }
-}
 
-// Function to blink the LED
-void blinkLED() {
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(125);
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(125);
+  // Move servos smoothly towards target
+  bool moving = false;
+  for (int i = 0; i < 6; i++) {
+    if (abs(targetAngles[i] - currentAngles[i]) > 0.01) {
+      moving = true;
+      if (currentAngles[i] < targetAngles[i]) {
+        currentAngles[i] += speedFactors[i];
+        if (currentAngles[i] > targetAngles[i]) currentAngles[i] = targetAngles[i];
+      } else if (currentAngles[i] > targetAngles[i]) {
+        currentAngles[i] -= speedFactors[i];
+        if (currentAngles[i] < targetAngles[i]) currentAngles[i] = targetAngles[i];
+      }
+    }
+  }
+
+  // Update all servos
+  pwm.setPWM(SERVO_ROOT,    0, map(currentAngles[0], 0, 180, SERVOMIN, SERVOMAX));
+  pwm.setPWM(SERVO_ARM_A1,  0, map(currentAngles[1], 0, 180, SERVOMIN, SERVOMAX));
+  pwm.setPWM(SERVO_ARM_A2,  0, map(180 - currentAngles[1], 0, 180, SERVOMIN, SERVOMAX)); // Mirror
+  pwm.setPWM(SERVO_ARM_B,   0, map(currentAngles[2], 0, 180, SERVOMIN, SERVOMAX));
+  pwm.setPWM(SERVO_WRIST_A, 0, map(currentAngles[3], 0, 180, SERVOMIN, SERVOMAX));
+  pwm.setPWM(SERVO_WRIST_B, 0, map(currentAngles[4], 0, 180, SERVOMIN, SERVOMAX));
+  pwm.setPWM(SERVO_GRIPPER, 0, map(currentAngles[5], 0, 180, SERVOMIN, SERVOMAX));
+
+  delay(20); // Adjust this for overall smoothness
 }

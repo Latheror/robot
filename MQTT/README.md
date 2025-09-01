@@ -40,10 +40,30 @@ You can use MQTTX directly from your browser:
    - Enter a topic (e.g., "test/topic")
    - Send a test message to verify communication
 
+## MQTT Broker Setup
+
+We use EMQX as our MQTT broker. To set it up using Docker:
+
+```bash
+docker run -d --name robot_emqx -p 1883:1883 -p 8883:8883 -p 8083:8083 -p 8084:8084 -p 18083:18083 -e EMQX_NAME=robot_emqx -e EMQX_ALLOW_ANONYMOUS=true emqx/emqx-enterprise:5.10.0
+```
+
+This command:
+- Creates a container named `robot_emqx`
+- Exposes necessary ports:
+  - 1883: Standard MQTT port
+  - 8883: MQTT over SSL
+  - 8083, 8084: WebSocket ports
+  - 18083: Dashboard interface
+- Enables anonymous connections
+- Uses EMQX Enterprise 5.10.0
+
+You can access:
+- MQTT broker at localhost:1883
+- Web dashboard at http://localhost:18083 (default credentials: admin/public)
+
 ## Important Notes
 
-- Make sure you have an MQTT broker (like EMQX, Mosquitto) running
-- For local connection, use `localhost` as host
-- Standard ports are:
-  - 1883: Unsecured MQTT
-  - 8883: Secured MQTT (SSL/TLS)
+- Make sure Docker is installed and running
+- For local connection in MQTTX, use `localhost` as host
+- If connecting from another device, use your PC's IP address instead of localhost

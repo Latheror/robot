@@ -2,8 +2,9 @@
 #define WIFI_H
 
 #include <ESP8266WiFi.h>
+#include "wifi_credentials.h"  // Include credentials from separate file
 
-// Déclarations des fonctions
+// Function declarations
 void setupWiFi();
 void checkWiFiConnection();
 

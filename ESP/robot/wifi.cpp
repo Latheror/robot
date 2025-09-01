@@ -1,9 +1,5 @@
 #include "wifi.h"
 
-// Credentials WiFi
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
-
 void setupWiFi() {
   Serial.println("\nConnexion au WiFi...");
   WiFi.mode(WIFI_STA);

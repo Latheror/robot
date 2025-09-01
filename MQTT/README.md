@@ -1,44 +1,6 @@
-# MQTTX Installation and Configuration
+# MQTT Setup Guide
 
-MQTTX is a cross-platform open-source MQTT client for testing and debugging MQTT communications.
-
-## Installing MQTTX
-
-There are several ways to install MQTTX:
-
-### 1. Desktop Application Installation
-
-1. Go to the official MQTTX website: https://mqttx.app/
-2. Click on "Download"
-3. Choose the version for your operating system:
-   - Windows: `.exe`
-   - MacOS: `.dmg`
-   - Linux: `.AppImage` or `.deb`
-4. Download and install the application
-
-### 2. Web Installation (Online Version)
-
-You can use MQTTX directly from your browser:
-1. Visit: http://www.emqx.io/online-mqtt-client
-2. No installation required
-
-## Initial Setup
-
-1. Launch MQTTX
-2. To create a new connection, click the "+" button
-3. Configure the basic parameters:
-   - Name: Give your connection a name
-   - Host: Your MQTT broker address (default: `localhost`)
-   - Port: Connection port (default: `1883` for non-SSL, `8883` for SSL)
-   - Username/Password: If required by your broker
-
-## Connection Testing
-
-1. After configuring the connection, click "Connect"
-2. To test:
-   - Click "New Subscription"
-   - Enter a topic (e.g., "test/topic")
-   - Send a test message to verify communication
+This guide explains how to set up and use MQTT for the robot project.
 
 ## MQTT Broker Setup
 
@@ -56,14 +18,67 @@ This command:
   - 8083, 8084: WebSocket ports
   - 18083: Dashboard interface
 - Enables anonymous connections
-- Uses EMQX Enterprise 5.10.0
 
-You can access:
-- MQTT broker at localhost:1883
-- Web dashboard at http://localhost:18083 (default credentials: admin/public)
+The broker will be available at:
+- MQTT: localhost:1883
+- Dashboard: http://localhost:18083 (credentials: admin/public)
+
+## MQTTX Installation
+
+MQTTX is a user-friendly MQTT client for testing and debugging. To install:
+
+1. Go to https://mqttx.app/
+2. Download the appropriate version:
+   - Windows: `.exe`
+   - MacOS: `.dmg`
+   - Linux: `.AppImage` or `.deb`
+
+Alternatively, use the web version at http://www.emqx.io/online-mqtt-client
+
+## Connecting to the Broker
+
+1. Launch MQTTX
+2. Create a new connection:
+   - Click "+"
+   - Name: `Robot_MQTT` (or any name)
+   - Host: Select "Other" from dropdown, then type either:
+     - `127.0.0.1` (recommended)
+     - or `localhost` (if 127.0.0.1 doesn't work)
+   - Port: `1883`
+   - Client ID: Leave as auto-generated
+   - Leave username/password empty
+   - SSL/TLS: Off
+
+See `monitoring_client/broker_connection_config.png` for a visual reference of these settings.
+
+## Subscribing to Robot Data
+
+1. After connecting, click "New Subscription"
+2. Enter these settings:
+   - Topic: `robot/1/sensors`
+   - QoS: 0
+
+See `monitoring_client/topic_subscription_config.png` for a visual reference of the subscription setup.
+
+You'll receive messages every 2 seconds in this format:
+```json
+{
+  "timestamp": 123456789,
+  "sensors": {
+    "temperature": 22.75,
+    "humidity": 45.5,
+    "light": 850
+  },
+  "units": {
+    "temperature": "celsius",
+    "humidity": "percent",
+    "light": "lux"
+  }
+}
+```
 
 ## Important Notes
 
-- Make sure Docker is installed and running
-- For local connection in MQTTX, use `localhost` as host
-- If connecting from another device, use your PC's IP address instead of localhost
+- Ensure Docker is running before starting the broker
+- Use `localhost` if MQTTX is on the same PC as the broker
+- Use the PC's IP address if connecting from another device

@@ -1,0 +1,120 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "topics": "robot/1/sensors",
+        "options": {}
+      },
+      "name": "MQTT Trigger",
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        -500
+      ],
+      "id": "a695b143-c998-4313-b2e1-78c11c9839ce",
+      "notesInFlow": true,
+      "credentials": {
+        "mqtt": {
+          "id": "QNkEkFR5XkAgbE0j",
+          "name": "MQTT account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        300,
+        -500
+      ],
+      "id": "f8eb8a64-a9de-4d17-9914-48bf7606c51e",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "=llama3:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        300,
+        -300
+      ],
+      "id": "95505815-39f7-4fab-98e3-17dc8dcd32e5",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "u8dbPjFare1xUjIl",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the raw message string\nconst rawMessage = $input.first().json.message;\n\n// Log for debugging\nconsole.log(\"rawMessage:\", rawMessage);\n\nif (!rawMessage) {\n  // If no message, return empty\n  return [];\n}\n\n// Parse the JSON string into an object\nlet mqttMessage;\ntry {\n  mqttMessage = JSON.parse(rawMessage);\n} catch (error) {\n  console.error(\"Failed to parse MQTT message:\", error);\n  return [];\n}\n\n// Retrieve sensor values\nconst sensors = mqttMessage.sensors;\nconst units = mqttMessage.units;\nconst topic = $input.first().json.topic;\n\n// Format the text for the LLM\nconst formattedText = `\nReceived data from topic \"${topic}\":\n- Temperature: ${sensors.temperature} ${units.temperature}\n- Humidity: ${sensors.humidity} ${units.humidity}\n- Light: ${sensors.light} ${units.light}\nTimestamp: ${mqttMessage.timestamp}\n\nPlease analyze this data and provide insights or alerts if necessary.\n`;\n\nreturn [\n  {\n    json: {\n      text: formattedText\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        -500
+      ],
+      "id": "100dcfa0-70dc-4505-b84d-addb29c02263",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "MQTT Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "MQTT Trigger": [
+      {
+        "message": "{\"timestamp\":420084,\"sensors\":{\"temperature\":22.22,\"humidity\":48.1,\"light\":931},\"units\":{\"temperature\":\"celsius\",\"humidity\":\"percent\",\"light\":\"lux\"}}",
+        "topic": "robot/1/sensors"
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "519cb7ee30052a2c1ee684a37d1b04074cd4dfcad920cd1a733487297c2c389c"
+  }
+}

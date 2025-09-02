@@ -27,7 +27,7 @@ float speedFactors[6] = {1.0, 0.5, 0.5, 0.7, 0.7, 1.0};
 
 // Timer for periodic MQTT messages
 unsigned long lastMqttMessage = 0;
-const unsigned long mqttInterval = 2000; // Send message every 2 seconds
+const unsigned long mqttInterval = (1000 * 60); // Send message every minute
 
 void setup() {
   Serial.begin(9600);

@@ -36,7 +36,13 @@ void reconnectMQTT() {
         if (mqttClient.connect(mqtt_client_id)) {
             Serial.println("[MQTT] Connected successfully");
             
-            // Connection successful
+            // Subscribe to the command topic
+            if (mqttClient.subscribe("robot/1/commands")) {
+                Serial.println("[MQTT] Subscribed to robot/1/commands");
+            } else {
+                Serial.println("[MQTT] Failed to subscribe to robot/1/commands");
+            }
+
             Serial.println("[MQTT] Ready to publish messages");
         } else {
             attempts++;

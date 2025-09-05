@@ -2,6 +2,7 @@
 #include <Adafruit_PWMServoDriver.h>
 #include "wifi.h"
 #include "mqtt_handler.h"
+#include "oled_display.h"
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
@@ -34,6 +35,10 @@ void setup() {
   Wire.begin();
   pwm.begin();
   pwm.setPWMFreq(50); // Standard servo frequency
+
+  // Initialize OLED display
+  initOLED();
+  displayText("Robot Init OK");
   
   // Connect to WiFi
   setupWiFi();

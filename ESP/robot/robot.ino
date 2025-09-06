@@ -3,6 +3,7 @@
 #include "wifi.h"
 #include "mqtt_handler.h"
 #include "oled_display.h"
+#include "roboeyes_display.h"
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
@@ -39,6 +40,11 @@ void setup() {
   // Initialize OLED display
   initOLED();
   displayText("Robot Init OK");
+  delay(1000);
+
+  // Initialize RoboEyes
+  initRoboEyes();
+  displayText("RoboEyes Init OK");
   
   // Connect to WiFi
   setupWiFi();
@@ -87,6 +93,9 @@ void loop() {
   
   // Handle MQTT messages and maintain connection
   handleMQTT();
+
+  // Update RoboEyes display
+  handleRoboEyes();
   
   // Send periodic sensor message every 2 seconds
   unsigned long currentTime = millis();

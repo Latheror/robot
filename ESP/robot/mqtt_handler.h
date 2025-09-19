@@ -1,7 +1,7 @@
 #ifndef MQTT_HANDLER_H
 #define MQTT_HANDLER_H
 
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 #include <PubSubClient.h>
 
 // Function declarations

@@ -1,6 +1,6 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
-#include "wifi.h"
+#include "wifi_manager.h"
 #include "mqtt_handler.h"
 #include "oled_display.h"
 #include "roboeyes_display.h"
@@ -32,8 +32,8 @@ unsigned long lastEyesUpdate = 0;
 const unsigned long eyesInterval = 10; // ~100 FPS
 
 void setup() {
-  Serial.begin(9600);
-  Wire.begin();
+  Serial.begin(115200);
+  Wire.begin(21, 22);
   pwm.begin();
   pwm.setPWMFreq(50);
 

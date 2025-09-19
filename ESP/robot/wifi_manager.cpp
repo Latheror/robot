@@ -1,5 +1,6 @@
+#include <Arduino.h>
 #include "settings.h"
-#include "wifi.h"
+#include <WiFi.h>
 
 void setupWiFi() {
   Serial.println("\n[WiFi] Initializing...");

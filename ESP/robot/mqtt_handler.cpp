@@ -1,3 +1,7 @@
+#include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <PubSubClient.h>
 #include "mqtt_handler.h"
 #include "settings.h"
 

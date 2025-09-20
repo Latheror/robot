@@ -10,49 +10,71 @@
 #endif
 #include "FluxGarage_RoboEyes.h"
 
-// External display instance from oled_display.cpp
+// Adresse I2C OLED
+#define OLED_ADDR 0x3C
+
+// Instance display déclarée dans oled_display.cpp
 extern Adafruit_SSD1306 display;
 
-// Correct RoboEyes instantiation with display
+// Création RoboEyes avec l’écran
 RoboEyes<Adafruit_SSD1306> roboEyes(display);
 
-// Frame timing
+// Timers
 unsigned long lastFrame = 0;
-const unsigned long frameInterval = 10; // ~100 fps max
+const unsigned long frameInterval = 10;   // logique des yeux = ~100 FPS max
 
-// Animation timing
+unsigned long lastOledUpdate = 0;
+const unsigned long oledInterval = 100;   // rafraîchissement écran = ~10 FPS
+
 unsigned long lastChange = 0;
-const unsigned long changeInterval = 2000; // 2 seconds
+const unsigned long changeInterval = 2000; // changer humeur/anim toutes les 2s
+
+// Vérifie si périphérique I2C répond
+bool isI2CAvailable(uint8_t address) {
+  Wire.beginTransmission(address);
+  return (Wire.endTransmission() == 0); // 0 = ACK
+}
 
 void initRoboEyes() {
   roboEyes.begin(SCREEN_WIDTH, SCREEN_HEIGHT, 100);
 
-  // Example base settings
+  // Paramètres de base
   roboEyes.setAutoblinker(true, 3, 2);
   roboEyes.setIdleMode(true, 2, 2);
 
   lastFrame = millis();
+  lastOledUpdate = millis();
   lastChange = millis();
 
-  // Seed randomness
+  // Seed aléatoire
   randomSeed(analogRead(A0));
 }
 
 void handleRoboEyes() {
   unsigned long now = millis();
 
-  // --- Update eyes at steady framerate ---
+  // --- Update logique des yeux (rapide) ---
   if (now - lastFrame >= frameInterval) {
     roboEyes.update();
     lastFrame = now;
   }
 
-  // --- Change mood/animation randomly every 2 seconds ---
+  // --- Rafraîchissement limité de l’OLED ---
+  if (now - lastOledUpdate >= oledInterval) {
+    if (isI2CAvailable(OLED_ADDR)) {
+      display.display();
+    } else {
+      Serial.println("⚠️ OLED non détecté sur I2C !");
+    }
+    lastOledUpdate = now;
+  }
+
+  // --- Changement humeur/animation toutes les 2s ---
   if (now - lastChange >= changeInterval) {
     lastChange = now;
 
-    // Pick a random mood
-    int mood = random(4); // 0..3
+    // Choisir humeur aléatoire
+    int mood = random(4);
     switch (mood) {
       case 0: roboEyes.setMood(HAPPY); break;
       case 1: roboEyes.setMood(TIRED); break;
@@ -60,8 +82,8 @@ void handleRoboEyes() {
       default: roboEyes.setMood(DEFAULT); break;
     }
 
-    // Pick a random animation
-    int anim = random(3); // 0..2
+    // Choisir animation aléatoire
+    int anim = random(3);
     switch (anim) {
       case 0: roboEyes.blink(); break;
       case 1: roboEyes.anim_laugh(); break;

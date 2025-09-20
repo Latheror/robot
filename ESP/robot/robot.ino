@@ -4,6 +4,7 @@
 #include "mqtt_handler.h"
 #include "oled_display.h"
 #include "roboeyes_display.h"
+#include "esp_log.h"
 
 // Servo driver
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
@@ -32,8 +33,12 @@ unsigned long lastEyesUpdate = 0;
 const unsigned long eyesInterval = 10; // ~100 FPS
 
 void setup() {
+
+  // Disable I2C logs
+  esp_log_level_set("i2c.master", ESP_LOG_NONE);
+
   Serial.begin(115200);
-  Wire.begin(21, 22);
+  
   pwm.begin();
   pwm.setPWMFreq(50);
 

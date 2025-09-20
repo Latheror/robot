@@ -1,5 +1,7 @@
 #pragma once
-#include <Adafruit_SSD1306.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SH110X.h>   // ✅ driver pour SH1106
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -7,8 +9,8 @@
 #define SCL_PIN 22
 #define OLED_ADDR 0x3C
 
-// Déclaration globale accessible ailleurs
-extern Adafruit_SSD1306 display;
+// Déclaration globale de l'écran
+extern Adafruit_SH1106G display;
 
 // Fonctions publiques
 void initOLED();

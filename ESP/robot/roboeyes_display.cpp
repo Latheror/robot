@@ -2,7 +2,7 @@
 #include "oled_display.h"
 
 #include <Wire.h>
-#include <Adafruit_SSD1306.h>
+#include <Adafruit_SH110X.h>  // ✅ Remplace SSD1306
 
 // ⚠️ Fix conflict with DEFAULT
 #ifdef DEFAULT
@@ -14,12 +14,12 @@
 #define OLED_ADDR 0x3C
 
 // Instance display déclarée dans oled_display.cpp
-extern Adafruit_SSD1306 display;
+extern Adafruit_SH1106G display;   // ✅ SH1106 au lieu de SSD1306
 
 // Création RoboEyes avec l’écran
-RoboEyes<Adafruit_SSD1306> roboEyes(display);
+RoboEyes<Adafruit_SH1106G> roboEyes(display);  // ✅
 
-// Timers
+ // Timers
 unsigned long lastFrame = 0;
 const unsigned long frameInterval = 10;   // logique des yeux = ~100 FPS max
 

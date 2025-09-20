@@ -2,34 +2,34 @@
 #include "oled_display.h"
 
 #include <Wire.h>
-#include <Adafruit_SH110X.h>  // ✅ Remplace SSD1306
+#include <Adafruit_SH110X.h>  // Use SH1106 driver
 
-// ⚠️ Fix conflict with DEFAULT
+// Fix conflict with DEFAULT
 #ifdef DEFAULT
 #undef DEFAULT
 #endif
 #include "FluxGarage_RoboEyes.h"
 
-// Adresse I2C OLED
+// I2C OLED address
 #define OLED_ADDR 0x3C
 
-// Instance display déclarée dans oled_display.cpp
-extern Adafruit_SH1106G display;   // ✅ SH1106 au lieu de SSD1306
+// Display instance declared in oled_display.cpp
+extern Adafruit_SH1106G display;
 
-// Création RoboEyes avec l’écran
-RoboEyes<Adafruit_SH1106G> roboEyes(display);  // ✅
+// Create RoboEyes instance with the display
+RoboEyes<Adafruit_SH1106G> roboEyes(display);
 
- // Timers
+// Timers
 unsigned long lastFrame = 0;
-const unsigned long frameInterval = 10;   // logique des yeux = ~100 FPS max
+const unsigned long frameInterval = 10;   // logic update ~100 FPS
 
 unsigned long lastOledUpdate = 0;
-const unsigned long oledInterval = 100;   // rafraîchissement écran = ~10 FPS
+const unsigned long oledInterval = 100;   // OLED refresh ~10 FPS
 
 unsigned long lastChange = 0;
-const unsigned long changeInterval = 2000; // changer humeur/anim toutes les 2s
+const unsigned long changeInterval = 2000; // change mood/animation every 2s
 
-// Vérifie si périphérique I2C répond
+// Check if I2C device is available
 bool isI2CAvailable(uint8_t address) {
   Wire.beginTransmission(address);
   return (Wire.endTransmission() == 0); // 0 = ACK
@@ -38,7 +38,7 @@ bool isI2CAvailable(uint8_t address) {
 void initRoboEyes() {
   roboEyes.begin(SCREEN_WIDTH, SCREEN_HEIGHT, 100);
 
-  // Paramètres de base
+  // Basic settings
   roboEyes.setAutoblinker(true, 3, 2);
   roboEyes.setIdleMode(true, 2, 2);
 
@@ -46,34 +46,34 @@ void initRoboEyes() {
   lastOledUpdate = millis();
   lastChange = millis();
 
-  // Seed aléatoire
+  // Random seed
   randomSeed(analogRead(A0));
 }
 
 void handleRoboEyes() {
   unsigned long now = millis();
 
-  // --- Update logique des yeux (rapide) ---
+  // --- Fast eye logic update ---
   if (now - lastFrame >= frameInterval) {
     roboEyes.update();
     lastFrame = now;
   }
 
-  // --- Rafraîchissement limité de l’OLED ---
+  // --- Limited OLED refresh ---
   if (now - lastOledUpdate >= oledInterval) {
     if (isI2CAvailable(OLED_ADDR)) {
       display.display();
     } else {
-      Serial.println("⚠️ OLED non détecté sur I2C !");
+      Serial.println("⚠️ OLED not detected on I2C!");
     }
     lastOledUpdate = now;
   }
 
-  // --- Changement humeur/animation toutes les 2s ---
+  // --- Change mood/animation every 2s ---
   if (now - lastChange >= changeInterval) {
     lastChange = now;
 
-    // Choisir humeur aléatoire
+    // Random mood
     int mood = random(4);
     switch (mood) {
       case 0: roboEyes.setMood(HAPPY); break;
@@ -82,7 +82,7 @@ void handleRoboEyes() {
       default: roboEyes.setMood(DEFAULT); break;
     }
 
-    // Choisir animation aléatoire
+    // Random animation
     int anim = random(3);
     switch (anim) {
       case 0: roboEyes.blink(); break;

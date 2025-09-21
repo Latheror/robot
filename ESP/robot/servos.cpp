@@ -8,6 +8,11 @@ static float currentAngles[NUM_SERVOS] = {90, 90, 90, 90, 90, 90};
 static float targetAngles[NUM_SERVOS]  = {90, 90, 90, 90, 90, 90};
 static float speedFactors[NUM_SERVOS]  = {1.0, 0.5, 0.5, 0.7, 0.7, 1.0};
 
+// Fixed min/max angle limits per joint
+// (tune these values to the robot’s safe ranges)
+static const float minAngles[NUM_SERVOS] = {0, 0, 0, 0, 0, 0};
+static const float maxAngles[NUM_SERVOS] = {180, 180, 180, 180, 180, 180};
+
 void initServos() {
     pwm.begin();
     pwm.setPWMFreq(50); // Standard servo frequency
@@ -15,8 +20,9 @@ void initServos() {
 
 void setTargetAngle(uint8_t servoIndex, float angle) {
     if (servoIndex < NUM_SERVOS) {
-        if (angle < 0) angle = 0;
-        if (angle > 180) angle = 180;
+        // Clamp between fixed limits
+        if (angle < minAngles[servoIndex]) angle = minAngles[servoIndex];
+        if (angle > maxAngles[servoIndex]) angle = maxAngles[servoIndex];
         targetAngles[servoIndex] = angle;
     }
 }
@@ -35,7 +41,7 @@ void setServoSpeed(uint8_t servoIndex, float speed) {
 }
 
 void updateServos() {
-    // Smooth angle interpolation
+    // Smooth interpolation
     for (int i = 0; i < NUM_SERVOS; i++) {
         if (fabs(targetAngles[i] - currentAngles[i]) > 0.01) {
             if (currentAngles[i] < targetAngles[i]) {
@@ -48,7 +54,7 @@ void updateServos() {
         }
     }
 
-    // Apply PWM values
+    // Apply PWM signals
     pwm.setPWM(SERVO_ROOT,    0, map(currentAngles[0], 0, 180, SERVOMIN, SERVOMAX));
     pwm.setPWM(SERVO_ARM_A1,  0, map(currentAngles[1], 0, 180, SERVOMIN, SERVOMAX));
     pwm.setPWM(SERVO_ARM_A2,  0, map(180 - currentAngles[1], 0, 180, SERVOMIN, SERVOMAX)); // mirrored

@@ -4,14 +4,14 @@
 static Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
 // Servo state arrays
-static float currentAngles[NUM_SERVOS] = {90, 90, 90, 90, 90, 90};
-static float targetAngles[NUM_SERVOS]  = {90, 90, 90, 90, 90, 90};
-static float speedFactors[NUM_SERVOS]  = {1.0, 0.5, 0.5, 0.7, 0.7, 1.0};
+static float currentAngles[NUM_JOINTS] = {90, 90, 90, 90, 90, 90};
+static float targetAngles[NUM_JOINTS]  = {90, 90, 90, 90, 90, 90};
+static float speedFactors[NUM_JOINTS]  = {1.0, 0.5, 0.5, 0.7, 0.7, 1.0};
 
 // Fixed min/max angle limits per joint
 // (tune these values to the robot’s safe ranges)
-static const float minAngles[NUM_SERVOS] = {0, 0, 0, 0, 0, 0};
-static const float maxAngles[NUM_SERVOS] = {180, 180, 180, 180, 180, 180};
+static const float minAngles[NUM_JOINTS] = {0, 0, 0, 0, 0, 0};
+static const float maxAngles[NUM_JOINTS] = {180, 180, 180, 180, 180, 180};
 
 void initServos() {
     pwm.begin();
@@ -19,7 +19,7 @@ void initServos() {
 }
 
 void setTargetAngle(uint8_t servoIndex, float angle) {
-    if (servoIndex < NUM_SERVOS) {
+    if (servoIndex < NUM_JOINTS) {
         // Clamp between fixed limits
         if (angle < minAngles[servoIndex]) angle = minAngles[servoIndex];
         if (angle > maxAngles[servoIndex]) angle = maxAngles[servoIndex];
@@ -28,21 +28,21 @@ void setTargetAngle(uint8_t servoIndex, float angle) {
 }
 
 float getCurrentAngle(uint8_t servoIndex) {
-    if (servoIndex < NUM_SERVOS) {
+    if (servoIndex < NUM_JOINTS) {
         return currentAngles[servoIndex];
     }
     return -1; // invalid index
 }
 
 void setServoSpeed(uint8_t servoIndex, float speed) {
-    if (servoIndex < NUM_SERVOS && speed > 0) {
+    if (servoIndex < NUM_JOINTS && speed > 0) {
         speedFactors[servoIndex] = speed;
     }
 }
 
 void updateServos() {
-    // Smooth interpolation
-    for (int i = 0; i < NUM_SERVOS; i++) {
+    // Smooth interpolation for joints
+    for (int i = 0; i < NUM_JOINTS; i++) {
         if (fabs(targetAngles[i] - currentAngles[i]) > 0.01) {
             if (currentAngles[i] < targetAngles[i]) {
                 currentAngles[i] += speedFactors[i];
@@ -54,10 +54,10 @@ void updateServos() {
         }
     }
 
-    // Apply PWM signals
+    // Apply PWM to all physical servos
     pwm.setPWM(SERVO_ROOT,    0, map(currentAngles[0], 0, 180, SERVOMIN, SERVOMAX));
     pwm.setPWM(SERVO_ARM_A1,  0, map(currentAngles[1], 0, 180, SERVOMIN, SERVOMAX));
-    pwm.setPWM(SERVO_ARM_A2,  0, map(180 - currentAngles[1], 0, 180, SERVOMIN, SERVOMAX)); // mirrored
+    pwm.setPWM(SERVO_ARM_A2,  0, map(180 - currentAngles[1], 0, 180, SERVOMIN, SERVOMAX)); // miroir
     pwm.setPWM(SERVO_ARM_B,   0, map(currentAngles[2], 0, 180, SERVOMIN, SERVOMAX));
     pwm.setPWM(SERVO_WRIST_A, 0, map(currentAngles[3], 0, 180, SERVOMIN, SERVOMAX));
     pwm.setPWM(SERVO_WRIST_B, 0, map(currentAngles[4], 0, 180, SERVOMIN, SERVOMAX));

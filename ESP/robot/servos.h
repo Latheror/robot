@@ -17,7 +17,7 @@
 #define SERVOMAX 600
 
 // Number of independent servos (A2 mirrors A1)
-#define NUM_SERVOS 6  
+#define NUM_JOINTS 6
 
 // --- Public API ---
 void initServos();

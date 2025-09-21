@@ -40,8 +40,8 @@ void loop() {
   }
 
   // --- Servo handling: receive new target angles from Serial ---
-  if (Serial.available() >= NUM_SERVOS) {
-    for (int i = 0; i < NUM_SERVOS; i++) {
+  if (Serial.available() >= NUM_JOINTS) {
+    for (int i = 0; i < NUM_JOINTS; i++) {
       setTargetAngle(i, Serial.parseInt());
     }
   }

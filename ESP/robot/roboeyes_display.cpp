@@ -27,7 +27,7 @@ unsigned long lastOledUpdate = 0;
 const unsigned long oledInterval = 100;   // OLED refresh ~10 FPS
 
 unsigned long lastChange = 0;
-const unsigned long changeInterval = 2000; // change mood/animation every 2s
+const unsigned long changeInterval = 10000; // change mood/animation every 10s
 
 // Check if I2C device is available
 bool isI2CAvailable(uint8_t address) {

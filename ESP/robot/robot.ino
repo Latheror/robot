@@ -7,7 +7,7 @@
 #include "servos.h"   // new servo control module
 
 unsigned long lastMqttMessage = 0;
-const unsigned long mqttInterval = 60 * 1000;
+const unsigned long mqttInterval = 10 * 1000;
 
 // Timer for RoboEyes
 unsigned long lastEyesUpdate = 0;

@@ -1,48 +1,26 @@
 #include <Wire.h>
-#include <Adafruit_PWMServoDriver.h>
 #include "wifi_manager.h"
 #include "mqtt_handler.h"
 #include "oled_display.h"
 #include "roboeyes_display.h"
 #include "esp_log.h"
-
-// Servo driver
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
-
-// Servo defs
-#define SERVO_ROOT    0
-#define SERVO_ARM_A1  1
-#define SERVO_ARM_A2  2
-#define SERVO_ARM_B   3
-#define SERVO_WRIST_A 4
-#define SERVO_WRIST_B 5
-#define SERVO_GRIPPER 6
-
-#define SERVOMIN 150
-#define SERVOMAX 600
-
-float currentAngles[6] = {90, 90, 90, 90, 90, 90};
-float targetAngles[6]  = {90, 90, 90, 90, 90, 90};
-float speedFactors[6]  = {1.0, 0.5, 0.5, 0.7, 0.7, 1.0};
+#include "servos.h"   // new servo control module
 
 unsigned long lastMqttMessage = 0;
 const unsigned long mqttInterval = 60 * 1000;
 
-// ⚡ Timer for RoboEyes
+// Timer for RoboEyes
 unsigned long lastEyesUpdate = 0;
 const unsigned long eyesInterval = 10; // ~100 FPS
 
 void setup() {
-
   // Disable I2C logs
   esp_log_level_set("i2c.master", ESP_LOG_NONE);
 
   Serial.begin(115200);
-  
-  pwm.begin();
-  pwm.setPWMFreq(50);
 
-  // Init display + RoboEyes
+  // Init hardware
+  initServos();
   initOLED();
   initRoboEyes();
 
@@ -61,37 +39,21 @@ void loop() {
     lastEyesUpdate = now;
   }
 
-  // --- Servo handling ---
-  if (Serial.available() >= 6) {
-    for (int i = 0; i < 6; i++) {
-      targetAngles[i] = Serial.parseInt();
+  // --- Servo handling: receive new target angles from Serial ---
+  if (Serial.available() >= NUM_SERVOS) {
+    for (int i = 0; i < NUM_SERVOS; i++) {
+      setTargetAngle(i, Serial.parseInt());
     }
   }
 
-  for (int i = 0; i < 6; i++) {
-    if (abs(targetAngles[i] - currentAngles[i]) > 0.01) {
-      if (currentAngles[i] < targetAngles[i]) {
-        currentAngles[i] += speedFactors[i];
-        if (currentAngles[i] > targetAngles[i]) currentAngles[i] = targetAngles[i];
-      } else if (currentAngles[i] > targetAngles[i]) {
-        currentAngles[i] -= speedFactors[i];
-        if (currentAngles[i] < targetAngles[i]) currentAngles[i] = targetAngles[i];
-      }
-    }
-  }
-
-  pwm.setPWM(SERVO_ROOT,    0, map(currentAngles[0], 0, 180, SERVOMIN, SERVOMAX));
-  pwm.setPWM(SERVO_ARM_A1,  0, map(currentAngles[1], 0, 180, SERVOMIN, SERVOMAX));
-  pwm.setPWM(SERVO_ARM_A2,  0, map(180 - currentAngles[1], 0, 180, SERVOMIN, SERVOMAX));
-  pwm.setPWM(SERVO_ARM_B,   0, map(currentAngles[2], 0, 180, SERVOMIN, SERVOMAX));
-  pwm.setPWM(SERVO_WRIST_A, 0, map(currentAngles[3], 0, 180, SERVOMIN, SERVOMAX));
-  pwm.setPWM(SERVO_WRIST_B, 0, map(currentAngles[4], 0, 180, SERVOMIN, SERVOMAX));
-  pwm.setPWM(SERVO_GRIPPER, 0, map(currentAngles[5], 0, 180, SERVOMIN, SERVOMAX));
+  // Update servo positions smoothly
+  updateServos();
 
   // --- WiFi + MQTT handling ---
   checkWiFiConnection();
   handleMQTT();
 
+  // Publish sensor values periodically
   if (now - lastMqttMessage >= mqttInterval) {
     char sensorMsg[256];
     float temperature = 22.5 + (random(-100, 100) / 100.0);

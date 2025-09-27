@@ -4,7 +4,8 @@
 #include "oled_display.h"
 #include "roboeyes_display.h"
 #include "esp_log.h"
-#include "servos.h"   // new servo control module
+#include "servos.h"
+#include "speaker.h"
 
 unsigned long lastMqttMessage = 0;
 const unsigned long mqttInterval = 10 * 1000;
@@ -12,6 +13,8 @@ const unsigned long mqttInterval = 10 * 1000;
 // Timer for RoboEyes
 unsigned long lastEyesUpdate = 0;
 const unsigned long eyesInterval = 10; // ~100 FPS
+
+Speaker speaker;
 
 void setup() {
   // Disable I2C logs
@@ -23,11 +26,14 @@ void setup() {
   initServos();
   initOLED();
   initRoboEyes();
+  speaker.init();               // All configuration handled inside Speaker
 
   // Connect WiFi + MQTT
   setupWiFi();
   delay(100);
   setupMQTT();
+
+  speaker.playExampleSound();
 }
 
 void loop() {

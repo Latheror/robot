@@ -13,10 +13,14 @@ Speaker::Speaker() {
 
 void Speaker::init() {
     // Mount LittleFS
-    if (!LittleFS.begin(true)) {
+    if (!LittleFS.begin(true/*, "LittleFS"*/)) {
         Serial.println("Failed to mount LittleFS");
         return;
     }
+    
+    Serial.println("Successfully mounted LittleFS");
+    Serial.printf("LittleFS total: %llu, used: %llu\n", LittleFS.totalBytes(), LittleFS.usedBytes());
+
     i2sInit();
 }
 
@@ -77,6 +81,7 @@ void Speaker::playExampleSound() {
 }
 
 void Speaker::playWav(const char* path) {
+
     File file = LittleFS.open(path);
     if (!file) {
         Serial.println("Failed to open WAV file!");
@@ -94,4 +99,15 @@ void Speaker::playWav(const char* path) {
     }
 
     file.close();
+}
+
+void Speaker::listFiles() {
+    const char* files[] = {"/1212.wav", "1212.wav", "data/1212.wav", "text.txt", "/text.txt", "data/text.txt"};
+    Serial.println("Listing files:");
+    for(int i = 0; i < sizeof(files)/sizeof(files[0]); i++){
+        if(LittleFS.exists(files[i])){
+            Serial.print("Found: ");
+            Serial.println(files[i]);
+        }
+    }
 }

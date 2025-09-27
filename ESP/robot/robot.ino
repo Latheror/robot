@@ -31,9 +31,6 @@ void setup() {
   initRoboEyes();
   speaker.init();               
 
-  // Play a WAV file stored in SPIFFS (16-bit PCM, 44.1 kHz)
-  speaker.playWav("data/1_2_1_2.wav");
-
   // Connect WiFi + MQTT
   setupWiFi();
   indicators.blinkLED(1, 3, 200); // Blink LED1 3 times
@@ -46,6 +43,10 @@ void setup() {
   indicators.setLED(2, true);
 
   speaker.playExampleSound();
+
+  // Play a WAV file stored in LittleFS (16-bit PCM, 44.1 kHz)
+  speaker.listFiles();
+  speaker.playWav("/1212.wav");
 }
 
 void loop() {

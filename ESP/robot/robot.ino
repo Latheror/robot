@@ -26,8 +26,8 @@ void setup() {
 
   // Init hardware
   indicators.init();
-  initServos();
   initOLED();
+  initServos();
   initRoboEyes();
   speaker.init();               // All configuration handled inside Speaker
 

@@ -1,6 +1,8 @@
 #include "Speaker.h"
 #include <driver/i2s.h>
 #include <math.h>
+#include "FS.h"
+#include <LittleFS.h>
 
 #define SAMPLE_RATE 44100
 #define I2S_NUM I2S_NUM_0
@@ -10,6 +12,11 @@ Speaker::Speaker() {
 }
 
 void Speaker::init() {
+    // Mount LittleFS
+    if (!LittleFS.begin(true)) {
+        Serial.println("Failed to mount LittleFS");
+        return;
+    }
     i2sInit();
 }
 
@@ -67,4 +74,24 @@ void Speaker::playExampleSound() {
     delay(50);
     playTone(880.0, 500);  // A5
     delay(200);
+}
+
+void Speaker::playWav(const char* path) {
+    File file = LittleFS.open(path);
+    if (!file) {
+        Serial.println("Failed to open WAV file!");
+        return;
+    }
+
+    // Skip WAV header (44 bytes typical)
+    file.seek(44);
+
+    uint8_t buffer[512];
+    size_t bytesRead, bytesWritten;
+
+    while ((bytesRead = file.read(buffer, sizeof(buffer))) > 0) {
+        i2s_write(I2S_NUM, buffer, bytesRead, &bytesWritten, portMAX_DELAY);
+    }
+
+    file.close();
 }

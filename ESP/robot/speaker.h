@@ -9,6 +9,7 @@ public:
     void init();                     // Initialize pins and I2S
     void playTone(float frequency, int durationMs);
     void playExampleSound();         // Play a short demo melody
+    void playWav(const char* path);  // Play a WAV file from SPIFFS
 
 private:
     // Internal pin definitions

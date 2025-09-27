@@ -5,8 +5,8 @@
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
-#define SDA_PIN 21
-#define SCL_PIN 22
+#define SDA_PIN 17
+#define SCL_PIN 18
 #define OLED_ADDR 0x3C
 
 // Déclaration globale de l'écran

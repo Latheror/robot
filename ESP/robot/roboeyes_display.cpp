@@ -47,7 +47,7 @@ void initRoboEyes() {
   lastChange = millis();
 
   // Random seed
-  randomSeed(analogRead(A0));
+  randomSeed(esp_random());
 }
 
 void handleRoboEyes() {

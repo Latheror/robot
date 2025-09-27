@@ -88,6 +88,8 @@ void Speaker::playWav(const char* path) {
         return;
     }
 
+    Serial.println("File opened successfully");
+
     // Skip WAV header (44 bytes typical)
     file.seek(44);
 
@@ -102,7 +104,7 @@ void Speaker::playWav(const char* path) {
 }
 
 void Speaker::listFiles() {
-    const char* files[] = {"/1212.wav", "1212.wav", "data/1212.wav", "text.txt", "/text.txt", "data/text.txt"};
+    const char* files[] = {"/1212.wav"};
     Serial.println("Listing files:");
     for(int i = 0; i < sizeof(files)/sizeof(files[0]); i++){
         if(LittleFS.exists(files[i])){

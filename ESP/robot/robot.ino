@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #include "servos.h"
 #include "speaker.h"
+#include "indicators.h"
 
 unsigned long lastMqttMessage = 0;
 const unsigned long mqttInterval = 10 * 1000;
@@ -15,6 +16,7 @@ unsigned long lastEyesUpdate = 0;
 const unsigned long eyesInterval = 10; // ~100 FPS
 
 Speaker speaker;
+Indicators indicators;
 
 void setup() {
   // Disable I2C logs
@@ -23,6 +25,7 @@ void setup() {
   Serial.begin(115200);
 
   // Init hardware
+  indicators.init();
   initServos();
   initOLED();
   initRoboEyes();
@@ -30,8 +33,14 @@ void setup() {
 
   // Connect WiFi + MQTT
   setupWiFi();
+  indicators.blinkLED(1, 3, 200); // Blink LED1 3 times
+  indicators.setLED(1, true);
+
   delay(100);
+
   setupMQTT();
+  indicators.blinkLED(2, 3, 200); // Blink LED1 3 times
+  indicators.setLED(2, true);
 
   speaker.playExampleSound();
 }
@@ -83,6 +92,9 @@ void loop() {
              now, temperature, humidity, light);
 
     publishMessage(MQTT_TOPIC_SENSORS, sensorMsg);
+
+    indicators.blinkLED(3, 3, 200); // Blink LED1 3 times
+
     lastMqttMessage = now;
   }
 }

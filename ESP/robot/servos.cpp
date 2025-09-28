@@ -10,8 +10,8 @@ static float speedFactors[NUM_JOINTS]  = {1.0, 0.5, 0.5, 0.7, 0.7, 1.0};
 
 // Fixed min/max angle limits per joint
 // (tune these values to the robot’s safe ranges)
-static const float minAngles[NUM_JOINTS] = {70, 70, 0, 0, 0, 0};
-static const float maxAngles[NUM_JOINTS] = {110, 110, 180, 180, 180, 180};
+static const float minAngles[NUM_JOINTS] = {70, 80, 80, 0, 0, 50};
+static const float maxAngles[NUM_JOINTS] = {110, 100, 100, 180, 180, 130};
 
 void initServos() {
     pwm.begin();

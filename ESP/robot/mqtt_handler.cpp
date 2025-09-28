@@ -5,107 +5,67 @@
 #include <ArduinoJson.h>
 #include "mqtt_handler.h"
 #include "settings.h"
-#include "servos.h"   // For setTargetAngle()
+#include "servos.h"
 #include "mbedtls/base64.h"
+#include "Speaker.h"
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
+extern Speaker speaker;
 
-// Forward declaration
-/**
- * @brief Handles incoming JSON command messages for servos.
- * 
- * This function parses a JSON string and updates the target angles
- * of the robot's servos if a "servos" object is present.
- * 
- * @param message Null-terminated JSON string received from MQTT.
- */
+// --- Audio chunk storage ---
+std::vector<String> audioChunks;
+std::vector<size_t> chunkDecodedLengths; // taille décodée de chaque chunk
+int expectedTotalChunks = 0;
+size_t totalDecodedSize = 0;
+
+// Forward declarations
 void handleCommandMessage(const char* message);
-
-/**
- * @brief Handles incoming JSON audio messages and plays the audio.
- * 
- * This function parses a JSON string containing Base64-encoded audio data,
- * decodes it, and plays it using the AudioPlayer.
- * 
- * @param message Null-terminated JSON string received from MQTT.
- */
 void handleAudioMessage(const char* message);
+void decodeAndPlayChunks();
 
 /**
- * @brief Initializes the MQTT client and sets up the callback for messages.
- * 
- * Configures the MQTT broker, topic subscriptions, and the message callback.
- * Automatically calls reconnectMQTT() to establish a connection if needed.
+ * MQTT setup
  */
 void setupMQTT() {
     Serial.println("[MQTT] Initializing...");
+
+    mqttClient.setBufferSize(50000);
     mqttClient.setServer(mqtt_broker, mqtt_port);
 
-    // Set the callback function for receiving messages
     mqttClient.setCallback([](char* topic, byte* payload, unsigned int length) {
         Serial.print("[MQTT] Message received on topic: ");
         Serial.println(topic);
 
-        // Convert payload to string
         char message[length + 1];
         memcpy(message, payload, length);
         message[length] = '\0';
 
-        Serial.print("[MQTT] Message: ");
+        Serial.print("[MQTT] Payload: ");
         Serial.println(message);
 
-        // Handle commands topic
-        if (strcmp(topic, "robot/1/commands") == 0) {
-            Serial.println("[MQTT] Received command message");
-            handleCommandMessage(message);
-        }
-
-        // Handle audio topic
-        if (strcmp(topic, "robot/1/audio") == 0) {
-            Serial.println("[MQTT] Received audio message");
-            handleAudioMessage(message);
-        }
+        if (strcmp(topic, "robot/1/commands") == 0) handleCommandMessage(message);
+        if (strcmp(topic, "robot/1/audio") == 0) handleAudioMessage(message);
     });
 
-    // Initial connection attempt
     reconnectMQTT();
 }
 
 /**
- * @brief Parses a JSON command message and updates servo targets.
- * 
- * Expected JSON format:
- * {
- *   "servos": {
- *      "root": 90,
- *      "arm_a1": 120,
- *      "arm_b": 100,
- *      "wrist_a": 80,
- *      "wrist_b": 100,
- *      "gripper": 50
- *   }
- * }
- * 
- * @param message Null-terminated JSON string.
+ * Command handling
  */
 void handleCommandMessage(const char* message) {
     StaticJsonDocument<512> doc;
     DeserializationError error = deserializeJson(doc, message);
-
     if (error) {
         Serial.print("[MQTT] JSON parse error: ");
         Serial.println(error.f_str());
         return;
     }
 
-    if (!doc.containsKey("servos")) {
-        Serial.println("[MQTT] No 'servos' object in JSON");
-        return;
-    }
+    if (!doc.containsKey("servos")) return;
 
     JsonObject servos = doc["servos"];
-
     if (servos.containsKey("root"))     setTargetAngle(SERVO_ROOT,    servos["root"]);
     if (servos.containsKey("arm_a1"))   setTargetAngle(SERVO_ARM_A1,  servos["arm_a1"]);
     if (servos.containsKey("arm_b"))    setTargetAngle(SERVO_ARM_B,   servos["arm_b"]);
@@ -113,128 +73,142 @@ void handleCommandMessage(const char* message) {
     if (servos.containsKey("wrist_b"))  setTargetAngle(SERVO_WRIST_B, servos["wrist_b"]);
     if (servos.containsKey("gripper"))  setTargetAngle(SERVO_GRIPPER, servos["gripper"]);
 
-    Serial.println("[MQTT] Updated target angles from JSON command");
+    Serial.println("[MQTT] Updated servo target angles");
 }
 
 /**
- * @brief Handles incoming audio messages in Base64 and plays them.
- * 
- * Expected JSON format:
- * {
- *   "topic": "robot/1/audio",
- *   "message": "<base64-encoded wav data>"
- * }
- * 
- * @param message Null-terminated JSON string
+ * Audio chunk handling
  */
 void handleAudioMessage(const char* message) {
-    StaticJsonDocument<2048 * 10> doc; // adjust size depending on audio length
-    DeserializationError error = deserializeJson(doc, message);
+    Serial.println("[AUDIO] handleAudioMessage called");
 
+    StaticJsonDocument<4096> doc;
+    DeserializationError error = deserializeJson(doc, message);
     if (error) {
-        Serial.print("[MQTT] JSON parse error (audio): ");
+        Serial.print("[AUDIO] JSON parse error: ");
         Serial.println(error.f_str());
         return;
     }
 
-    if (!doc.containsKey("message")) {
-        Serial.println("[MQTT] No 'message' field in audio JSON");
+    if (!doc.containsKey("message") || !doc.containsKey("chunk_index") || !doc.containsKey("total_chunks")) {
+        Serial.println("[AUDIO] JSON missing required fields");
         return;
     }
 
-    const char* base64Audio = doc["message"];
+    const char* base64Part = doc["message"];
+    int chunkIndex = doc["chunk_index"];
+    int totalChunks = doc["total_chunks"];
 
-    // Calculate decoded length
-    size_t outputLen = 0;
-    if (mbedtls_base64_decode(NULL, 0, &outputLen, (const unsigned char*)base64Audio, strlen(base64Audio)) != MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL) {
-        Serial.println("[MQTT] Failed to calculate decoded length");
+    Serial.printf("[AUDIO] Received chunk %d / %d, length %d\n", chunkIndex, totalChunks, (int)strlen(base64Part));
+
+    // First chunk: initialize storage
+    if (expectedTotalChunks != totalChunks) {
+        audioChunks.clear();
+        chunkDecodedLengths.clear();
+        audioChunks.resize(totalChunks);
+        chunkDecodedLengths.resize(totalChunks, 0);
+        expectedTotalChunks = totalChunks;
+        totalDecodedSize = 0;
+        Serial.println("[AUDIO] Initialized audio chunk storage");
+    }
+
+    if (chunkIndex < 0 || chunkIndex >= totalChunks) {
+        Serial.println("[AUDIO] Invalid chunk index");
         return;
     }
 
-    // Allocate buffer and decode
-    uint8_t* audioBuffer = new uint8_t[outputLen];
-    if (mbedtls_base64_decode(audioBuffer, outputLen, &outputLen, (const unsigned char*)base64Audio, strlen(base64Audio)) != 0) {
-        Serial.println("[MQTT] Base64 decode failed");
-        delete[] audioBuffer;
+    audioChunks[chunkIndex] = base64Part;
+
+    // Compute decoded size for this chunk
+    size_t decodedLen = 0;
+    if (mbedtls_base64_decode(nullptr, 0, &decodedLen, (const unsigned char*)base64Part, strlen(base64Part)) != MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL) {
+        Serial.println("[AUDIO] Failed to get chunk decoded length");
         return;
     }
+    chunkDecodedLengths[chunkIndex] = decodedLen;
 
-    // Play audio via I2S/DAC
-    // AudioPlayer.playWAV(audioBuffer, outputLen);
+    // Check if all chunks are received
+    bool allReceived = true;
+    for (int i = 0; i < totalChunks; i++) {
+        if (audioChunks[i].length() == 0) {
+            allReceived = false;
+            break;
+        }
+    }
 
-    delete[] audioBuffer;
-    Serial.println("[MQTT] Audio decoded and ready to play");
+    if (allReceived) {
+        // Sum total decoded size
+        totalDecodedSize = 0;
+        for (int i = 0; i < totalChunks; i++) totalDecodedSize += chunkDecodedLengths[i];
+
+        Serial.printf("[AUDIO] All chunks received, total decoded size ~%d bytes\n", (int)totalDecodedSize);
+        decodeAndPlayChunks();
+
+        // Reset for next audio
+        audioChunks.clear();
+        chunkDecodedLengths.clear();
+        expectedTotalChunks = 0;
+        totalDecodedSize = 0;
+        Serial.println("[AUDIO] Ready for next audio message");
+    }
 }
 
 /**
- * @brief Reconnects to the MQTT broker if the client is disconnected.
- * 
- * Attempts up to 3 times to reconnect. If successful, subscribes
- * to the "robot/1/commands" topic.
+ * Decode all chunks directly into a single buffer and play
+ */
+void decodeAndPlayChunks() {
+    uint8_t* buffer = new uint8_t[totalDecodedSize];
+    if (!buffer) {
+        Serial.println("[AUDIO] Failed to allocate audio buffer");
+        return;
+    }
+
+    size_t offset = 0;
+    for (int i = 0; i < audioChunks.size(); i++) {
+        size_t outLen = 0;
+        int ret = mbedtls_base64_decode(buffer + offset, chunkDecodedLengths[i], &outLen,
+                                        (const unsigned char*)audioChunks[i].c_str(),
+                                        audioChunks[i].length());
+        if (ret != 0) {
+            Serial.printf("[AUDIO] Base64 decode failed for chunk %d\n", i);
+            delete[] buffer;
+            return;
+        }
+        offset += outLen;
+    }
+
+    Serial.printf("[AUDIO] Decoded %d bytes, playing...\n", (int)totalDecodedSize);
+    speaker.playWavFromBuffer(buffer, totalDecodedSize);
+    delete[] buffer;
+    Serial.println("[AUDIO] Playback finished");
+}
+
+/**
+ * MQTT reconnect
  */
 void reconnectMQTT() {
     int attempts = 0;
     while (!mqttClient.connected() && attempts < 3) {
         Serial.println("[MQTT] Attempting to connect...");
-
         if (mqttClient.connect(mqtt_client_id)) {
             Serial.println("[MQTT] Connected successfully");
-
-            // Subscribe to the command topic
-            if (mqttClient.subscribe("robot/1/commands")) {
-                Serial.println("[MQTT] Subscribed to robot/1/commands");
-            } else {
-                Serial.println("[MQTT] Failed to subscribe to robot/1/commands");
-            }
-
-            // Subscribe to the audio topic
-            if (mqttClient.subscribe("robot/1/audio")) {
-                Serial.println("[MQTT] Subscribed to robot/1/audio");
-            } else {
-                Serial.println("[MQTT] Failed to subscribe to robot/1/audio");
-            }
-
-            Serial.println("[MQTT] Ready to publish messages");
+            mqttClient.subscribe("robot/1/commands");
+            mqttClient.subscribe("robot/1/audio");
+            Serial.println("[MQTT] Ready to receive messages");
         } else {
             attempts++;
-            Serial.print("[MQTT] Connection failed, rc=");
-            Serial.print(mqttClient.state());
-            Serial.printf(" (Attempt %d/3)\n", attempts);
+            Serial.printf("[MQTT] Connection failed, rc=%d (Attempt %d/3)\n", mqttClient.state(), attempts);
             delay(1000);
         }
     }
 }
 
-/**
- * @brief Handles MQTT client loop and reconnects if necessary.
- * 
- * Should be called regularly in the main loop.
- */
 void handleMQTT() {
-    if (!mqttClient.connected()) {
-        reconnectMQTT();
-    }
+    if (!mqttClient.connected()) reconnectMQTT();
     mqttClient.loop();
 }
 
-/**
- * @brief Publishes a message to the specified MQTT topic.
- * 
- * @param topic Topic name to publish to.
- * @param message Null-terminated string message to send.
- * @return true if published successfully, false otherwise.
- */
 bool publishMessage(const char* topic, const char* message) {
-    if (!mqttClient.connected()) {
-        Serial.println("[MQTT] Cannot publish: not connected");
-        return false;
-    }
-
-    bool success = mqttClient.publish(topic, message);
-    if (success) {
-        Serial.printf("[MQTT] Published to %s: %s\n", topic, message);
-    } else {
-        Serial.printf("[MQTT] Failed to publish to %s\n", topic);
-    }
-    return success;
+    if (!mqttClient.connected()) return false;
+    return mqttClient.publish(topic, message);
 }

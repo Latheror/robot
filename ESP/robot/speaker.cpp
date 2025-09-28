@@ -120,3 +120,18 @@ void Speaker::listFiles() {
         }
     }
 }
+
+void Speaker::playWavFromBuffer(uint8_t* buffer, size_t len) {
+    Serial.printf("[Speaker] playWavFromBuffer: %d bytes\n", (int)len);
+
+    size_t chunkSize = 512;
+    size_t offset = 0;
+    while (offset < len) {
+        size_t toWrite = (len - offset) > chunkSize ? chunkSize : (len - offset);
+        size_t bytesWritten;
+        i2s_write(I2S_NUM, buffer + offset, toWrite, &bytesWritten, portMAX_DELAY);
+        offset += bytesWritten;
+    }
+
+    Serial.println("[Speaker] Finished playing buffer");
+}

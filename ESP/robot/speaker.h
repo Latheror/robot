@@ -11,6 +11,7 @@ public:
     void playExampleSound();         // Play a short demo melody
     void playWav(const char* path);  // Play a WAV file from LittleFS
     void listFiles();
+    void playWavFromBuffer(uint8_t* buffer, size_t len);
 
 private:
     // Internal pin definitions

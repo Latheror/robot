@@ -7,9 +7,10 @@
 #include "servos.h"
 #include "speaker.h"
 #include "indicators.h"
+#include "INMP441.h"
 
 unsigned long lastMqttMessage = 0;
-const unsigned long mqttInterval = 10 * 1000;
+const unsigned long mqttInterval = 60 * 1000;
 
 // Timer for RoboEyes
 unsigned long lastEyesUpdate = 0;
@@ -17,8 +18,10 @@ const unsigned long eyesInterval = 10; // ~100 FPS
 
 Speaker speaker;
 Indicators indicators;
+INMP441 mic;
 
-void setup() {
+void setup()
+{
   // Disable I2C logs
   esp_log_level_set("i2c.master", ESP_LOG_NONE);
 
@@ -29,7 +32,7 @@ void setup() {
   initOLED();
   initServos();
   initRoboEyes();
-  speaker.init();               
+  speaker.init();
 
   // Connect WiFi + MQTT
   setupWiFi();
@@ -47,22 +50,34 @@ void setup() {
   // Play a WAV file stored in LittleFS (16-bit PCM, 44.1 kHz)
   speaker.listFiles();
   speaker.playWav("/1212.wav");
+
+  // Initialize INMP441 microphone
+  if (mic.begin())
+  {
+    Serial.println("Microphone ready.");
+  }
+  else
+  {
+    Serial.println("Microphone initialization failed.");
+  }
 }
 
-void loop() {
+void loop()
+{
+
   unsigned long now = millis();
 
   // --- RoboEyes independent update ---
-  if (now - lastEyesUpdate >= eyesInterval) {
+  if (now - lastEyesUpdate >= eyesInterval)
+  {
     handleRoboEyes();
     lastEyesUpdate = now;
   }
 
   // --- Servo handling: receive new target angles from Serial ---
-  if (Serial.available() >= NUM_JOINTS) {
-    for (int i = 0; i < NUM_JOINTS; i++) {
-      setTargetAngle(i, Serial.parseInt());
-    }
+  for (int i = 0; i < NUM_JOINTS; i++)
+  {
+    setTargetAngle(i, Serial.parseInt());
   }
 
   // Update servo positions smoothly
@@ -73,7 +88,8 @@ void loop() {
   handleMQTT();
 
   // Publish sensor values periodically
-  if (now - lastMqttMessage >= mqttInterval) {
+  if (now - lastMqttMessage >= mqttInterval)
+  {
     char sensorMsg[256];
     float temperature = 22.5 + (random(-100, 100) / 100.0);
     float humidity = 45.0 + (random(-50, 50) / 10.0);
@@ -83,14 +99,14 @@ void loop() {
              "{"
              "\"timestamp\":%lu,"
              "\"sensors\":{"
-               "\"temperature\":%.2f,"
-               "\"humidity\":%.1f,"
-               "\"light\":%d"
+             "\"temperature\":%.2f,"
+             "\"humidity\":%.1f,"
+             "\"light\":%d"
              "},"
              "\"units\":{"
-               "\"temperature\":\"celsius\","
-               "\"humidity\":\"percent\","
-               "\"light\":\"lux\""
+             "\"temperature\":\"celsius\","
+             "\"humidity\":\"percent\","
+             "\"light\":\"lux\""
              "}"
              "}",
              now, temperature, humidity, light);
@@ -100,5 +116,9 @@ void loop() {
     indicators.blinkLED(3, 3, 200); // Blink LED1 3 times
 
     lastMqttMessage = now;
+
+    int32_t sample = mic.readSample();
+    Serial.println("Published sensor data:");
+    Serial.println(sample);
   }
 }

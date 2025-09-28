@@ -22,6 +22,16 @@ PubSubClient mqttClient(espClient);
 void handleCommandMessage(const char* message);
 
 /**
+ * @brief Handles incoming JSON audio messages and plays the audio.
+ * 
+ * This function parses a JSON string containing Base64-encoded audio data,
+ * decodes it, and plays it using the AudioPlayer.
+ * 
+ * @param message Null-terminated JSON string received from MQTT.
+ */
+void handleAudioMessage(const char* message);
+
+/**
  * @brief Initializes the MQTT client and sets up the callback for messages.
  * 
  * Configures the MQTT broker, topic subscriptions, and the message callback.
@@ -46,7 +56,14 @@ void setupMQTT() {
 
         // Handle commands topic
         if (strcmp(topic, "robot/1/commands") == 0) {
+            Serial.println("[MQTT] Received command message");
             handleCommandMessage(message);
+        }
+
+        // Handle audio topic
+        if (strcmp(topic, "robot/1/audio") == 0) {
+            Serial.println("[MQTT] Received audio message");
+            handleAudioMessage(message);
         }
     });
 
@@ -99,6 +116,46 @@ void handleCommandMessage(const char* message) {
 }
 
 /**
+ * @brief Handles incoming audio messages in Base64 and plays them.
+ * 
+ * Expected JSON format:
+ * {
+ *   "topic": "robot/1/audio",
+ *   "message": "<base64-encoded wav data>"
+ * }
+ * 
+ * @param message Null-terminated JSON string
+ */
+void handleAudioMessage(const char* message) {
+    StaticJsonDocument<2048 * 10> doc; // adjust size depending on audio length
+    DeserializationError error = deserializeJson(doc, message);
+
+    if (error) {
+        Serial.print("[MQTT] JSON parse error (audio): ");
+        Serial.println(error.f_str());
+        return;
+    }
+
+    if (!doc.containsKey("message")) {
+        Serial.println("[MQTT] No 'message' field in audio JSON");
+        return;
+    }
+
+    const char* base64Audio = doc["message"];
+    size_t decodedLength = Base64.decodedLength(base64Audio);
+    uint8_t* audioBuffer = new uint8_t[decodedLength];
+
+    Base64.decode(audioBuffer, base64Audio, strlen(base64Audio));
+
+    // Play audio via I2S/DAC
+    AudioPlayer.playWAV(audioBuffer, decodedLength);
+
+    delete[] audioBuffer;
+
+    Serial.println("[MQTT] Audio played successfully");
+}
+
+/**
  * @brief Reconnects to the MQTT broker if the client is disconnected.
  * 
  * Attempts up to 3 times to reconnect. If successful, subscribes
@@ -117,6 +174,13 @@ void reconnectMQTT() {
                 Serial.println("[MQTT] Subscribed to robot/1/commands");
             } else {
                 Serial.println("[MQTT] Failed to subscribe to robot/1/commands");
+            }
+
+            // Subscribe to the audio topic
+            if (mqttClient.subscribe("robot/1/audio")) {
+                Serial.println("[MQTT] Subscribed to robot/1/audio");
+            } else {
+                Serial.println("[MQTT] Failed to subscribe to robot/1/audio");
             }
 
             Serial.println("[MQTT] Ready to publish messages");

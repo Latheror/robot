@@ -60,6 +60,27 @@
       "presentation": {
         "reveal": "always"
       }
-    }
+    },
+    {
+      "label": "Install Dependencies Windows",
+      "type": "shell",
+      "command": "python -m pip install --upgrade pip setuptools wheel; python -m pip install numpy --upgrade; python -m pip install pkuseg==0.0.25; python -m pip install torch soundfile huggingface-hub safetensors; python -m pip install chatterbox-tts",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "[CHATTERBOX] Generate example",
+      "type": "shell",
+      "command": "py TextToSpeech/chatterbox/chatterbox_run.py",
+      "args": [
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
   ]
 }

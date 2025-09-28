@@ -44,7 +44,6 @@ void setup()
   indicators.setLED(1, true);
   speaker.playWav("/connected_to_wifi.wav");
 
-
   delay(100);
 
   setupMQTT();
@@ -62,6 +61,8 @@ void setup()
   {
     Serial.println("Microphone initialization failed.");
   }
+
+  sendSensorData();
 }
 
 void loop()
@@ -86,35 +87,41 @@ void loop()
   // Publish sensor values periodically
   if (now - lastMqttMessage >= mqttInterval)
   {
-    char sensorMsg[256];
-    float temperature = 22.5 + (random(-100, 100) / 100.0);
-    float humidity = 45.0 + (random(-50, 50) / 10.0);
-    int light = random(800, 1000);
-
-    snprintf(sensorMsg, sizeof(sensorMsg),
-             "{"
-             "\"timestamp\":%lu,"
-             "\"sensors\":{"
-             "\"temperature\":%.2f,"
-             "\"humidity\":%.1f,"
-             "\"light\":%d"
-             "},"
-             "\"units\":{"
-             "\"temperature\":\"celsius\","
-             "\"humidity\":\"percent\","
-             "\"light\":\"lux\""
-             "}"
-             "}",
-             now, temperature, humidity, light);
-
-    publishMessage(MQTT_TOPIC_SENSORS, sensorMsg);
-
-    indicators.blinkLED(3, 3, 200); // Blink LED1 3 times
-
-    lastMqttMessage = now;
-
-    int32_t sample = mic.readSample();
-    Serial.println("Published sensor data:");
-    Serial.println(sample);
+    sendSensorData();
   }
+}
+
+void sendSensorData()
+{
+  unsigned long now = millis();
+  char sensorMsg[256];
+  float temperature = 22.5 + (random(-100, 100) / 100.0);
+  float humidity = 45.0 + (random(-50, 50) / 10.0);
+  int light = random(800, 1000);
+
+  snprintf(sensorMsg, sizeof(sensorMsg),
+           "{"
+           "\"timestamp\":%lu,"
+           "\"sensors\":{"
+           "\"temperature\":%.2f,"
+           "\"humidity\":%.1f,"
+           "\"light\":%d"
+           "},"
+           "\"units\":{"
+           "\"temperature\":\"celsius\","
+           "\"humidity\":\"percent\","
+           "\"light\":\"lux\""
+           "}"
+           "}",
+           now, temperature, humidity, light);
+
+  publishMessage(MQTT_TOPIC_SENSORS, sensorMsg);
+
+  indicators.blinkLED(3, 3, 200); // Blink LED1 3 times
+
+  lastMqttMessage = now;
+
+  int32_t sample = mic.readSample();
+  Serial.println("Published sensor data:");
+  Serial.println(sample);
 }

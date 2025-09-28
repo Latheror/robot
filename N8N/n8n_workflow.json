@@ -9,8 +9,8 @@
       "type": "n8n-nodes-base.mqttTrigger",
       "typeVersion": 1,
       "position": [
-        -200,
-        -500
+        -260,
+        -520
       ],
       "id": "a695b143-c998-4313-b2e1-78c11c9839ce",
       "notesInFlow": true,
@@ -30,8 +30,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.9,
       "position": [
-        300,
-        -500
+        560,
+        -540
       ],
       "id": "f8eb8a64-a9de-4d17-9914-48bf7606c51e",
       "name": "AI Agent"
@@ -44,8 +44,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
       "position": [
-        300,
-        -300
+        560,
+        -320
       ],
       "id": "95505815-39f7-4fab-98e3-17dc8dcd32e5",
       "name": "Ollama Chat Model",
@@ -58,16 +58,123 @@
     },
     {
       "parameters": {
+        "jsCode": "// Get the incoming sensor message\nconst rawMessage = $input.first().json.message;\n\nif (!rawMessage) {\n  return [];\n}\n\n// Parse the incoming JSON\nlet mqttMessage;\ntry {\n  mqttMessage = JSON.parse(rawMessage);\n} catch (error) {\n  console.error(\"Failed to parse MQTT message:\", error);\n  return [];\n}\n\n// Here you define logic to convert sensor values into servo angles\n// For demonstration, we'll just map temperature/humidity/light to some angles\nconst servos = {\n  //root: Math.min(Math.max(Math.round(mqttMessage.sensors.temperature), 0), 180),\n  //root: Math.floor(Math.random() * 180),\n  arm_a1: Math.min(Math.max(Math.round(mqttMessage.sensors.humidity), 0), 180),\n  arm_b: Math.floor(Math.random() * 180),\n  wrist_a: Math.floor(Math.random() * 180),\n  wrist_b: Math.floor(Math.random() * 180),\n  gripper: Math.floor(Math.random() * 180)\n};\n\n// Build the command JSON\nconst commandMessage = {\n  servos\n};\n\n// Output as JSON to feed into MQTT Publish node\nreturn [\n  {\n    json: commandMessage\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        -180
+      ],
+      "id": "211ba92c-47ab-48a5-bad7-692dd063165c",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "topic": "robot/1/commands",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -180
+      ],
+      "id": "cd9a4ec4-0f10-40f3-bd40-604c0bb8a8c0",
+      "name": "MQTT",
+      "credentials": {
+        "mqtt": {
+          "id": "QNkEkFR5XkAgbE0j",
+          "name": "MQTT account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:8000/synthesize?text={{ $json[\"text\"] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        -720
+      ],
+      "id": "4f76c218-85ff-41c7-9200-9e39d6200227",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      text: \"Bonjour, ceci est un test\"\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        -720
+      ],
+      "id": "4c738c8a-c68e-49dc-bd36-ae16a691b118",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
         "jsCode": "// Get the raw message string\nconst rawMessage = $input.first().json.message;\n\n// Log for debugging\nconsole.log(\"rawMessage:\", rawMessage);\n\nif (!rawMessage) {\n  // If no message, return empty\n  return [];\n}\n\n// Parse the JSON string into an object\nlet mqttMessage;\ntry {\n  mqttMessage = JSON.parse(rawMessage);\n} catch (error) {\n  console.error(\"Failed to parse MQTT message:\", error);\n  return [];\n}\n\n// Retrieve sensor values\nconst sensors = mqttMessage.sensors;\nconst units = mqttMessage.units;\nconst topic = $input.first().json.topic;\n\n// Format the text for the LLM\nconst formattedText = `\nReceived data from topic \"${topic}\":\n- Temperature: ${sensors.temperature} ${units.temperature}\n- Humidity: ${sensors.humidity} ${units.humidity}\n- Light: ${sensors.light} ${units.light}\nTimestamp: ${mqttMessage.timestamp}\n\nPlease analyze this data and provide insights or alerts if necessary.\n`;\n\nreturn [\n  {\n    json: {\n      text: formattedText\n    }\n  }\n];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         40,
-        -500
+        -540
       ],
       "id": "100dcfa0-70dc-4505-b84d-addb29c02263",
-      "name": "Code"
+      "name": "Code",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      text: \"Génère un texte court en français (maximum 10 mots). Ne réponds QUE ce texte final\"\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        -360
+      ],
+      "id": "aab6466d-f876-4d3f-a663-72e2097ae779",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n    // Access the binary data from the HTTP Request node\n    const binaryItem = item.binary?.data;\n    if (!binaryItem) {\n        return {};\n    }\n\n    // Convert to Base64\n    const wavBase64 = binaryItem.data.toString('base64');\n\n    return {\n        json: {\n            topic: \"robot/1/audio\",\n            message: wavBase64\n        }\n    };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        -720
+      ],
+      "id": "789b47be-3daf-4218-b184-ef7806b6cbdb",
+      "name": "Code4"
+    },
+    {
+      "parameters": {
+        "topic": "robot/1/audio",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        720,
+        -720
+      ],
+      "id": "615ef5b7-1d33-4ca2-a854-1268b2ee32a0",
+      "name": "MQTT1",
+      "credentials": {
+        "mqtt": {
+          "id": "QNkEkFR5XkAgbE0j",
+          "name": "MQTT account"
+        }
+      }
     }
   ],
   "connections": {
@@ -75,7 +182,17 @@
       "main": [
         [
           {
-            "node": "Code",
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code3",
             "type": "main",
             "index": 0
           }
@@ -93,6 +210,39 @@
         ]
       ]
     },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "MQTT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Code": {
       "main": [
         [
@@ -103,18 +253,32 @@
           }
         ]
       ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code4": {
+      "main": [
+        [
+          {
+            "node": "MQTT1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "pinData": {
-    "MQTT Trigger": [
-      {
-        "message": "{\"timestamp\":420084,\"sensors\":{\"temperature\":22.22,\"humidity\":48.1,\"light\":931},\"units\":{\"temperature\":\"celsius\",\"humidity\":\"percent\",\"light\":\"lux\"}}",
-        "topic": "robot/1/sensors"
-      }
-    ]
-  },
+  "pinData": {},
   "meta": {
-    "templateCredsSetupCompleted": true,
     "instanceId": "519cb7ee30052a2c1ee684a37d1b04074cd4dfcad920cd1a733487297c2c389c"
   }
 }

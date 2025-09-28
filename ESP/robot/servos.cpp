@@ -10,8 +10,8 @@ static float speedFactors[NUM_JOINTS]  = {1.0, 0.5, 0.5, 0.7, 0.7, 1.0};
 
 // Fixed min/max angle limits per joint
 // (tune these values to the robot’s safe ranges)
-static const float minAngles[NUM_JOINTS] = {0, 0, 0, 0, 0, 0};
-static const float maxAngles[NUM_JOINTS] = {180, 180, 180, 180, 180, 180};
+static const float minAngles[NUM_JOINTS] = {70, 70, 0, 0, 0, 0};
+static const float maxAngles[NUM_JOINTS] = {110, 110, 180, 180, 180, 180};
 
 void initServos() {
     pwm.begin();
@@ -19,6 +19,12 @@ void initServos() {
 }
 
 void setTargetAngle(uint8_t servoIndex, float angle) {
+
+    Serial.print("Set target angle for servo ");
+    Serial.print(servoIndex);
+    Serial.print(": ");
+    Serial.println(angle);
+
     if (servoIndex < NUM_JOINTS) {
         // Clamp between fixed limits
         if (angle < minAngles[servoIndex]) angle = minAngles[servoIndex];

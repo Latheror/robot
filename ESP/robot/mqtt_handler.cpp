@@ -6,6 +6,7 @@
 #include "mqtt_handler.h"
 #include "settings.h"
 #include "servos.h"   // For setTargetAngle()
+#include "mbedtls/base64.h"
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
@@ -142,17 +143,27 @@ void handleAudioMessage(const char* message) {
     }
 
     const char* base64Audio = doc["message"];
-    size_t decodedLength = Base64.decodedLength(base64Audio);
-    uint8_t* audioBuffer = new uint8_t[decodedLength];
 
-    Base64.decode(audioBuffer, base64Audio, strlen(base64Audio));
+    // Calculate decoded length
+    size_t outputLen = 0;
+    if (mbedtls_base64_decode(NULL, 0, &outputLen, (const unsigned char*)base64Audio, strlen(base64Audio)) != MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL) {
+        Serial.println("[MQTT] Failed to calculate decoded length");
+        return;
+    }
+
+    // Allocate buffer and decode
+    uint8_t* audioBuffer = new uint8_t[outputLen];
+    if (mbedtls_base64_decode(audioBuffer, outputLen, &outputLen, (const unsigned char*)base64Audio, strlen(base64Audio)) != 0) {
+        Serial.println("[MQTT] Base64 decode failed");
+        delete[] audioBuffer;
+        return;
+    }
 
     // Play audio via I2S/DAC
-    AudioPlayer.playWAV(audioBuffer, decodedLength);
+    // AudioPlayer.playWAV(audioBuffer, outputLen);
 
     delete[] audioBuffer;
-
-    Serial.println("[MQTT] Audio played successfully");
+    Serial.println("[MQTT] Audio decoded and ready to play");
 }
 
 /**

@@ -74,13 +74,43 @@
     {
       "label": "[CHATTERBOX] Generate example",
       "type": "shell",
-      "command": "py TextToSpeech/chatterbox/chatterbox_run.py",
+      "command": "py TextToSpeech/chatterbox/chatterbox_run_example.py",
+      "args": [],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "[CHATTERBOX] Generate voice from text",
+      "type": "shell",
+      "command": "py",
       "args": [
+        "TextToSpeech/chatterbox/chatterbox_run.py",
+        "--text",
+        "Bonjour, je suis Margot le robot !",
+        "--output",
+        "demo_output.wav"
       ],
       "group": "test",
       "presentation": {
         "reveal": "always"
       }
     },
+    {
+      "label": "[CHATTERBOX] Launch container",
+      "type": "shell",
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "TextToSpeech/docker-compose.yml",
+        "up",
+        "--build"
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    }
   ]
 }

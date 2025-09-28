@@ -1,0 +1,8 @@
+soundfile
+fastapi
+uvicorn
+safetensors
+huggingface-hub
+chatterbox-tts
+pkuseg
+gradio

@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  python-api:
+    build: ./fastapi
+    ports:
+      - "8000:8000"   # host 8000 → container 8000
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2'

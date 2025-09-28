@@ -50,13 +50,20 @@ void Speaker::i2sInit() {
     i2s_set_pin(I2S_NUM, &pin_config);
 }
 
-void Speaker::playTone(float frequency, int durationMs) {
+void Speaker::playTone(float frequency, int durationMs, float volume) {
+    if (volume < 0.0f) volume = 0.0f;
+    if (volume > 1.0f) volume = 1.0f;
+
     int sampleCount = (SAMPLE_RATE * durationMs) / 1000;
     int16_t buffer[256];
     int index = 0;
 
+    // Amplitude maximale d'un int16_t
+    const int16_t maxAmplitude = 32767;
+
     for (int i = 0; i < sampleCount; i++) {
-        buffer[index++] = (int16_t)(sin(2 * PI * frequency * i / SAMPLE_RATE) * 30000); // amplitude
+        float sample = sinf(2 * PI * frequency * i / SAMPLE_RATE);
+        buffer[index++] = (int16_t)(sample * maxAmplitude * volume);
         if (index == 256) {
             size_t bytesWritten;
             i2s_write(I2S_NUM, buffer, sizeof(buffer), &bytesWritten, portMAX_DELAY);
@@ -71,12 +78,11 @@ void Speaker::playTone(float frequency, int durationMs) {
 }
 
 void Speaker::playExampleSound() {
-    // Simple 3-note melody
-    playTone(440.0, 300);  // A4
+    playTone(440.0, 300, 0.1f);  // A4
     delay(50);
-    playTone(660.0, 300);  // E5
+    playTone(660.0, 300, 0.1f);  // E5
     delay(50);
-    playTone(880.0, 500);  // A5
+    playTone(880.0, 500, 0.1f);  // A5
     delay(200);
 }
 
@@ -104,6 +110,7 @@ void Speaker::playWav(const char* path) {
 }
 
 void Speaker::listFiles() {
+    
     const char* files[] = {"/1212.wav"};
     Serial.println("Listing files:");
     for(int i = 0; i < sizeof(files)/sizeof(files[0]); i++){

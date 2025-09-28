@@ -74,12 +74,6 @@ void loop()
     lastEyesUpdate = now;
   }
 
-  // --- Servo handling: receive new target angles from Serial ---
-  for (int i = 0; i < NUM_JOINTS; i++)
-  {
-    setTargetAngle(i, Serial.parseInt());
-  }
-
   // Update servo positions smoothly
   updateServos();
 

@@ -186,7 +186,7 @@ void decodeAndPlayChunks() {
 /**
  * MQTT reconnect
  */
-void reconnectMQTT() {
+bool reconnectMQTT() {
     int attempts = 0;
     while (!mqttClient.connected() && attempts < 3) {
         Serial.println("[MQTT] Attempting to connect...");

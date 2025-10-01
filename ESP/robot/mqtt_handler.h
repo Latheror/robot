@@ -6,7 +6,7 @@
 
 // Function declarations
 bool setupMQTT();
-void reconnectMQTT();
+bool reconnectMQTT();
 void handleMQTT();
 bool publishMessage(const char* topic, const char* message);
 

@@ -1,11 +1,23 @@
 #include "INMP441.h"
 
-INMP441::INMP441(int sampleRate) {
-    _sampleRate = sampleRate;
-    memset(_samples, 0, sizeof(_samples));
-}
+INMP441::INMP441(int sampleRate) : _sampleRate(sampleRate) {}
 
 bool INMP441::begin() {
+    // Configure I2S interface
+    if (!configureI2S()) {
+        return false;
+    }
+
+    // Setup activity LED
+    pinMode(PinConfig::VOICE_ACTIVITY_LED, OUTPUT);
+    digitalWrite(PinConfig::VOICE_ACTIVITY_LED, LOW);
+
+    Serial.println("[MIC] INMP441 initialized successfully");
+    return true;
+}
+
+bool INMP441::configureI2S() const {
+    // I2S configuration
     i2s_config_t i2s_config = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
         .sample_rate = _sampleRate,
@@ -20,32 +32,52 @@ bool INMP441::begin() {
         .fixed_mclk = 0
     };
 
+    // Pin configuration
     i2s_pin_config_t pin_config = {
-        .bck_io_num = _pinBCLK,
-        .ws_io_num = _pinLRCL,
+        .bck_io_num = PinConfig::I2S_SCK,
+        .ws_io_num = PinConfig::I2S_WS,
         .data_out_num = I2S_PIN_NO_CHANGE,
-        .data_in_num = _pinDOUT
+        .data_in_num = PinConfig::I2S_SD
     };
 
-    esp_err_t err;
-    err = i2s_driver_install(_i2sPort, &i2s_config, 0, NULL);
-    if (err != ESP_OK) {
-        Serial.println("I2S installation error!");
+    // Initialize I2S
+    if (i2s_driver_install(_i2sPort, &i2s_config, 0, NULL) != ESP_OK) {
+        Serial.println("[MIC] I2S driver installation failed");
         return false;
     }
 
-    err = i2s_set_pin(_i2sPort, &pin_config);
-    if (err != ESP_OK) {
-        Serial.println("I2S pin configuration error!");
+    if (i2s_set_pin(_i2sPort, &pin_config) != ESP_OK) {
+        Serial.println("[MIC] I2S pin configuration failed");
         return false;
     }
 
-    // Configure sound detection LED
-    pinMode(SOUND_ACTIVITY_LED_PIN, OUTPUT);
-    digitalWrite(SOUND_ACTIVITY_LED_PIN, LOW);
-
-    Serial.println("INMP441 initialized successfully!");
     return true;
+}
+
+void INMP441::update() {
+    unsigned long currentTime = millis();
+    if (currentTime - _lastUpdate >= UPDATE_INTERVAL) {
+        _lastUpdate = currentTime;
+        
+        // Process new sample
+        int32_t rawSample = readSample();
+        _samples[_sampleIndex] = abs(rawSample);
+        _sampleIndex = (_sampleIndex + 1) % AudioConfig::AVERAGING_SAMPLES;
+
+        // Update volume and LED
+        calculateVolume();
+        digitalWrite(PinConfig::VOICE_ACTIVITY_LED, isVolumeAboveThreshold() ? HIGH : LOW);
+
+        // Debug output
+        if (currentTime - _lastDebugPrint >= DEBUG_INTERVAL) {
+            _lastDebugPrint = currentTime;
+            Serial.printf("[MIC] Raw: %d, Vol: %.2f, Thresh: %d, Active: %s\n", 
+                         rawSample, 
+                         _currentVolume, 
+                         AudioConfig::VOLUME_THRESHOLD,
+                         isVolumeAboveThreshold() ? "Yes" : "No");
+        }
+    }
 }
 
 int32_t INMP441::readSample() {
@@ -55,50 +87,18 @@ int32_t INMP441::readSample() {
     return sample;
 }
 
-void INMP441::update() {
-    unsigned long currentTime = millis();
-    if (currentTime - _lastUpdate >= UPDATE_INTERVAL) {
-        _lastUpdate = currentTime;
-        
-        // Add new sample
-        int32_t rawSample = readSample();
-        _samples[_sampleIndex] = abs(rawSample);
-        _sampleIndex = (_sampleIndex + 1) % SOUND_AVERAGING_SAMPLES;
-
-        // Calculate new volume
-        calculateVolume();
-
-        // Update LED
-        bool isAboveThreshold = isVolumeAboveThreshold();
-        digitalWrite(SOUND_ACTIVITY_LED_PIN, isAboveThreshold ? HIGH : LOW);
-
-        // Print debug information periodically
-        if (currentTime - _lastDebugPrint >= DEBUG_INTERVAL) {
-            _lastDebugPrint = currentTime;
-            Serial.printf("Sound Debug - Raw: %d, Volume: %.2f, Threshold: %d, LED: %s\n", 
-                         rawSample, 
-                         _currentVolume, 
-                         SOUND_THRESHOLD,
-                         isAboveThreshold ? "ON" : "OFF");
-            Serial.printf("LED Pin: %d, Pin State: %d\n", 
-                         SOUND_ACTIVITY_LED_PIN, 
-                         digitalRead(SOUND_ACTIVITY_LED_PIN));
-        }
-    }
-}
-
 void INMP441::calculateVolume() {
-    float sum = 0;
-    for (int i = 0; i < SOUND_AVERAGING_SAMPLES; i++) {
-        sum += _samples[i];
+    float sum = 0.0f;
+    for (const auto& sample : _samples) {
+        sum += sample;
     }
-    _currentVolume = sum / SOUND_AVERAGING_SAMPLES;
+    _currentVolume = sum / AudioConfig::AVERAGING_SAMPLES;
 }
 
-float INMP441::getVolume() {
+float INMP441::getVolume() const {
     return _currentVolume;
 }
 
-bool INMP441::isVolumeAboveThreshold() {
-    return _currentVolume > SOUND_THRESHOLD;
+bool INMP441::isVolumeAboveThreshold() const {
+    return _currentVolume > AudioConfig::VOLUME_THRESHOLD;
 }

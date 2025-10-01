@@ -7,32 +7,43 @@
 
 class INMP441 {
 public:
-    INMP441(int sampleRate = AUDIO_SAMPLING_RATE);
+    // Microphone configuration
+    static constexpr int DEFAULT_SAMPLE_RATE = 44100;
+    static constexpr int AVERAGING_SAMPLES = 64;
 
+    // Constructor with default sample rate
+    explicit INMP441(int sampleRate = DEFAULT_SAMPLE_RATE);
+    
+    // Initialize the microphone
     bool begin();
-    int32_t readSample();
-    float getVolume();          // Returns the current volume level
-    bool isVolumeAboveThreshold(); // Checks if volume is above threshold
-    void update();             // Updates volume measurements
+    
+    // Update volume measurements and LED status
+    void update();
+    
+    // Get current audio metrics
+    int32_t readSample();                // Read raw audio sample
+    float getVolume() const;             // Get current volume level
+    bool isVolumeAboveThreshold() const; // Check if volume exceeds threshold
 
 private:
-    int _sampleRate;
-    int32_t _samples[SOUND_AVERAGING_SAMPLES];
+    // Configuration
+    const int _sampleRate;
+    const i2s_port_t _i2sPort = I2S_NUM_1;
+    
+    // Audio processing
+    int32_t _samples[AVERAGING_SAMPLES] = {0};
     int _sampleIndex = 0;
-    float _currentVolume = 0;
+    float _currentVolume = 0.0f;
+    
+    // Timing
     unsigned long _lastUpdate = 0;
     unsigned long _lastDebugPrint = 0;
-    static const unsigned long UPDATE_INTERVAL = 50;   // 50ms between updates
-    static const unsigned long DEBUG_INTERVAL = 1000;  // Print debug info every 1000ms
-
-    // Pins for ESP32-S3
-    static const int _pinBCLK = 37;  // BCLK / SCK
-    static const int _pinLRCL = 36;  // LRCL / WS
-    static const int _pinDOUT = 38;  // SD / Data
-
-    i2s_port_t _i2sPort = I2S_NUM_1; // Use I2S0 port
-
+    static constexpr unsigned long UPDATE_INTERVAL = 50;    // ms
+    static constexpr unsigned long DEBUG_INTERVAL = 1000;   // ms
+    
+    // Internal methods
     void calculateVolume();
+    bool configureI2S() const;
 };
 
-#endif
+#endif // INMP441_H

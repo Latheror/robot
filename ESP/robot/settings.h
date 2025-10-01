@@ -1,21 +1,44 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-// WiFi settings
-static const char* ssid = "Roro3";
-static const char* password = "rorororo";
+// Network Configuration
+struct NetworkConfig {
+    // WiFi Settings
+    static const char* WIFI_SSID;          // Defined in settings.cpp
+    static const char* WIFI_PASSWORD;      // Defined in settings.cpp
 
-// MQTT Broker settings
-static const char* mqtt_broker = "192.168.246.21";  // Your PC's IP address
-static const int mqtt_port = 1883;                 // Default MQTT port
-static const char* mqtt_client_id = "ESP32-Robot";  // Client ID for MQTT connection
+    // MQTT Settings
+    static const char* MQTT_BROKER;        // Defined in settings.cpp
+    static const int MQTT_PORT;            // Defined in settings.cpp
+    static const char* MQTT_CLIENT_ID;     // Defined in settings.cpp
+};
 
-// Audio settings
-static const int AUDIO_SAMPLING_RATE = 44100;
-static const int SOUND_THRESHOLD = 1000;      // Sound detection threshold (adjust based on testing)
-static const int SOUND_AVERAGING_SAMPLES = 64; // Number of samples for moving average
+// Audio Configuration
+struct AudioConfig {
+    static const int SAMPLING_RATE = 44100;      // Audio sampling rate (Hz)
+    static const int VOLUME_THRESHOLD = 1000;    // Voice detection threshold
+    static const int AVERAGING_SAMPLES = 64;     // Samples for moving average
+};
 
-// Hardware pins
-static const int SOUND_ACTIVITY_LED_PIN = 7;  // LED pin for sound activity indicator
+// Hardware Configuration
+struct PinConfig {
+    // I2S Pins (INMP441 Microphone)
+    static const int I2S_SCK = 37;    // Serial Clock (BCLK)
+    static const int I2S_WS = 36;     // Word Select (LRCL)
+    static const int I2S_SD = 38;     // Serial Data
+    
+    // Indicator LEDs
+    static const int VOICE_ACTIVITY_LED = 7;  // Voice detection indicator
+
+    // Display Pins (if using I2C OLED)
+    static const int DISPLAY_SDA = 21;  // I2C Data
+    static const int DISPLAY_SCL = 22;  // I2C Clock
+};
+
+// System Constants
+struct SystemConfig {
+    static const int SERIAL_BAUD_RATE = 115200;
+    static const int MQTT_BUFFER_SIZE = 50000;  // MQTT message buffer size
+};
 
 #endif // SETTINGS_H

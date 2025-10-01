@@ -3,27 +3,61 @@
 
 #include <Arduino.h>
 #include <Adafruit_PWMServoDriver.h>
+#include <array>
 
-// --- Servo channel definitions ---
-#define SERVO_ROOT    0
-#define SERVO_ARM_A1  1
-#define SERVO_ARM_A2  2   // mirrored from A1
-#define SERVO_ARM_B   3
-#define SERVO_WRIST_A 4
-#define SERVO_WRIST_B 5
-#define SERVO_GRIPPER 6
+// Robot joint configuration
+enum class Joint {
+    ROOT = 0,
+    ARM_A1,    // Left arm
+    ARM_A2,    // Right arm (mirrors A1)
+    ARM_B,     // Common arm segment
+    WRIST_A,   // Wrist rotation
+    WRIST_B,   // Wrist tilt
+    GRIPPER,   // End effector
+    COUNT      // Total number of joints
+};
 
-#define SERVOMIN 150
-#define SERVOMAX 600
+class ServoController {
+public:
+    // Initialize the servo controller
+    static bool begin();
+    
+    // Update servo positions (call in main loop)
+    static void update();
+    
+    // Control methods
+    static void setTargetAngle(Joint joint, float angle);
+    static void setSpeed(Joint joint, float speed);
+    
+    // Status methods
+    static float getCurrentAngle(Joint joint);
+    static bool isMoving(Joint joint);
+    static bool atTarget(Joint joint);
 
-// Number of independent servos (A2 mirrors A1)
-#define NUM_JOINTS 6
+private:
+    static constexpr uint16_t PWM_MIN = 150;    // Minimum PWM value (0 degrees)
+    static constexpr uint16_t PWM_MAX = 600;    // Maximum PWM value (180 degrees)
+    static constexpr uint8_t PWM_FREQ = 50;     // Standard servo frequency (Hz)
+    
+    // Joint limits and configuration
+    struct JointConfig {
+        float minAngle;     // Minimum allowed angle
+        float maxAngle;     // Maximum allowed angle
+        float defaultSpeed; // Default movement speed
+        bool isReversed;   // Whether servo is mounted in reverse
+    };
+    
+    static const std::array<JointConfig, static_cast<size_t>(Joint::COUNT)> JOINT_CONFIGS;
+    
+    // Current state
+    static std::array<float, static_cast<size_t>(Joint::COUNT)> currentAngles;
+    static std::array<float, static_cast<size_t>(Joint::COUNT)> targetAngles;
+    static std::array<float, static_cast<size_t>(Joint::COUNT)> speeds;
+    
+    // Helper methods
+    static uint16_t angleToPWM(float angle);
+    static bool isValidJoint(Joint joint);
+    static void updateJoint(Joint joint);
+};
 
-// --- Public API ---
-void initServos();
-void updateServos();
-void setTargetAngle(uint8_t servoIndex, float angle);
-float getCurrentAngle(uint8_t servoIndex);
-void setServoSpeed(uint8_t servoIndex, float speed);
-
-#endif
+#endif // SERVOS_H

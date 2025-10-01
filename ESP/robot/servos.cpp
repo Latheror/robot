@@ -1,71 +1,105 @@
 #include "servos.h"
+#include <algorithm>
 
-// PCA9685 driver instance
+// Static member initialization
 static Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
-// Servo state arrays
-static float currentAngles[NUM_JOINTS] = {90, 90, 90, 90, 90, 90};
-static float targetAngles[NUM_JOINTS]  = {90, 90, 90, 90, 90, 90};
-static float speedFactors[NUM_JOINTS]  = {0.1, 0.1, 0.5, 0.7, 0.7, 1.0};
+// Initialize static members with default values
+std::array<float, static_cast<size_t>(Joint::COUNT)> ServoController::currentAngles = {90, 90, 90, 90, 90, 90, 90};
+std::array<float, static_cast<size_t>(Joint::COUNT)> ServoController::targetAngles = {90, 90, 90, 90, 90, 90, 90};
+std::array<float, static_cast<size_t>(Joint::COUNT)> ServoController::speeds = {0.1, 0.1, 0.1, 0.5, 0.7, 0.7, 1.0};
 
-// Fixed min/max angle limits per joint
-// (tune these values to the robot’s safe ranges)
-static const float minAngles[NUM_JOINTS] = {70, 80, 80, 0, 0, 80};
-static const float maxAngles[NUM_JOINTS] = {110, 100, 100, 180, 180, 100};
+// Joint configuration data
+const std::array<ServoController::JointConfig, static_cast<size_t>(Joint::COUNT)> ServoController::JOINT_CONFIGS = {{
+    {70,  110, 0.1, false}, // ROOT
+    {80,  100, 0.1, false}, // ARM_A1
+    {80,  100, 0.1, true},  // ARM_A2 (mirrored)
+    {80,  100, 0.5, false}, // ARM_B
+    {0,   180, 0.7, false}, // WRIST_A
+    {0,   180, 0.7, false}, // WRIST_B
+    {80,  100, 1.0, false}  // GRIPPER
+}};
 
-void initServos() {
+bool ServoController::begin() {
     pwm.begin();
-    pwm.setPWMFreq(50); // Standard servo frequency
-}
-
-void setTargetAngle(uint8_t servoIndex, float angle) {
-
-    Serial.print("Set target angle for servo ");
-    Serial.print(servoIndex);
-    Serial.print(": ");
-    Serial.println(angle);
-
-    if (servoIndex < NUM_JOINTS) {
-        // Clamp between fixed limits
-        if (angle < minAngles[servoIndex]) angle = minAngles[servoIndex];
-        if (angle > maxAngles[servoIndex]) angle = maxAngles[servoIndex];
-        targetAngles[servoIndex] = angle;
+    pwm.setPWMFreq(PWM_FREQ);
+    
+    // Initialize all servos to their current positions
+    for (size_t i = 0; i < static_cast<size_t>(Joint::COUNT); i++) {
+        updateJoint(static_cast<Joint>(i));
     }
+    
+    return true;
 }
 
-float getCurrentAngle(uint8_t servoIndex) {
-    if (servoIndex < NUM_JOINTS) {
-        return currentAngles[servoIndex];
-    }
-    return -1; // invalid index
-}
-
-void setServoSpeed(uint8_t servoIndex, float speed) {
-    if (servoIndex < NUM_JOINTS && speed > 0) {
-        speedFactors[servoIndex] = speed;
-    }
-}
-
-void updateServos() {
-    // Smooth interpolation for joints
-    for (int i = 0; i < NUM_JOINTS; i++) {
-        if (fabs(targetAngles[i] - currentAngles[i]) > 0.01) {
-            if (currentAngles[i] < targetAngles[i]) {
-                currentAngles[i] += speedFactors[i];
-                if (currentAngles[i] > targetAngles[i]) currentAngles[i] = targetAngles[i];
-            } else {
-                currentAngles[i] -= speedFactors[i];
-                if (currentAngles[i] < targetAngles[i]) currentAngles[i] = targetAngles[i];
-            }
+void ServoController::update() {
+    for (size_t i = 0; i < static_cast<size_t>(Joint::COUNT); i++) {
+        Joint joint = static_cast<Joint>(i);
+        if (!atTarget(joint)) {
+            updateJoint(joint);
         }
     }
+}
 
-    // Apply PWM to all physical servos
-    pwm.setPWM(SERVO_ROOT,    0, map(currentAngles[0], 0, 180, SERVOMIN, SERVOMAX));
-    pwm.setPWM(SERVO_ARM_A1,  0, map(currentAngles[1], 0, 180, SERVOMIN, SERVOMAX));
-    pwm.setPWM(SERVO_ARM_A2,  0, map(180 - currentAngles[1], 0, 180, SERVOMIN, SERVOMAX)); // miroir
-    pwm.setPWM(SERVO_ARM_B,   0, map(currentAngles[2], 0, 180, SERVOMIN, SERVOMAX));
-    pwm.setPWM(SERVO_WRIST_A, 0, map(currentAngles[3], 0, 180, SERVOMIN, SERVOMAX));
-    pwm.setPWM(SERVO_WRIST_B, 0, map(currentAngles[4], 0, 180, SERVOMIN, SERVOMAX));
-    pwm.setPWM(SERVO_GRIPPER, 0, map(currentAngles[5], 0, 180, SERVOMIN, SERVOMAX));
+void ServoController::setTargetAngle(Joint joint, float angle) {
+    if (!isValidJoint(joint)) return;
+    
+    size_t idx = static_cast<size_t>(joint);
+    const auto& config = JOINT_CONFIGS[idx];
+    
+    // Clamp angle to valid range
+    angle = std::clamp(angle, config.minAngle, config.maxAngle);
+    targetAngles[idx] = angle;
+    
+    Serial.printf("[SERVO] Joint %d target: %.1f°\n", idx, angle);
+}
+
+void ServoController::setSpeed(Joint joint, float speed) {
+    if (isValidJoint(joint) && speed > 0) {
+        speeds[static_cast<size_t>(joint)] = speed;
+    }
+}
+
+float ServoController::getCurrentAngle(Joint joint) {
+    return isValidJoint(joint) ? currentAngles[static_cast<size_t>(joint)] : -1;
+}
+
+bool ServoController::isMoving(Joint joint) {
+    return !atTarget(joint);
+}
+
+bool ServoController::atTarget(Joint joint) {
+    if (!isValidJoint(joint)) return true;
+    size_t idx = static_cast<size_t>(joint);
+    return fabs(targetAngles[idx] - currentAngles[idx]) <= 0.01;
+}
+
+uint16_t ServoController::angleToPWM(float angle) {
+    return map(angle, 0, 180, PWM_MIN, PWM_MAX);
+}
+
+bool ServoController::isValidJoint(Joint joint) {
+    return static_cast<size_t>(joint) < static_cast<size_t>(Joint::COUNT);
+}
+
+void ServoController::updateJoint(Joint joint) {
+    size_t idx = static_cast<size_t>(joint);
+    const auto& config = JOINT_CONFIGS[idx];
+    
+    // Update position with smooth interpolation
+    float error = targetAngles[idx] - currentAngles[idx];
+    if (fabs(error) > 0.01) {
+        float step = speeds[idx] * (error > 0 ? 1 : -1);
+        currentAngles[idx] += step;
+        
+        // Ensure we don't overshoot
+        if ((step > 0 && currentAngles[idx] > targetAngles[idx]) ||
+            (step < 0 && currentAngles[idx] < targetAngles[idx])) {
+            currentAngles[idx] = targetAngles[idx];
+        }
+        
+        // Apply to hardware
+        float angle = config.isReversed ? (180 - currentAngles[idx]) : currentAngles[idx];
+        pwm.setPWM(idx, 0, angleToPWM(angle));
+    }
 }

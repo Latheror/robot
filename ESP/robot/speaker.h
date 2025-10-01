@@ -2,72 +2,73 @@
 #define SPEAKER_H
 
 #include <Arduino.h>
+#include <driver/i2s.h>
+#include "FS.h"
 
-/// <summary>
-/// Speaker class handles audio playback via I2S on ESP32,
-/// including tones, WAV files from LittleFS, and streaming buffers.
-/// </summary>
+/**
+ * Handles audio playback via I2S on ESP32.
+ * Supports tones, WAV files, and streaming audio.
+ */
 class Speaker {
 public:
-    /// <summary>
-    /// Constructor
-    /// </summary>
-    Speaker();
+    // Audio configuration
+    struct AudioConfig {
+        uint32_t sampleRate;
+        uint8_t bitsPerSample;
+        uint8_t dmaBufCount;
+        uint8_t dmaBufLen;
+        
+        AudioConfig() :
+            sampleRate(24000),
+            bitsPerSample(16),
+            dmaBufCount(8),
+            dmaBufLen(64)
+        {}
+    };
 
-    /// <summary>
-    /// Initialize I2S and mount LittleFS
-    /// </summary>
-    void init();
-
-    /// <summary>
-    /// Play a sine wave tone
-    /// </summary>
-    /// <param name="frequency">Frequency in Hz</param>
-    /// <param name="durationMs">Duration in milliseconds</param>
-    /// <param name="volume">Volume (0.0 to 1.0)</param>
-    void playTone(float frequency, int durationMs, float volume);
-
-    /// <summary>
-    /// Play a short example melody
-    /// </summary>
-    void playExampleSound();
-
-    /// <summary>
-    /// Play a WAV file from LittleFS
-    /// </summary>
-    /// <param name="path">Path to the WAV file</param>
-    void playWav(const char* path);
-
-    /// <summary>
-    /// List files in LittleFS
-    /// </summary>
-    void listFiles();
-
-    /// <summary>
-    /// Play a buffer containing WAV audio
-    /// </summary>
-    /// <param name="buffer">Pointer to audio buffer</param>
-    /// <param name="len">Buffer length in bytes</param>
-    void playWavFromBuffer(uint8_t* buffer, size_t len);
-
-    /// <summary>
-    /// Play a chunk of WAV audio via I2S.
-    /// Useful for streaming audio in smaller pieces.
-    /// </summary>
-    /// <param name="buffer">Pointer to chunk buffer</param>
-    /// <param name="len">Length of chunk in bytes</param>
-    void playWavChunk(const uint8_t* buffer, size_t len);
+    // Initialize and configure the speaker
+    bool begin(const AudioConfig& config = AudioConfig());
+    
+    // Audio playback methods
+    bool playTone(float frequency, uint32_t durationMs, float volume = 1.0f);
+    bool playWav(const char* path, bool skipHeader = true);
+    bool playBuffer(const uint8_t* buffer, size_t length);
+    bool playChunk(const uint8_t* chunk, size_t length);
+    
+    // Utility methods
+    void stop();
+    bool isPlaying() const;
+    
+    // Example methods
+    void playExampleSound() {
+        playTone(440, 500);  // Play A4 note for 500ms
+    }
+    
+    // File system methods
+    static bool checkFile(const char* path);
+    static void listFiles(const char* directory = "/");
 
 private:
-    // Internal pin definitions
-    static const int BCLK_PIN = 1;   // Bit clock pin
-    static const int LRCK_PIN = 2;   // Word select / left-right clock pin
-    static const int DATA_PIN = 3;   // Data pin
+    // Hardware configuration
+    static constexpr uint8_t BCLK_PIN = 1;  // Bit clock
+    static constexpr uint8_t WS_PIN = 2;    // Word select
+    static constexpr uint8_t DATA_PIN = 3;  // Data out
+    
+    // Internal state
+    bool _initialized = false;
+    bool _playing = false;
+    AudioConfig _config;
+    i2s_port_t _i2sPort = I2S_NUM_0;
 
-    /// <summary>
-    /// Initialize I2S driver with pins and configuration
-    /// </summary>
-    void i2sInit();
+    // Internal methods
+    bool initI2S();
+    bool initFileSystem();
+    size_t writeSamples(const void* buffer, size_t bytes);
+    
+    // Tone generation
+    static void generateTone(float frequency, float volume, 
+                           int16_t* buffer, size_t samples,
+                           uint32_t sampleRate);
 };
 
-#endif
+#endif // SPEAKER_H

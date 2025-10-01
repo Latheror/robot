@@ -1,183 +1,211 @@
 #include "Speaker.h"
-#include <driver/i2s.h>
-#include <math.h>
-#include "FS.h"
 #include <LittleFS.h>
+#include <math.h>
 
-#define SAMPLE_RATE 24000
-#define I2S_NUM I2S_NUM_0
-
-/**
- * @brief Constructor for the Speaker class.
- *        All initialization is done in init().
- */
-Speaker::Speaker() {
-    // Empty constructor
-}
-
-/**
- * @brief Initialize the speaker system and mount LittleFS.
- */
-void Speaker::init() {
-    // Mount LittleFS filesystem
-    if (!LittleFS.begin(true)) {
-        Serial.println("[Speaker] Failed to mount LittleFS");
-        return;
+bool Speaker::begin(const AudioConfig& config) {
+    if (_initialized) return true;
+    
+    _config = config;
+    
+    if (!initFileSystem() || !initI2S()) {
+        return false;
     }
-
-    Serial.println("[Speaker] LittleFS mounted successfully");
-    Serial.printf("[Speaker] Total: %llu, Used: %llu bytes\n", LittleFS.totalBytes(), LittleFS.usedBytes());
-
-    // Initialize I2S peripheral
-    i2sInit();
+    
+    _initialized = true;
+    Serial.println("[AUDIO] Speaker initialized successfully");
+    return true;
 }
 
-/**
- * @brief Configure I2S peripheral for audio output.
- */
-void Speaker::i2sInit() {
-    i2s_config_t i2s_config = {
+bool Speaker::initFileSystem() {
+    if (!LittleFS.begin(true)) {
+        Serial.println("[AUDIO] Failed to mount file system");
+        return false;
+    }
+    
+    Serial.printf("[AUDIO] Storage: %llu used / %llu total bytes\n",
+                 LittleFS.usedBytes(), LittleFS.totalBytes());
+    return true;
+}
+
+bool Speaker::initI2S() {
+    const i2s_config_t config = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
-        .sample_rate = SAMPLE_RATE,
+        .sample_rate = _config.sampleRate,
         .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
         .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-        .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB),
+        .communication_format = I2S_COMM_FORMAT_I2S_MSB,
         .intr_alloc_flags = 0,
-        .dma_buf_count = 8,
-        .dma_buf_len = 64,
+        .dma_buf_count = _config.dmaBufCount,
+        .dma_buf_len = _config.dmaBufLen,
         .use_apll = false,
         .tx_desc_auto_clear = true,
         .fixed_mclk = 0
     };
 
-    i2s_pin_config_t pin_config = {
+    const i2s_pin_config_t pins = {
         .bck_io_num = BCLK_PIN,
-        .ws_io_num = LRCK_PIN,
+        .ws_io_num = WS_PIN,
         .data_out_num = DATA_PIN,
         .data_in_num = I2S_PIN_NO_CHANGE
     };
 
-    i2s_driver_install(I2S_NUM, &i2s_config, 0, NULL);
-    i2s_set_pin(I2S_NUM, &pin_config);
+    if (i2s_driver_install(_i2sPort, &config, 0, nullptr) != ESP_OK) {
+        Serial.println("[AUDIO] Failed to install I2S driver");
+        return false;
+    }
+
+    if (i2s_set_pin(_i2sPort, &pins) != ESP_OK) {
+        Serial.println("[AUDIO] Failed to set I2S pins");
+        return false;
+    }
+
+    return true;
 }
 
-/**
- * @brief Play a simple sine tone.
- * @param frequency Frequency of the tone in Hz.
- * @param durationMs Duration of the tone in milliseconds.
- * @param volume Volume from 0.0 (mute) to 1.0 (max).
- */
-void Speaker::playTone(float frequency, int durationMs, float volume) {
-    if (volume < 0.0f) volume = 0.0f;
-    if (volume > 1.0f) volume = 1.0f;
-
-    int sampleCount = (SAMPLE_RATE * durationMs) / 1000;
-    int16_t buffer[256];
-    int index = 0;
-
-    const int16_t maxAmplitude = 32767;
-
-    for (int i = 0; i < sampleCount; i++) {
-        float sample = sinf(2 * M_PI * frequency * i / SAMPLE_RATE);
-        buffer[index++] = (int16_t)(sample * maxAmplitude * volume);
-
-        if (index == 256) {
-            size_t bytesWritten;
-            i2s_write(I2S_NUM, buffer, sizeof(buffer), &bytesWritten, portMAX_DELAY);
-            index = 0;
+bool Speaker::playTone(float frequency, uint32_t durationMs, float volume) {
+    if (!_initialized || frequency <= 0 || durationMs == 0) return false;
+    
+    // Clamp volume to valid range
+    volume = std::clamp(volume, 0.0f, 1.0f);
+    
+    // Calculate number of samples needed
+    const size_t samplesNeeded = (_config.sampleRate * durationMs) / 1000;
+    const size_t bufferSize = 256; // Process in chunks
+    int16_t buffer[bufferSize];
+    
+    _playing = true;
+    size_t samplesProcessed = 0;
+    
+    while (samplesProcessed < samplesNeeded) {
+        size_t samplesToGenerate = std::min(bufferSize, samplesNeeded - samplesProcessed);
+        
+        // Generate tone samples
+        generateTone(frequency, volume, buffer, samplesToGenerate, _config.sampleRate);
+        
+        // Write to I2S
+        if (!writeSamples(buffer, samplesToGenerate * sizeof(int16_t))) {
+            _playing = false;
+            return false;
         }
+        
+        samplesProcessed += samplesToGenerate;
     }
-
-    if (index > 0) {
-        size_t bytesWritten;
-        i2s_write(I2S_NUM, buffer, index * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
-    }
+    
+    _playing = false;
+    return true;
 }
 
-/**
- * @brief Play an example sequence of tones.
- */
-void Speaker::playExampleSound() {
-    playTone(440.0, 300, 0.1f);  // A4
-    delay(50);
-    playTone(660.0, 300, 0.1f);  // E5
-    delay(50);
-    playTone(880.0, 500, 0.1f);  // A5
-    delay(200);
-}
-
-/**
- * @brief Play a WAV file from LittleFS.
- * @param path Path to the WAV file in LittleFS.
- */
-void Speaker::playWav(const char* path) {
+bool Speaker::playWav(const char* path, bool skipHeader) {
+    if (!_initialized || !path) return false;
+    
     File file = LittleFS.open(path);
     if (!file) {
-        Serial.println("[Speaker] Failed to open WAV file!");
-        return;
+        Serial.println("[AUDIO] Failed to open WAV file");
+        return false;
     }
-
-    Serial.println("[Speaker] WAV file opened successfully");
-
-    // Skip typical WAV header (44 bytes)
-    file.seek(44);
-
+    
+    // Skip WAV header if requested (typically 44 bytes)
+    if (skipHeader) {
+        file.seek(44);
+    }
+    
+    _playing = true;
     uint8_t buffer[512];
-    size_t bytesRead, bytesWritten;
-
-    while ((bytesRead = file.read(buffer, sizeof(buffer))) > 0) {
-        i2s_write(I2S_NUM, buffer, bytesRead, &bytesWritten, portMAX_DELAY);
-    }
-
-    file.close();
-}
-
-/**
- * @brief List example files in LittleFS.
- */
-void Speaker::listFiles() {
-    const char* files[] = {"/start_speech.wav"};
-    Serial.println("[Speaker] Listing files:");
-    for (int i = 0; i < sizeof(files)/sizeof(files[0]); i++) {
-        if (LittleFS.exists(files[i])) {
-            Serial.print("[Speaker] Found: ");
-            Serial.println(files[i]);
+    bool success = true;
+    
+    while (file.available()) {
+        size_t bytesRead = file.read(buffer, sizeof(buffer));
+        if (!writeSamples(buffer, bytesRead)) {
+            success = false;
+            break;
         }
     }
+    
+    file.close();
+    _playing = false;
+    return success;
 }
 
-/**
- * @brief Play an entire buffer in memory via I2S.
- * @param buffer Pointer to the audio buffer.
- * @param len Length of the buffer in bytes.
- */
-void Speaker::playWavFromBuffer(uint8_t* buffer, size_t len) {
-    Serial.printf("[Speaker] playWavFromBuffer: %d bytes\n", (int)len);
-
-    size_t chunkSize = 512;
-    size_t offset = 0;
-    while (offset < len) {
-        size_t toWrite = (len - offset) > chunkSize ? chunkSize : (len - offset);
-        size_t bytesWritten;
-        i2s_write(I2S_NUM, buffer + offset, toWrite, &bytesWritten, portMAX_DELAY);
-        offset += bytesWritten;
+bool Speaker::playBuffer(const uint8_t* buffer, size_t length) {
+    if (!_initialized || !buffer || length == 0) return false;
+    
+    _playing = true;
+    const size_t chunkSize = 512;
+    bool success = true;
+    
+    for (size_t offset = 0; offset < length; offset += chunkSize) {
+        size_t chunk = std::min(chunkSize, length - offset);
+        if (!writeSamples(buffer + offset, chunk)) {
+            success = false;
+            break;
+        }
     }
-
-    Serial.println("[Speaker] Finished playing buffer");
+    
+    _playing = false;
+    return success;
 }
 
-/**
- * @brief Play a decoded chunk of audio via I2S (streaming).
- *        This is useful for MQTT chunked audio playback.
- * @param buffer Pointer to the chunk buffer.
- * @param len Length of the chunk in bytes.
- */
-void Speaker::playWavChunk(const uint8_t* buffer, size_t len) {
-    size_t offset = 0;
-    while (offset < len) {
-        size_t toWrite = len - offset;
-        size_t bytesWritten;
-        i2s_write(I2S_NUM, buffer + offset, toWrite, &bytesWritten, portMAX_DELAY);
-        offset += bytesWritten;
+bool Speaker::playChunk(const uint8_t* chunk, size_t length) {
+    if (!_initialized || !chunk || length == 0) return false;
+    return writeSamples(chunk, length);
+}
+
+void Speaker::stop() {
+    if (_initialized) {
+        i2s_zero_dma_buffer(_i2sPort);
+        _playing = false;
+    }
+}
+
+bool Speaker::isPlaying() const {
+    return _playing;
+}
+
+bool Speaker::checkFile(const char* path) {
+    return LittleFS.exists(path);
+}
+
+void Speaker::listFiles(const char* directory) {
+    File root = LittleFS.open(directory);
+    if (!root || !root.isDirectory()) {
+        Serial.println("[AUDIO] Failed to open directory");
+        return;
+    }
+    
+    File file = root.openNextFile();
+    while (file) {
+        if (file.isDirectory()) {
+            Serial.printf("[AUDIO] DIR: %s\n", file.path());
+        } else {
+            Serial.printf("[AUDIO] FILE: %s (%u bytes)\n", 
+                         file.path(), file.size());
+        }
+        file = root.openNextFile();
+    }
+}
+
+size_t Speaker::writeSamples(const void* buffer, size_t bytes) {
+    size_t bytesWritten = 0;
+    esp_err_t err = i2s_write(_i2sPort, buffer, bytes, &bytesWritten, portMAX_DELAY);
+    return (err == ESP_OK) ? bytesWritten : 0;
+}
+
+void Speaker::generateTone(float frequency, float volume, 
+                         int16_t* buffer, size_t samples,
+                         uint32_t sampleRate) {
+    static constexpr int16_t MAX_AMPLITUDE = 32767;
+    constexpr float two_pi = 6.283185307179586476925286766559f;
+    
+    static float phase = 0.0f;
+    float phaseIncrement = TWO_PI * frequency / sampleRate;
+    
+    for (size_t i = 0; i < samples; i++) {
+        float sample = sinf(phase) * volume;
+        buffer[i] = static_cast<int16_t>(sample * MAX_AMPLITUDE);
+        
+        phase += phaseIncrement;
+        if (phase >= TWO_PI) {
+            phase -= TWO_PI;
+        }
     }
 }

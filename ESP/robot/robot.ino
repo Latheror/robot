@@ -20,28 +20,49 @@ Speaker speaker;
 Indicators indicators;
 INMP441 mic;
 
+#include "roboeyes_display.h"
+#include "wifi_manager.h"
+#include "mqtt_handler.h"
+
 void setup()
 {
   // Disable I2C logs
   esp_log_level_set("i2c.master", ESP_LOG_NONE);
 
-  Serial.begin(115200);
+  Serial.begin(SystemConfig::SERIAL_BAUD_RATE);
 
   // Init hardware
-  indicators.init();
+  indicators.begin();
   initOLED();
-  initServos();
+  ServoController::begin();
   initRoboEyes();
-  speaker.init();
+  speaker.begin();
 
   // Play a WAV file stored in LittleFS (16-bit PCM, 44.1 kHz)
   speaker.listFiles();
   speaker.playWav("/start_speech.wav");
 
   // Connect WiFi + MQTT
-  setupWiFi();
-  indicators.blinkLED(1, 3, 200); // Blink LED1 3 times
-  indicators.setLED(1, true);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(NetworkConfig::WIFI_SSID, NetworkConfig::WIFI_PASSWORD);
+  
+  Serial.print("Connecting to WiFi");
+  int attempts = 20;
+  while (WiFi.status() != WL_CONNECTED && attempts-- > 0) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("WiFi connected");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("WiFi connection failed");
+  }
+  indicators.blink(Indicators::LED::STATUS, 3, 200); // Blink status LED 3 times
+  indicators.set(Indicators::LED::STATUS, true);
   speaker.playWav("/connected_to_wifi.wav");
 
   delay(100);
@@ -50,8 +71,8 @@ void setup()
   {
     Serial.println("MQTT connected.");
     speaker.playWav("/connected_to_mqtt.wav");
-    indicators.blinkLED(2, 3, 200); // Blink LED2 3 times
-    indicators.setLED(2, true);
+    indicators.blink(Indicators::LED::NETWORK, 3, 200); // Blink network LED 3 times
+    indicators.set(Indicators::LED::NETWORK, true);
   }
   else
   {
@@ -86,13 +107,21 @@ void loop()
   }
 
   // Update servo positions smoothly
-  updateServos();
+  ServoController::update();
 
   // Update microphone and LED status
   mic.update();
 
   // --- WiFi + MQTT handling ---
-  checkWiFiConnection();
+  if (WiFi.status() != WL_CONNECTED) {
+    static unsigned long lastReconnectAttempt = 0;
+    unsigned long now = millis();
+    if (now - lastReconnectAttempt > 5000) {
+      Serial.println("WiFi disconnected. Attempting to reconnect...");
+      WiFi.reconnect();
+      lastReconnectAttempt = now;
+    }
+  }
   handleMQTT();
 
   // Publish sensor values periodically
@@ -128,7 +157,7 @@ void sendSensorData()
 
   publishMessage(MQTT_TOPIC_SENSORS, sensorMsg);
 
-  indicators.blinkLED(3, 3, 200); // Blink LED1 3 times
+  indicators.blink(Indicators::LED::ACTIVITY, 3, 200); // Blink activity LED 3 times
 
   lastMqttMessage = now;
 

@@ -195,16 +195,31 @@ bool reconnectMQTT() {
             mqttClient.subscribe("robot/1/commands");
             mqttClient.subscribe("robot/1/audio");
             Serial.println("[MQTT] Ready to receive messages");
+            return true;  // Successfully connected
         } else {
             attempts++;
             Serial.printf("[MQTT] Connection failed, rc=%d (Attempt %d/3)\n", mqttClient.state(), attempts);
-            delay(1000);
         }
+        delay(1000);
     }
+    return false;  // Failed to connect after all attempts
 }
 
 void handleMQTT() {
-    if (!mqttClient.connected()) reconnectMQTT();
+    static unsigned long lastReconnectAttempt = 0;
+    unsigned long now = millis();
+    
+    if (!mqttClient.connected()) {
+        // Try to reconnect every 5 seconds
+        if (now - lastReconnectAttempt > 5000) {
+            lastReconnectAttempt = now;
+            if (reconnectMQTT()) {
+                lastReconnectAttempt = 0;
+            }
+        }
+        return;  // Skip loop() if not connected
+    }
+    
     mqttClient.loop();
 }
 

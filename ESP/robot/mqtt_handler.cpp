@@ -27,7 +27,7 @@ void decodeAndPlayChunks();
 /**
  * MQTT setup
  */
-void setupMQTT() {
+bool setupMQTT() {
     Serial.println("[MQTT] Initializing...");
 
     mqttClient.setBufferSize(50000);
@@ -48,7 +48,7 @@ void setupMQTT() {
         if (strcmp(topic, "robot/1/audio") == 0) handleAudioMessage(message);
     });
 
-    reconnectMQTT();
+    return reconnectMQTT();
 }
 
 /**

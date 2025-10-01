@@ -46,9 +46,17 @@ void setup()
 
   delay(100);
 
-  setupMQTT();
-  indicators.blinkLED(2, 3, 200); // Blink LED1 3 times
-  indicators.setLED(2, true);
+  if(setupMQTT())
+  {
+    Serial.println("MQTT connected.");
+    speaker.playWav("/connected_to_mqtt.wav");
+    indicators.blinkLED(2, 3, 200); // Blink LED2 3 times
+    indicators.setLED(2, true);
+  }
+  else
+  {
+    Serial.println("MQTT connection failed.");
+  }
 
   speaker.playExampleSound();
 
@@ -79,6 +87,9 @@ void loop()
 
   // Update servo positions smoothly
   updateServos();
+
+  // Update microphone and LED status
+  mic.update();
 
   // --- WiFi + MQTT handling ---
   checkWiFiConnection();
@@ -121,7 +132,6 @@ void sendSensorData()
 
   lastMqttMessage = now;
 
-  int32_t sample = mic.readSample();
-  Serial.println("Published sensor data:");
-  Serial.println(sample);
+  float currentVolume = mic.getVolume();
+  Serial.println("Published sensor data. Current volume: " + String(currentVolume));
 }

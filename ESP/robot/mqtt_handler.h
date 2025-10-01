@@ -5,7 +5,7 @@
 #include <PubSubClient.h>
 
 // Function declarations
-void setupMQTT();
+bool setupMQTT();
 void reconnectMQTT();
 void handleMQTT();
 bool publishMessage(const char* topic, const char* message);

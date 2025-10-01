@@ -8,6 +8,7 @@
 #include "speaker.h"
 #include "indicators.h"
 #include "INMP441.h"
+#include "rgb_led.h"
 
 unsigned long lastMqttMessage = 0;
 const unsigned long mqttInterval = 60 * 1000;
@@ -19,6 +20,7 @@ const unsigned long eyesInterval = 10; // ~100 FPS
 Speaker speaker;
 Indicators indicators;
 INMP441 mic;
+RGBLed rgbLed;
 
 #include "roboeyes_display.h"
 #include "wifi_manager.h"
@@ -37,6 +39,11 @@ void setup()
   ServoController::begin();
   initRoboEyes();
   speaker.begin();
+  
+  // Initialize RGB LED and set it to blue
+  rgbLed.begin();
+  rgbLed.setBrightness(50);  // Set to 50% brightness
+  rgbLed.setColor(0, 0, 255);  // Set to blue (R=0, G=0, B=255)
 
   // Play a WAV file stored in LittleFS (16-bit PCM, 44.1 kHz)
   speaker.listFiles();

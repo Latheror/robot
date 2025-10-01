@@ -6,7 +6,7 @@ static Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 // Servo state arrays
 static float currentAngles[NUM_JOINTS] = {90, 90, 90, 90, 90, 90};
 static float targetAngles[NUM_JOINTS]  = {90, 90, 90, 90, 90, 90};
-static float speedFactors[NUM_JOINTS]  = {1.0, 0.5, 0.5, 0.7, 0.7, 1.0};
+static float speedFactors[NUM_JOINTS]  = {0.1, 0.1, 0.5, 0.7, 0.7, 1.0};
 
 // Fixed min/max angle limits per joint
 // (tune these values to the robot’s safe ranges)

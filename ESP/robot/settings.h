@@ -16,7 +16,7 @@ struct NetworkConfig {
 // Audio Configuration
 struct AudioConfig {
     static const int SAMPLING_RATE = 44100;      // Audio sampling rate (Hz)
-    static const int VOLUME_THRESHOLD = 1000;    // Voice detection threshold
+    static const int VOLUME_THRESHOLD = 100;    // Voice detection threshold
     static const int AVERAGING_SAMPLES = 64;     // Samples for moving average
 };
 

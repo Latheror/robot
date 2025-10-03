@@ -23,13 +23,13 @@ bool INMP441::configureI2S() const {
     i2s_config_t i2s_config = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
         .sample_rate = _sampleRate,
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,  // INMP441 needs 32-bit alignment
+        .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT,  // INMP441 requires 32-bit alignment
         .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-        .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_STAND_I2S),  // Standard I2S format
+        .communication_format = I2S_COMM_FORMAT_I2S_MSB,  // Match speaker format
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-        .dma_buf_count = 8,    
-        .dma_buf_len = 512,    // Buffer size
-        .use_apll = true,      
+        .dma_buf_count = 8,
+        .dma_buf_len = 64,     // Match speaker buffer size
+        .use_apll = false,     // Match speaker configuration
         .tx_desc_auto_clear = false,
         .fixed_mclk = 0
     };
@@ -69,25 +69,30 @@ void INMP441::update() {
     if (currentTime - _lastUpdate >= UPDATE_INTERVAL) {
         _lastUpdate = currentTime;
 
-        // Lire un buffer de samples
+        // Read buffer of samples
         const int NUM_SAMPLES = 256;
-        int16_t buffer[NUM_SAMPLES];     // <--- en 16 bits
+        int32_t buffer[NUM_SAMPLES];     // 32-bit samples
         size_t bytes_read = 0;
 
         esp_err_t res = i2s_read(_i2sPort, (char*)buffer, sizeof(buffer), &bytes_read, portMAX_DELAY);
         if (res != ESP_OK || bytes_read == 0) return;
 
-        int samples_read = bytes_read / sizeof(int16_t);
+        int samples_read = bytes_read / sizeof(int32_t);
 
         double sumSquares = 0.0;
-        int16_t lastRawSample = 0;
+        int32_t lastRawSample = 0;
 
         for (int i = 0; i < samples_read; i++) {
-            lastRawSample = buffer[i];
-            double normalized = (double)buffer[i] / 32768.0;  // normalisation 16 bits
+            // Align 24-bit sample to be right-justified
+            int32_t aligned = buffer[i] >> 8;
+            // Convert to 24-bit signed range (-8388608 to 8388607)
+            lastRawSample = aligned;
+            // Normalize to -1.0 to +1.0 range
+            double normalized = (double)aligned / MAX_24BIT;
             sumSquares += normalized * normalized;
         }
 
+        // Calculate RMS (Root Mean Square) for volume
         _currentVolume = sqrt(sumSquares / samples_read);
 
         // LED activité
@@ -106,11 +111,11 @@ void INMP441::update() {
 }
 
 int32_t INMP441::readSample() {
-    int16_t sample = 0;
+    int32_t sample = 0;
     size_t bytes_read = 0;
 
     if (i2s_read(_i2sPort, &sample, sizeof(sample), &bytes_read, portMAX_DELAY) == ESP_OK) {
-        return sample;  // déjà signé sur 16 bits
+        return sample >> 8;  // 24 valid bits
     }
     return 0;
 }

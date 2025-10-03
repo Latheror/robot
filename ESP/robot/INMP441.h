@@ -7,7 +7,7 @@
 
 class INMP441 {
 public:
-    static constexpr int DEFAULT_SAMPLE_RATE = 44100;
+    static constexpr int DEFAULT_SAMPLE_RATE = 24000;  // Match speaker sample rate
 
     explicit INMP441(int sampleRate = DEFAULT_SAMPLE_RATE);
     
@@ -29,7 +29,7 @@ private:
 
     static constexpr unsigned long UPDATE_INTERVAL = 20;   // ms
     static constexpr unsigned long DEBUG_INTERVAL  = 1000; // ms
-    static constexpr double MAX_24BIT = 8388608.0;         // 2^23
+    static constexpr double MAX_24BIT = 8388607.0;         // 2^23 - 1
 
     bool configureI2S() const;
 };

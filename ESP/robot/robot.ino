@@ -77,7 +77,7 @@ void setup()
   if(setupMQTT())
   {
     Serial.println("MQTT connected.");
-    speaker.playWav("/connected_to_mqtt.wav");
+    speaker.playWav("/connected_to_server.wav");
     indicators.blink(Indicators::LED::NETWORK, 3, 200); // Blink network LED 3 times
     indicators.set(Indicators::LED::NETWORK, true);
   }

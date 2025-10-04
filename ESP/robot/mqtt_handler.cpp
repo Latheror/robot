@@ -27,6 +27,9 @@ static AudioMessage audioMsg;
 
 // Message handlers
 void handleCommand(const char* message) {
+
+    Serial.println("[MQTT] Received command");
+
     StaticJsonDocument<512> doc;
     DeserializationError error = deserializeJson(doc, message);
     if (error) {
@@ -119,6 +122,9 @@ bool reconnectMQTT();
 
 // MQTT core functions
 bool setupMQTT() {
+
+    Serial.println("[MQTT] Initializing...");
+
     mqttClient.setBufferSize(50000);
     mqttClient.setServer(NetworkConfig::MQTT_BROKER, NetworkConfig::MQTT_PORT);
     mqttClient.setCallback([](char* topic, byte* payload, unsigned int length) {
@@ -134,6 +140,9 @@ bool setupMQTT() {
 }
 
 bool reconnectMQTT() {
+
+    Serial.println("[MQTT] Attempting to connect...");
+
     for (int attempt = 0; attempt < 3 && !mqttClient.connected(); attempt++) {
         if (mqttClient.connect(NetworkConfig::MQTT_CLIENT_ID)) {
             mqttClient.subscribe(MQTT_TOPIC_COMMANDS);
@@ -158,5 +167,8 @@ void handleMQTT() {
 }
 
 bool publishMessage(const char* topic, const char* message) {
+
+    Serial.printf("[MQTT] Publishing to %s: %s\n", topic, message);
+
     return mqttClient.connected() && mqttClient.publish(topic, message);
 }

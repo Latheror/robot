@@ -1,5 +1,8 @@
 #include "INMP441.h"
 
+unsigned long _firstClapTime = 0;
+const unsigned long DOUBLE_CLAP_MAX_DELAY = 500; // ms between claps
+
 // Constructor
 INMP441::INMP441(int sampleRate) : _sampleRate(sampleRate) {}
 
@@ -68,6 +71,8 @@ bool INMP441::configureI2S() const {
 // Update microphone samples and volume
 void INMP441::update() {
     unsigned long currentTime = millis();
+
+    // Only update at the defined interval
     if (currentTime - _lastUpdate >= UPDATE_INTERVAL) {
         _lastUpdate = currentTime;
 
@@ -75,6 +80,7 @@ void INMP441::update() {
         int32_t buffer[NUM_SAMPLES];
         size_t bytes_read = 0;
 
+        // Read samples from the I2S microphone
         esp_err_t res = i2s_read(_i2sPort, (char*)buffer, sizeof(buffer), &bytes_read, portMAX_DELAY);
         if (res != ESP_OK || bytes_read == 0) return;
 
@@ -82,17 +88,20 @@ void INMP441::update() {
         double sumSquares = 0.0;
         int32_t lastRawSample = 0;
 
+        // Calculate RMS volume from the samples
         for (int i = 0; i < samples_read; i++) {
-            int32_t aligned = buffer[i] >> 8;
+            int32_t aligned = buffer[i] >> 8; // Align 24-bit sample
             lastRawSample = aligned;
-            double normalized = (double)aligned / MAX_24BIT;
-            sumSquares += normalized * normalized;
+            double normalized = (double)aligned / MAX_24BIT; // Normalize to [-1, 1]
+            sumSquares += normalized * normalized; // Sum of squares for RMS
         }
 
-        _currentVolume = sqrt(sumSquares / samples_read);
+        _currentVolume = sqrt(sumSquares / samples_read); // RMS volume
 
+        // Update LED to indicate voice/activity
         digitalWrite(PinConfig::VOICE_ACTIVITY_LED, isVolumeAboveThreshold() ? HIGH : LOW);
 
+        // Optional debug printing
         if (currentTime - _lastDebugPrint >= DEBUG_INTERVAL) {
             _lastDebugPrint = currentTime;
             // Serial.printf("[MIC] Raw: %d, Vol: %.2f%%, Thresh: %d%%, Active: %s\n", 
@@ -102,12 +111,37 @@ void INMP441::update() {
             //               isVolumeAboveThreshold() ? "Yes" : "No");
         }
 
-        // Check for clap
+        // --- Double clap detection ---
         unsigned long now = millis();
-        if (_currentVolume * 100 > CLAP_THRESHOLD && (now - _lastClapTime) > CLAP_DEBOUNCE) {
-            _lastClapTime = now;
-            if (_clapCallback) _clapCallback();
-            Serial.println("[MIC] Clap detected!");
+
+        // Check if current volume exceeds clap threshold
+        if (_currentVolume * 100 > CLAP_THRESHOLD) {
+            // Ensure debounce time has passed to avoid multiple triggers from the same clap
+            if ((now - _lastClapTime) > CLAP_DEBOUNCE) {
+
+                if (_firstClapTime == 0) {
+                    // First clap detected, store timestamp
+                    _firstClapTime = now;
+                    Serial.println("[MIC] First clap detected");
+                } else {
+                    // Second clap detected, check timing
+                    if (now - _firstClapTime <= DOUBLE_CLAP_MAX_DELAY) {
+                        // Double clap detected within allowed window
+                        Serial.println("[MIC] Double clap detected!");
+                        if (_clapCallback) _clapCallback(); // Trigger callback
+                    }
+                    // Reset first clap timestamp whether or not the second clap was valid
+                    _firstClapTime = 0;
+                }
+
+                // Update last clap time for debounce
+                _lastClapTime = now;
+            }
+        }
+
+        // Reset first clap if too much time has passed without a second clap
+        if (_firstClapTime != 0 && (now - _firstClapTime) > DOUBLE_CLAP_MAX_DELAY) {
+            _firstClapTime = 0;
         }
     }
 }

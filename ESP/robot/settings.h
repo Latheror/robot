@@ -1,18 +1,19 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+
 // Network Configuration
 struct NetworkConfig {
     // WiFi Settings
-    static const char* WIFI_SSID;          // Defined in settings.cpp
-    static const char* WIFI_PASSWORD;      // Defined in settings.cpp
-    static const int WIFI_TIMEOUT_MS = 10000; // Connection timeout (ms)
-    static const int WIFI_RETRY_DELAY = 500;  // Delay between retries (ms
+    static constexpr const char* WIFI_SSID = "Roro3";
+    static constexpr const char* WIFI_PASSWORD = "rorororo";
+    static constexpr int WIFI_TIMEOUT_MS = 10000; // Connection timeout (ms)
+    static constexpr int WIFI_RETRY_DELAY = 500;  // Delay between retries (ms)
 
     // MQTT Settings
-    static const char* MQTT_BROKER;        // Defined in settings.cpp
-    static const int MQTT_PORT;            // Defined in settings.cpp
-    static const char* MQTT_CLIENT_ID;     // Defined in settings.cpp
+    static constexpr const char* MQTT_BROKER = "192.168.238.21";
+    static constexpr int MQTT_PORT = 1883;
+    static constexpr const char* MQTT_CLIENT_ID = "ESP32-Robot";
 };
 
 // Audio Configuration

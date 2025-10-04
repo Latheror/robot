@@ -39,74 +39,93 @@ RoboEyesDisplay roboEyes(oled);
 /// </summary>
 void setup()
 {
-    // Disable I2C logs
-    esp_log_level_set("i2c.master", ESP_LOG_NONE);
+  // Disable I2C logs
+  esp_log_level_set("i2c.master", ESP_LOG_NONE);
 
-    Serial.begin(SystemConfig::SERIAL_BAUD_RATE);
+  Serial.begin(SystemConfig::SERIAL_BAUD_RATE);
 
-    // Initialize hardware
-    indicators.begin();
-    oled.begin();
-    ServoController::begin();
-    roboEyes.begin();
-    speaker.begin();
+  // Initialize hardware
+  indicators.begin();
+  oled.begin();
+  ServoController::begin();
+  roboEyes.begin();
+  speaker.begin();
 
-    rgbLed.begin();
-    rgbLed.setBrightness(50);   // 50% brightness
-    rgbLed.setColor(0, 0, 255); // blue
+  rgbLed.begin();
+  rgbLed.setBrightness(50);   // 50% brightness
+  rgbLed.setColor(0, 0, 255); // blue
 
-    // Play initial sounds
-    speaker.listFiles();
-    speaker.playWav("/start_speech.wav");
+  // Play initial sounds
+  speaker.listFiles();
+  speaker.playWav("/start_speech.wav");
 
-    // Connect WiFi
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(NetworkConfig::WIFI_SSID, NetworkConfig::WIFI_PASSWORD);
+  // Connect WiFi
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(NetworkConfig::WIFI_SSID, NetworkConfig::WIFI_PASSWORD);
 
-    Serial.print("Connecting to WiFi");
-    int attempts = 20;
-    while (WiFi.status() != WL_CONNECTED && attempts-- > 0) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println();
+  Serial.print("Connecting to WiFi");
+  int attempts = 20;
+  while (WiFi.status() != WL_CONNECTED && attempts-- > 0)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
 
-    if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("WiFi connected");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
-    } else {
-        Serial.println("WiFi connection failed");
-    }
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.println("WiFi connected");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+  }
+  else
+  {
+    Serial.println("WiFi connection failed");
+  }
 
-    indicators.blink(Indicators::LED::STATUS, 3, 200);
-    indicators.set(Indicators::LED::STATUS, true);
+  indicators.blink(Indicators::LED::STATUS, 3, 200);
+  indicators.set(Indicators::LED::STATUS, true);
 
-    speaker.playWav("/connected_to_wifi.wav");
-    delay(100);
+  speaker.playWav("/connected_to_wifi.wav");
+  delay(100);
 
-    // Setup MQTT
-    if (setupMQTT()) {
-        Serial.println("MQTT connected.");
-        speaker.playWav("/connected_to_server.wav");
-        indicators.blink(Indicators::LED::NETWORK, 3, 200);
-        indicators.set(Indicators::LED::NETWORK, true);
-    } else {
-        Serial.println("MQTT connection failed.");
-    }
+  // Setup MQTT
+  if (setupMQTT())
+  {
+    Serial.println("MQTT connected.");
+    speaker.playWav("/connected_to_server.wav");
+    indicators.blink(Indicators::LED::NETWORK, 3, 200);
+    indicators.set(Indicators::LED::NETWORK, true);
+  }
+  else
+  {
+    Serial.println("MQTT connection failed.");
+  }
 
-    // Play example sound
-    speaker.playExampleSound();
+  // Play example sound
+  speaker.playExampleSound();
 
-    // Initialize microphone
-    if (mic.begin()) {
-        Serial.println("Microphone ready.");
-    } else {
-        Serial.println("Microphone initialization failed.");
-    }
+  // Initialize microphone
+  if (mic.begin())
+  {
+    Serial.println("Microphone ready.");
 
-    // Send initial sensor data
-    sendSensorData();
+    // Set clap callback
+    mic.setClapCallback([]()
+                        {
+          Serial.println("Clap detected in main!");
+          
+          // Optional: play a sound on clap
+          speaker.playWav("/yesilisten.wav");
+    });
+  }
+  else
+  {
+    Serial.println("Microphone initialization failed.");
+  }
+
+  // Send initial sensor data
+  sendSensorData();
 }
 
 /// <summary>
@@ -114,37 +133,41 @@ void setup()
 /// </summary>
 void loop()
 {
-    unsigned long now = millis();
+  unsigned long now = millis();
 
-    // --- RoboEyes update ---
-    if (now - lastEyesUpdate >= eyesInterval) {
-        roboEyes.update();
-        lastEyesUpdate = now;
+  // --- RoboEyes update ---
+  if (now - lastEyesUpdate >= eyesInterval)
+  {
+    roboEyes.update();
+    lastEyesUpdate = now;
+  }
+
+  // --- Smooth servo updates ---
+  ServoController::update();
+
+  // --- Microphone update ---
+  mic.update();
+
+  // --- WiFi reconnect if disconnected ---
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    static unsigned long lastReconnectAttempt = 0;
+    if (now - lastReconnectAttempt > 5000)
+    {
+      Serial.println("WiFi disconnected. Attempting to reconnect...");
+      WiFi.reconnect();
+      lastReconnectAttempt = now;
     }
+  }
 
-    // --- Smooth servo updates ---
-    ServoController::update();
+  // --- MQTT handler ---
+  handleMQTT();
 
-    // --- Microphone update ---
-    mic.update();
-
-    // --- WiFi reconnect if disconnected ---
-    if (WiFi.status() != WL_CONNECTED) {
-        static unsigned long lastReconnectAttempt = 0;
-        if (now - lastReconnectAttempt > 5000) {
-            Serial.println("WiFi disconnected. Attempting to reconnect...");
-            WiFi.reconnect();
-            lastReconnectAttempt = now;
-        }
-    }
-
-    // --- MQTT handler ---
-    handleMQTT();
-
-    // --- Publish sensor data periodically ---
-    if (now - lastMqttMessage >= mqttInterval) {
-        sendSensorData();
-    }
+  // --- Publish sensor data periodically ---
+  if (now - lastMqttMessage >= mqttInterval)
+  {
+    sendSensorData();
+  }
 }
 
 /// <summary>
@@ -152,36 +175,36 @@ void loop()
 /// </summary>
 void sendSensorData()
 {
-    unsigned long now = millis();
-    char sensorMsg[256];
+  unsigned long now = millis();
+  char sensorMsg[256];
 
-    float temperature = 22.5 + (random(-100, 100) / 100.0f);
-    float humidity = 45.0 + (random(-50, 50) / 10.0f);
-    int light = random(800, 1000);
+  float temperature = 22.5 + (random(-100, 100) / 100.0f);
+  float humidity = 45.0 + (random(-50, 50) / 10.0f);
+  int light = random(800, 1000);
 
-    snprintf(sensorMsg, sizeof(sensorMsg),
-             "{"
-             "\"timestamp\":%lu,"
-             "\"sensors\":{"
-             "\"temperature\":%.2f,"
-             "\"humidity\":%.1f,"
-             "\"light\":%d"
-             "},"
-             "\"units\":{"
-             "\"temperature\":\"celsius\","
-             "\"humidity\":\"percent\","
-             "\"light\":\"lux\""
-             "}"
-             "}",
-             now, temperature, humidity, light);
+  snprintf(sensorMsg, sizeof(sensorMsg),
+           "{"
+           "\"timestamp\":%lu,"
+           "\"sensors\":{"
+           "\"temperature\":%.2f,"
+           "\"humidity\":%.1f,"
+           "\"light\":%d"
+           "},"
+           "\"units\":{"
+           "\"temperature\":\"celsius\","
+           "\"humidity\":\"percent\","
+           "\"light\":\"lux\""
+           "}"
+           "}",
+           now, temperature, humidity, light);
 
-    publishMessage(MQTT_TOPIC_SENSORS, sensorMsg);
+  publishMessage(MQTT_TOPIC_SENSORS, sensorMsg);
 
-    // Blink activity LED
-    indicators.blink(Indicators::LED::ACTIVITY, 3, 200);
+  // Blink activity LED
+  indicators.blink(Indicators::LED::ACTIVITY, 3, 200);
 
-    lastMqttMessage = now;
+  lastMqttMessage = now;
 
-    float currentVolume = mic.getVolume();
-    Serial.println("Published sensor data. Current volume: " + String(currentVolume));
+  float currentVolume = mic.getVolume();
+  Serial.println("Published sensor data. Current volume: " + String(currentVolume));
 }

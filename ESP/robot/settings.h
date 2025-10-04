@@ -6,6 +6,8 @@ struct NetworkConfig {
     // WiFi Settings
     static const char* WIFI_SSID;          // Defined in settings.cpp
     static const char* WIFI_PASSWORD;      // Defined in settings.cpp
+    static const int WIFI_TIMEOUT_MS = 10000; // Connection timeout (ms)
+    static const int WIFI_RETRY_DELAY = 500;  // Delay between retries (ms
 
     // MQTT Settings
     static const char* MQTT_BROKER;        // Defined in settings.cpp

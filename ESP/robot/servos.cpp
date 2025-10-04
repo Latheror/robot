@@ -21,6 +21,9 @@ const std::array<ServoController::JointConfig, static_cast<size_t>(Joint::COUNT)
 }};
 
 bool ServoController::begin() {
+
+    Serial.println("[SERVO] Initializing servo controller...");
+
     pwm.begin();
     pwm.setPWMFreq(PWM_FREQ);
     
@@ -33,6 +36,9 @@ bool ServoController::begin() {
 }
 
 void ServoController::update() {
+
+    //Serial.println("[SERVO] Updating servo positions...");
+
     for (size_t i = 0; i < static_cast<size_t>(Joint::COUNT); i++) {
         Joint joint = static_cast<Joint>(i);
         if (!atTarget(joint)) {
@@ -42,6 +48,9 @@ void ServoController::update() {
 }
 
 void ServoController::setTargetAngle(Joint joint, float angle) {
+
+    Serial.printf("[SERVO] Setting target angle for joint %d: %.1f°\n", static_cast<int>(joint), angle);
+
     if (!isValidJoint(joint)) return;
     
     size_t idx = static_cast<size_t>(joint);

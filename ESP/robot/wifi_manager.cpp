@@ -9,15 +9,17 @@ bool WiFiManager::connect() {
     WiFi.mode(WIFI_STA);
     WiFi.begin(NetworkConfig::WIFI_SSID, NetworkConfig::WIFI_PASSWORD);
     
-    // Wait for connection
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < MAX_CONNECTION_ATTEMPTS) {
-        delay(CONNECTION_TIMEOUT);
-        attempts++;
+    // Wait for connection with timeout
+    unsigned long startAttemptTime = millis();
+    
+    while (WiFi.status() != WL_CONNECTED && 
+           millis() - startAttemptTime < NetworkConfig::WIFI_TIMEOUT_MS) {
+        delay(NetworkConfig::WIFI_RETRY_DELAY);
         
-        // Log progress every 5 attempts
-        if (attempts % 5 == 0) {
-            Serial.printf("[WiFi] Connecting... (%d/%d)\n", attempts, MAX_CONNECTION_ATTEMPTS);
+        // Log progress every second
+        if ((millis() - startAttemptTime) % 1000 == 0) {
+            Serial.printf("[WiFi] Connecting... (%d ms elapsed)\n", 
+                         (int)(millis() - startAttemptTime));
         }
     }
     

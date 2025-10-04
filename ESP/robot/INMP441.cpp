@@ -95,11 +95,11 @@ void INMP441::update() {
 
         if (currentTime - _lastDebugPrint >= DEBUG_INTERVAL) {
             _lastDebugPrint = currentTime;
-            Serial.printf("[MIC] Raw: %d, Vol: %.2f%%, Thresh: %d%%, Active: %s\n", 
-                          lastRawSample,
-                          _currentVolume * 100.0,
-                          AudioConfig::VOLUME_THRESHOLD,
-                          isVolumeAboveThreshold() ? "Yes" : "No");
+            // Serial.printf("[MIC] Raw: %d, Vol: %.2f%%, Thresh: %d%%, Active: %s\n", 
+            //               lastRawSample,
+            //               _currentVolume * 100.0,
+            //               AudioConfig::VOLUME_THRESHOLD,
+            //               isVolumeAboveThreshold() ? "Yes" : "No");
         }
 
         // Check for clap

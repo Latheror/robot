@@ -30,7 +30,9 @@ static AudioState audioState;
 
 // --- Command handling ---
 void handleCommand(const char* message) {
+    
     Serial.println("[MQTT] Received command");
+    Serial.println(message);
 
     StaticJsonDocument<512> doc;
     DeserializationError error = deserializeJson(doc, message);
@@ -44,7 +46,7 @@ void handleCommand(const char* message) {
     JsonObject servos = doc["servos"];
     const struct { const char* name; int servo; } servoMap[] = {
         {"root", static_cast<int>(Joint::ROOT)}, 
-        {"arm_a1", static_cast<int>(Joint::ARM_A1)},
+        {"arm_a", static_cast<int>(Joint::ARM_A)},
         {"arm_b", static_cast<int>(Joint::ARM_B)},
         {"wrist_a", static_cast<int>(Joint::WRIST_A)},
         {"wrist_b", static_cast<int>(Joint::WRIST_B)},
@@ -130,6 +132,9 @@ bool setupMQTT() {
     mqttClient.setBufferSize(50000);
     mqttClient.setServer(NetworkConfig::MQTT_BROKER, NetworkConfig::MQTT_PORT);
     mqttClient.setCallback([](char* topic, byte* payload, unsigned int length) {
+
+        //Serial.println("[MQTT] Message received");
+
         char message[length + 1];
         memcpy(message, payload, length);
         message[length] = '\0';

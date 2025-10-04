@@ -17,12 +17,12 @@ std::array<ServoInfo, 7> ServoController::servos = {{
 
 // Logical joint configuration
 std::array<JointInfo, static_cast<size_t>(Joint::COUNT)> ServoController::joints = {{
-    {70, 110, 0.1, {0, -1}, 1},  // ROOT → 1 servo
-    {80, 100, 0.1, {1, 2}, 2},   // ARM_A → mirrors servo 2
-    {80, 100, 0.5, {3, -1}, 1},  // ARM_B
-    {0, 180, 0.7, {4, -1}, 1},   // WRIST_A
+    {70, 110, 0.5, {0, -1}, 1},  // ROOT → 1 servo
+    {40, 100, 0.4, {1, 2}, 2},   // ARM_A → mirrors servo 2
+    {40, 100, 0.5, {3, -1}, 1},  // ARM_B
+    {80, 130, 0.7, {4, -1}, 1},   // WRIST_A
     {0, 180, 0.7, {5, -1}, 1},   // WRIST_B
-    {80, 100, 1.0, {6, -1}, 1}   // GRIPPER
+    {70, 110, 1.0, {6, -1}, 1}   // GRIPPER
 }};
 
 // Servo states

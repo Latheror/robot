@@ -15,7 +15,7 @@
 #include "freertos/task.h"
 
 // --- Timing constants ---
-const unsigned long mqttInterval = 100 * 1000;
+const unsigned long mqttInterval = 120 * 1000;
 
 // --- Hardware modules ---
 Speaker speaker;
@@ -61,9 +61,6 @@ void sendSensorData()
     publishMessage(MQTT_TOPIC_SENSORS, sensorMsg);
 
     indicators.blink(Indicators::LED::ACTIVITY, 3, 200);
-
-    float currentVolume = mic.getVolume();
-    Serial.println("Published sensor data. Current volume: " + String(currentVolume));
 }
 
 // --- FreeRTOS Tasks ---

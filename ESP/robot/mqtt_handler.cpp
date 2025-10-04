@@ -4,6 +4,7 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <numeric>   // for std::accumulate
+#include <LittleFS.h>
 #include "mqtt_handler.h"
 #include "settings.h"
 #include "servos.h"
@@ -15,19 +16,20 @@ WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 extern Speaker speaker;
 
-// Audio message handling
-struct AudioMessage {
-    std::vector<String> chunks;
-    std::vector<size_t> decodedLengths;
+// Temporary WAV file
+static const char* TEMP_AUDIO_FILE = "/temp_audio.wav";
+
+// Audio message state
+struct AudioState {
     int expectedChunks = 0;
-    size_t totalSize = 0;
+    int lastChunkIndex = -1;
+    File audioFile;
 };
 
-static AudioMessage audioMsg;
+static AudioState audioState;
 
-// Message handlers
+// --- Command handling ---
 void handleCommand(const char* message) {
-
     Serial.println("[MQTT] Received command");
 
     StaticJsonDocument<512> doc;
@@ -56,6 +58,7 @@ void handleCommand(const char* message) {
     }
 }
 
+// --- Audio handling ---
 void handleAudio(const char* message) {
     StaticJsonDocument<4096> doc;
     if (deserializeJson(doc, message) != DeserializationError::Ok) {
@@ -63,8 +66,8 @@ void handleAudio(const char* message) {
         return;
     }
 
-    // Validate required fields
     if (!doc.containsKey("message") || !doc.containsKey("chunk_index") || !doc.containsKey("total_chunks")) {
+        Serial.println("[MQTT] Invalid audio message format");
         return;
     }
 
@@ -73,56 +76,55 @@ void handleAudio(const char* message) {
     const char* base64Data = doc["message"];
 
     // Initialize on first chunk
-    if (audioMsg.expectedChunks != totalChunks) {
-        audioMsg = AudioMessage();
-        audioMsg.chunks.resize(totalChunks);
-        audioMsg.decodedLengths.resize(totalChunks, 0);
-        audioMsg.expectedChunks = totalChunks;
-    }
+    if (chunkIndex == 0) {
+        if (LittleFS.exists(TEMP_AUDIO_FILE)) LittleFS.remove(TEMP_AUDIO_FILE);
 
-    // Store chunk
-    if (chunkIndex >= 0 && chunkIndex < totalChunks) {
-        audioMsg.chunks[chunkIndex] = base64Data;
-        size_t decodedLen = 0;
-        mbedtls_base64_decode(nullptr, 0, &decodedLen, 
-            (const unsigned char*)base64Data, strlen(base64Data));
-        audioMsg.decodedLengths[chunkIndex] = decodedLen;
-    }
-
-    // Process complete message
-    bool isComplete = std::none_of(audioMsg.chunks.begin(), audioMsg.chunks.end(),
-                                 [](const String& s) { return s.isEmpty(); });
-    if (isComplete) {
-        // Calculate total size
-        audioMsg.totalSize = std::accumulate(audioMsg.decodedLengths.begin(), 
-                                           audioMsg.decodedLengths.end(), 0);
-
-        // Allocate buffer and decode
-        if (uint8_t* buffer = new uint8_t[audioMsg.totalSize]) {
-            size_t offset = 0;
-            for (int i = 0; i < totalChunks; i++) {
-                size_t outLen = 0;
-                mbedtls_base64_decode(buffer + offset, audioMsg.decodedLengths[i], &outLen,
-                    (const unsigned char*)audioMsg.chunks[i].c_str(),
-                    audioMsg.chunks[i].length());
-                offset += outLen;
-            }
-
-            speaker.playBuffer(buffer, audioMsg.totalSize);
-            delete[] buffer;
+        audioState.audioFile = LittleFS.open(TEMP_AUDIO_FILE, FILE_WRITE);
+        if (!audioState.audioFile) {
+            Serial.println("[MQTT] Failed to open temp audio file");
+            return;
         }
+        audioState.expectedChunks = totalChunks;
+        Serial.println("[MQTT] Started writing audio file...");
+    }
 
-        // Reset for next message
-        audioMsg = AudioMessage();
+    if (!audioState.audioFile) {
+        Serial.println("[MQTT] Audio file not open!");
+        return;
+    }
+
+    // Decode the base64 chunk
+    size_t decodedLen = 0;
+    // Only get the decoded length, ignore the return code
+    mbedtls_base64_decode(nullptr, 0, &decodedLen, (const unsigned char*)base64Data, strlen(base64Data));
+
+    uint8_t* buffer = new uint8_t[decodedLen];
+    if (mbedtls_base64_decode(buffer, decodedLen, &decodedLen, (const unsigned char*)base64Data, strlen(base64Data)) != 0) {
+        Serial.println("[MQTT] Base64 decode failed");
+        delete[] buffer;
+        return;
+    }
+
+    // Write decoded chunk to file
+    audioState.audioFile.write(buffer, decodedLen);
+    delete[] buffer;
+
+    // Check if this is the last chunk
+    if (chunkIndex == totalChunks - 1) {
+        audioState.audioFile.close();
+        Serial.println("[MQTT] Finished writing audio file, playing...");
+        speaker.playWav(TEMP_AUDIO_FILE);  // Call your speaker
+        audioState.expectedChunks = 0;
+        audioState.lastChunkIndex = -1;
+    } else {
+        audioState.lastChunkIndex = chunkIndex;
     }
 }
 
-// Forward declarations
+
+// --- MQTT setup ---
 bool reconnectMQTT();
-
-// MQTT core functions
 bool setupMQTT() {
-
     Serial.println("[MQTT] Initializing...");
 
     mqttClient.setBufferSize(50000);
@@ -140,7 +142,6 @@ bool setupMQTT() {
 }
 
 bool reconnectMQTT() {
-
     Serial.println("[MQTT] Attempting to connect...");
 
     for (int attempt = 0; attempt < 3 && !mqttClient.connected(); attempt++) {
@@ -166,9 +167,8 @@ void handleMQTT() {
     mqttClient.loop();
 }
 
+// --- MQTT publishing ---
 bool publishMessage(const char* topic, const char* message) {
-
     Serial.printf("[MQTT] Publishing to %s: %s\n", topic, message);
-
     return mqttClient.connected() && mqttClient.publish(topic, message);
 }

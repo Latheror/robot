@@ -204,9 +204,6 @@ void setup()
         Serial.println("Microphone initialization failed.");
     }
 
-    // Send initial sensor data
-    sendSensorData();
-
     // --- Create FreeRTOS tasks ---
     xTaskCreate(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle);
     xTaskCreate(ServoTask, "Servo", 2048, NULL, 2, &servoTaskHandle);

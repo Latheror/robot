@@ -142,14 +142,14 @@ void ServoController::updateJoint(Joint joint) {
         pwm.setPWM(servo.pwmIndex, 0, angleToPWM(angle));
 
         // Trace
-        Serial.print("[SERVO] Joint ");
-        Serial.print(idx);
-        Serial.print(" → Servo #");
-        Serial.print(servoIndex);
-        Serial.print(" (PWM ");
-        Serial.print(servo.pwmIndex);
-        Serial.print(") = ");
-        Serial.print(angle);
-        Serial.println("°");
+        // Serial.print("[SERVO] Joint ");
+        // Serial.print(idx);
+        // Serial.print(" → Servo #");
+        // Serial.print(servoIndex);
+        // Serial.print(" (PWM ");
+        // Serial.print(servo.pwmIndex);
+        // Serial.print(") = ");
+        // Serial.print(angle);
+        // Serial.println("°");
     }
 }

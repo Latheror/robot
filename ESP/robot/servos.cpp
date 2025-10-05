@@ -111,8 +111,8 @@ bool ServoController::isValidJoint(Joint joint) {
 
 void ServoController::updateJoint(Joint joint) {
 
-    Serial.print("[SERVO] Updating joint ");
-    Serial.println(static_cast<size_t>(joint));
+    //Serial.print("[SERVO] Updating joint ");
+    //Serial.println(static_cast<size_t>(joint));
 
     size_t idx = static_cast<size_t>(joint);
     if (idx >= joints.size()) return;

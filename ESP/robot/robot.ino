@@ -143,31 +143,23 @@ void setup()
 
     // Connect WiFi
     WiFi.mode(WIFI_STA);
-    WiFi.begin(NetworkConfig::WIFI_SSID, NetworkConfig::WIFI_PASSWORD);
     Serial.print("Connecting to WiFi");
-    int attempts = 20;
-    while (WiFi.status() != WL_CONNECTED && attempts-- > 0)
+    WiFi.begin(NetworkConfig::WIFI_SSID, NetworkConfig::WIFI_PASSWORD);
+    while (WiFi.status() != WL_CONNECTED)
     {
         delay(500);
         Serial.print(".");
     }
-    Serial.println();
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        Serial.println("WiFi connected");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
-    }
-    else
-    {
-        Serial.println("WiFi connection failed");
-    }
+
+    Serial.println("WiFi connected");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
 
     indicators.blink(Indicators::LED::STATUS, 3, 200);
     indicators.set(Indicators::LED::STATUS, true);
-
     speaker.playWav("/connected_to_wifi.wav");
-    delay(100);
+
+    delay(500);
 
     // Setup MQTT
     if (setupMQTT())
@@ -182,9 +174,6 @@ void setup()
         Serial.println("MQTT connection failed.");
     }
 
-    // Play example sound
-    speaker.playExampleSound();
-
     // Initialize microphone
     if (mic.begin())
     {
@@ -193,7 +182,7 @@ void setup()
         mic.setClapCallback([]()
                             {
             Serial.println("Clap detected!");
-            speaker.playWav("/yesilisten.wav");
+            //speaker.playWav("/yesilisten.wav");
         });
     }
     else

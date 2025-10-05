@@ -30,7 +30,23 @@ static AudioState audioState;
 
 // --- Command handling ---
 void handleCommand(const char* message) {
-    
+
+    /* Random warning sound */
+    int randNum = random(0, 3);
+    static int lastRandNum = 0;
+    switch(lastRandNum) {
+        case 0:
+            speaker.playWav("/warning.wav");
+            break;
+        case 1:
+            speaker.playWav("/imabitclumsy.wav");
+            break;
+        case 2:
+            speaker.playWav("/iwilltrysomething.wav");
+            break;
+    }
+    lastRandNum = (lastRandNum + 1) % 3;
+
     Serial.println("[MQTT] Received command");
     Serial.println(message);
 

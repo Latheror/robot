@@ -106,7 +106,7 @@ void MqttTask(void *pvParameters)
             WiFi.reconnect();
         }
 
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
@@ -201,12 +201,12 @@ void setup()
     }
 
     // --- Create FreeRTOS tasks ---
-    xTaskCreate(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle);
-    xTaskCreate(ServoTask, "Servo", 2048, NULL, 2, &servoTaskHandle);
+    xTaskCreate(RoboEyesTask, "RoboEyes", 4096, NULL, 3, &roboEyesTaskHandle);
+    xTaskCreate(ServoTask, "Servo", 2048, NULL, 3, &servoTaskHandle);
     xTaskCreate(MicTask, "Mic", 4096, NULL, 2, &micTaskHandle);
     xTaskCreate(MqttTask, "MQTT", 4096, NULL, 1, &mqttTaskHandle);
-    xTaskCreate(SensorTask, "Sensor", 4096, NULL, 1, &sensorTaskHandle);
-    xTaskCreate(CheckHeapTask, "CheckHeap", 4096, NULL, 1, &checkHeapTaskHandle);
+    xTaskCreate(SensorTask, "Sensor", 4096, NULL, 2, &sensorTaskHandle);
+    xTaskCreate(CheckHeapTask, "CheckHeap", 4096, NULL, 4, &checkHeapTaskHandle);
 }
 
 // --- Loop ---

@@ -124,6 +124,7 @@ void handleAudio(const char* message) {
     }
 
     // Write decoded chunk to file
+    Serial.printf("[MQTT] Writing chunk %d/%d (%u bytes)\n", chunkIndex + 1, totalChunks, decodedLen);
     audioState.audioFile.write(buffer, decodedLen);
     delete[] buffer;
 

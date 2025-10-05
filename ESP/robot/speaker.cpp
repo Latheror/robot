@@ -120,6 +120,7 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
     File file = LittleFS.open(path);
     if (!file) {
         Serial.println("[AUDIO] Failed to open WAV file");
+        xSemaphoreGive(audioMutex);
         return false;
     }
     

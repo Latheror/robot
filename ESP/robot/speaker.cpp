@@ -112,10 +112,10 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
     if (!audioMutex) return false;
 
     /* Wait for audio mutex */
-    // if (xSemaphoreTake(audioMutex, portMAX_DELAY) != pdTRUE) {
-    //     Serial.println("[AUDIO] Failed to take audio mutex");
-    //     return false;
-    // }
+    if (xSemaphoreTake(audioMutex, portMAX_DELAY) != pdTRUE) {
+         Serial.println("[AUDIO] Failed to take audio mutex");
+         return false;
+    }
 
     File file = LittleFS.open(path);
     if (!file) {

@@ -13,6 +13,7 @@
 #include <Arduino.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "PCF8575.h"
 
 // --- Timing constants ---
 const unsigned long mqttInterval = 120 * 1000;
@@ -24,6 +25,8 @@ INMP441 mic;
 RGBLed rgbLed;
 OLEDDisplay oled;
 RoboEyesDisplay roboEyes(oled);
+PCF8575 expander(0x20); // I2C address
+
 
 // --- FreeRTOS task handles ---
 TaskHandle_t roboEyesTaskHandle;
@@ -135,6 +138,9 @@ void setup()
     esp_log_level_set("i2c.master", ESP_LOG_NONE);
 
     Serial.begin(SystemConfig::SERIAL_BAUD_RATE);
+    while (!Serial) {
+        ; // Wait for the serial port to be ready
+    }
 
     // Initialize hardware
     indicators.begin();
@@ -142,6 +148,8 @@ void setup()
     ServoController::begin();
     roboEyes.begin();
     speaker.begin();
+    expander.begin();
+    expander.writePin(10, HIGH);
 
     rgbLed.begin();
     rgbLed.setBrightness(50);

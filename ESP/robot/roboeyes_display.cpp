@@ -36,7 +36,7 @@ void RoboEyesDisplay::update() {
         if (isI2CAvailable(OLED_ADDR)) {
             oled.get().display();
         } else {
-            Serial.println("⚠️ OLED not detected on I2C!");
+            Serial.println("OLED not detected on I2C!");
         }
         lastOledUpdate = now;
     }

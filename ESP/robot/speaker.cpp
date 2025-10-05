@@ -2,12 +2,21 @@
 #include <LittleFS.h>
 #include <math.h>
 
+SemaphoreHandle_t audioMutex = nullptr;
+
 bool Speaker::begin(const AudioConfig& config) {
     if (_initialized) return true;
     
     _config = config;
     
     if (!initFileSystem() || !initI2S()) {
+        return false;
+    }
+
+    /* Init Mutex */
+    audioMutex = xSemaphoreCreateMutex();
+    if (audioMutex == nullptr) {
+        Serial.println("[AUDIO] Failed to create audio mutex");
         return false;
     }
     
@@ -96,8 +105,18 @@ bool Speaker::playTone(float frequency, uint32_t durationMs, float volume) {
 }
 
 bool Speaker::playWav(const char* path, bool skipHeader) {
-    if (!_initialized || !path) return false;
+
+    Serial.printf("[AUDIO] Playing WAV file: %s\n", path);
     
+    if (!_initialized || !path) return false;
+    if (!audioMutex) return false;
+
+    /* Wait for audio mutex */
+    // if (xSemaphoreTake(audioMutex, portMAX_DELAY) != pdTRUE) {
+    //     Serial.println("[AUDIO] Failed to take audio mutex");
+    //     return false;
+    // }
+
     File file = LittleFS.open(path);
     if (!file) {
         Serial.println("[AUDIO] Failed to open WAV file");
@@ -123,6 +142,10 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
     
     file.close();
     _playing = false;
+
+    /* Release audio mutex */
+    xSemaphoreGive(audioMutex);
+    
     return success;
 }
 

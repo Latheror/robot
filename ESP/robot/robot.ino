@@ -31,6 +31,7 @@ TaskHandle_t servoTaskHandle;
 TaskHandle_t micTaskHandle;
 TaskHandle_t mqttTaskHandle;
 TaskHandle_t sensorTaskHandle;
+TaskHandle_t checkHeapTaskHandle;
 
 // --- Functions ---
 void sendSensorData()
@@ -118,6 +119,15 @@ void SensorTask(void *pvParameters)
     }
 }
 
+void CheckHeapTask(void *pvParameters)
+{
+    while (true)
+    {
+        Serial.printf("[HEAP] Free heap: %u bytes\n", esp_get_free_heap_size());
+        vTaskDelay(pdMS_TO_TICKS(5000)); // Check every 5 seconds
+    }
+}
+
 // --- Setup ---
 void setup()
 {
@@ -182,7 +192,7 @@ void setup()
         mic.setClapCallback([]()
                             {
             Serial.println("Clap detected!");
-            //speaker.playWav("/yesilisten.wav");
+            speaker.playWav("/yesilisten.wav");
         });
     }
     else
@@ -193,9 +203,10 @@ void setup()
     // --- Create FreeRTOS tasks ---
     xTaskCreate(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle);
     xTaskCreate(ServoTask, "Servo", 2048, NULL, 2, &servoTaskHandle);
-    xTaskCreate(MicTask, "Mic", 2048, NULL, 2, &micTaskHandle);
+    xTaskCreate(MicTask, "Mic", 4096, NULL, 2, &micTaskHandle);
     xTaskCreate(MqttTask, "MQTT", 4096, NULL, 1, &mqttTaskHandle);
     xTaskCreate(SensorTask, "Sensor", 4096, NULL, 1, &sensorTaskHandle);
+    xTaskCreate(CheckHeapTask, "CheckHeap", 4096, NULL, 1, &checkHeapTaskHandle);
 }
 
 // --- Loop ---

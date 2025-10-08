@@ -180,6 +180,12 @@ void setup()
     // Setup MQTT
     if (mqttHandler.setup())  // <-- Use class method
     {
+        mqttHandler.setOnCommandReceivedCallback([]()
+                                           {
+            Serial.println("Command executed callback triggered.");
+            indicators.blink(Indicators::LED_PINS::MOTORS_MOVING, 3, 100);
+        });
+
         Serial.println("MQTT connected.");
         speaker.playWav("/connected_to_server.wav");
         indicators.blink(Indicators::LED_PINS::MQTT, 3, 200);

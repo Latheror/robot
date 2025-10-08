@@ -19,13 +19,13 @@ void Indicators::set(LED_PINS led, bool state) {
     Serial.printf("[Indicators] Setting LED %d to %s\n", led, state ? "ON" : "OFF");
 
     if (isValidLED(led)) {
-        pcf.writePin(led, state);
+        pcf.writePin(led, !state);
     }
 }
 
 void Indicators::setAll(bool state) {
     for (uint8_t i = 0; i < static_cast<uint8_t>(LED_PINS::COUNT); i++) {
-        pcf.writePin(i, state);
+        pcf.writePin(i, !state);
     }
 }
 

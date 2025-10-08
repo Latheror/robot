@@ -25,8 +25,6 @@ INMP441 mic;
 RGBLed rgbLed;
 OLEDDisplay oled;
 RoboEyesDisplay roboEyes(oled);
-PCF8575 expander(0x20); // I2C address
-
 
 // --- FreeRTOS task handles ---
 TaskHandle_t roboEyesTaskHandle;
@@ -132,17 +130,17 @@ void CheckHeapTask(void *pvParameters)
     }
 }
 
-void LedTestTask(void *pvParameters)
-{
-    const TickType_t delayTicks = pdMS_TO_TICKS(500);
-    while (true)
-    {
-        expander.writePin(10, LOW);
-        vTaskDelay(delayTicks);
-        expander.writePin(10, HIGH);
-        vTaskDelay(delayTicks);
-    }
-}
+// void LedTestTask(void *pvParameters)
+// {
+//     const TickType_t delayTicks = pdMS_TO_TICKS(500);
+//     while (true)
+//     {
+//         expander.writePin(0, LOW);
+//         vTaskDelay(delayTicks);
+//         expander.writePin(0, HIGH);
+//         vTaskDelay(delayTicks);
+//     }
+// }
 
 // --- Setup ---
 void setup()
@@ -161,7 +159,6 @@ void setup()
     ServoController::begin();
     roboEyes.begin();
     speaker.begin();
-    expander.begin();
 
     rgbLed.begin();
     rgbLed.setBrightness(50);
@@ -227,7 +224,7 @@ void setup()
     xTaskCreate(MqttTask, "MQTT", 4096, NULL, 1, &mqttTaskHandle);
     xTaskCreate(SensorTask, "Sensor", 4096, NULL, 2, &sensorTaskHandle);
     xTaskCreate(CheckHeapTask, "CheckHeap", 4096, NULL, 4, &checkHeapTaskHandle);
-    xTaskCreate(LedTestTask, "LedTest", 2048, NULL, 4, &ledTestTaskHandle);
+    //xTaskCreate(LedTestTask, "LedTest", 2048, NULL, 4, &ledTestTaskHandle);
 }
 
 // --- Loop ---

@@ -24,7 +24,6 @@ bool PCF8575::begin() {
 #ifdef DEBUG_PCF8575
     Serial.println("[PCF8575] begin");
 #endif
-    //_wire->begin();
     return write16(_outputState); // Initialize outputs high
 }
 

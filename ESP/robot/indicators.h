@@ -29,7 +29,7 @@ public:
     void flashWarning();  // Two medium flashes
 
 private:
-    static constexpr uint8_t PIN_MAP[] = {4, 5, 6};  // LED pin assignments
+    static constexpr uint8_t PIN_MAP[] = {0, 1, 2};  // LED pin assignments
     static constexpr uint16_t LONG_FLASH = 1000;     // Long flash duration (ms)
     static constexpr uint16_t MED_FLASH = 500;       // Medium flash duration (ms)
     static constexpr uint16_t SHORT_FLASH = 100;     // Short flash duration (ms)

@@ -22,6 +22,9 @@ bool Indicators::begin() {
 }
 
 void Indicators::set(LED led, bool state) {
+
+    Serial.printf("[Indicators] Setting LED %d to %s\n", static_cast<int>(led), state ? "ON" : "OFF");
+
     if (isValidLED(led)) {
         uint8_t pin = getLEDPin(led);
         // Using PCF8575 instead of direct GPIO
@@ -45,6 +48,9 @@ void Indicators::toggle(LED led) {
 }
 
 void Indicators::blink(LED led, uint8_t times, uint16_t delayMs) {
+
+    Serial.printf("[Indicators] Blinking LED %d, %d times, %d ms delay\n", static_cast<int>(led), times, delayMs);
+
     if (!isValidLED(led)) return;
 
     for (uint8_t i = 0; i < times; i++) {

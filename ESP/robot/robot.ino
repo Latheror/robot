@@ -19,6 +19,7 @@
 const unsigned long mqttInterval = 120 * 1000;
 
 // --- Hardware modules ---
+MqttHandler mqttHandler;
 Speaker speaker;
 Indicators indicators;
 INMP441 mic;
@@ -60,7 +61,8 @@ void sendSensorData()
              "}",
              now, temperature, humidity, light);
 
-    publishMessage(MQTT_TOPIC_SENSORS, sensorMsg);
+    // Use the MqttHandler instance
+    mqttHandler.publishMessage(MqttHandler::MQTT_TOPIC_SENSORS, sensorMsg);
 
     indicators.blink(Indicators::LED_PINS::MESSAGE_SEND, 3, 200);
 }
@@ -98,7 +100,7 @@ void MqttTask(void *pvParameters)
 {
     while (true)
     {
-        handleMQTT();
+        mqttHandler.handle();  // <-- Use class method
 
         // WiFi reconnect if disconnected
         if (WiFi.status() != WL_CONNECTED)
@@ -176,7 +178,7 @@ void setup()
     delay(500);
 
     // Setup MQTT
-    if (setupMQTT())
+    if (mqttHandler.setup())  // <-- Use class method
     {
         Serial.println("MQTT connected.");
         speaker.playWav("/connected_to_server.wav");

@@ -1,55 +1,43 @@
 #include "Indicators.h"
 #include "PCF8575.h"
 
-// Create a global (or static) instance of PCF8575
-// You can change the address (0x20–0x27) to match your hardware configuration
 static PCF8575 pcf(0x20);
 
 bool Indicators::begin() {
-
     Serial.println("[Indicators] Initializing...");
 
-    // Initialize the PCF8575 device
     if (!pcf.begin()) {
         Serial.println("[Indicators] PCF8575 initialization failed!");
         return false;
     }
 
-    // Initialize all LEDs to off state
-    //setAll(false);
     setAll(true);
     return true;
 }
 
-void Indicators::set(LED led, bool state) {
-
-    Serial.printf("[Indicators] Setting LED %d to %s\n", static_cast<int>(led), state ? "ON" : "OFF");
+void Indicators::set(LED_PINS led, bool state) {
+    Serial.printf("[Indicators] Setting LED %d to %s\n", led, state ? "ON" : "OFF");
 
     if (isValidLED(led)) {
-        uint8_t pin = getLEDPin(led);
-        // Using PCF8575 instead of direct GPIO
-        pcf.writePin(pin, state);
+        pcf.writePin(led, state);
     }
 }
 
 void Indicators::setAll(bool state) {
-    // Loop over all LEDs and set each
-    for (size_t i = 0; i < static_cast<size_t>(LED::COUNT); i++) {
-        pcf.writePin(PIN_MAP[i], state);
+    for (uint8_t i = 0; i < static_cast<uint8_t>(LED_PINS::COUNT); i++) {
+        pcf.writePin(i, state);
     }
 }
 
-void Indicators::toggle(LED led) {
+void Indicators::toggle(LED_PINS led) {
     if (isValidLED(led)) {
-        uint8_t pin = getLEDPin(led);
-        bool currentState = pcf.readPin(pin);
-        pcf.writePin(pin, !currentState);
+        bool currentState = pcf.readPin(led);
+        pcf.writePin(led, !currentState);
     }
 }
 
-void Indicators::blink(LED led, uint8_t times, uint16_t delayMs) {
-
-    Serial.printf("[Indicators] Blinking LED %d, %d times, %d ms delay\n", static_cast<int>(led), times, delayMs);
+void Indicators::blink(LED_PINS led, uint8_t times, uint16_t delayMs) {
+    Serial.printf("[Indicators] Blinking LED %d, %d times, %d ms delay\n", led, times, delayMs);
 
     if (!isValidLED(led)) return;
 
@@ -57,28 +45,14 @@ void Indicators::blink(LED led, uint8_t times, uint16_t delayMs) {
         set(led, true);
         delay(delayMs);
         set(led, false);
-        if (i < times - 1) {
-            delay(delayMs);
-        }
+        if (i < times - 1) delay(delayMs);
     }
 }
 
-void Indicators::flashSuccess() {
-    blink(LED::STATUS, 3, SHORT_FLASH);
-}
+void Indicators::flashSuccess() { blink(WIFI, 3, SHORT_FLASH); }
+void Indicators::flashError()   { blink(WIFI, 1, LONG_FLASH);  }
+void Indicators::flashWarning() { blink(WIFI, 2, MED_FLASH);   }
 
-void Indicators::flashError() {
-    blink(LED::STATUS, 1, LONG_FLASH);
-}
-
-void Indicators::flashWarning() {
-    blink(LED::STATUS, 2, MED_FLASH);
-}
-
-bool Indicators::isValidLED(LED led) const {
-    return static_cast<size_t>(led) < static_cast<size_t>(LED::COUNT);
-}
-
-uint8_t Indicators::getLEDPin(LED led) const {
-    return PIN_MAP[static_cast<size_t>(led)];
+bool Indicators::isValidLED(LED_PINS led) const {
+    return led < LED_PINS::COUNT;
 }

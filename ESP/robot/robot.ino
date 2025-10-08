@@ -63,7 +63,7 @@ void sendSensorData()
 
     publishMessage(MQTT_TOPIC_SENSORS, sensorMsg);
 
-    indicators.blink(Indicators::LED::ACTIVITY, 3, 200);
+    indicators.blink(Indicators::LED_PINS::MESSAGE_SEND, 3, 200);
 }
 
 // --- FreeRTOS Tasks ---
@@ -182,8 +182,8 @@ void setup()
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
 
-    indicators.blink(Indicators::LED::STATUS, 3, 200);
-    indicators.set(Indicators::LED::STATUS, true);
+    indicators.blink(Indicators::LED_PINS::WIFI, 3, 200);
+    indicators.set(Indicators::LED_PINS::WIFI, true);
     speaker.playWav("/connected_to_wifi.wav");
 
     delay(500);
@@ -193,8 +193,8 @@ void setup()
     {
         Serial.println("MQTT connected.");
         speaker.playWav("/connected_to_server.wav");
-        indicators.blink(Indicators::LED::NETWORK, 3, 200);
-        indicators.set(Indicators::LED::NETWORK, true);
+        indicators.blink(Indicators::LED_PINS::MQTT, 3, 200);
+        indicators.set(Indicators::LED_PINS::MQTT, true);
     }
     else
     {

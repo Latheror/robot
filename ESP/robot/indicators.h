@@ -2,40 +2,95 @@
 #define INDICATORS_H
 
 #include <Arduino.h>
-#include <array>
 
+/**
+ * @class Indicators
+ * @brief Manages the system's LED indicators through a PCF8575 I/O expander.
+ *
+ * This class provides control over several indicator LEDs such as status, network,
+ * and activity. Each LED can be turned on/off, toggled, or blinked with custom patterns.
+ */
 class Indicators {
 public:
-    // LED identifiers
-    enum class LED {
-        STATUS = 0,   // General status LED
-        NETWORK,      // Network connection status
-        ACTIVITY,     // General activity indicator
-        COUNT
+    /**
+     * @enum LED_PINS
+     * @brief Defines LED identifiers mapped directly to hardware pin numbers.
+     */
+    enum LED_PINS : uint8_t {
+        WIFI   = 0,  ///< General system status LED (Pin 0)
+        MQTT  = 1,  ///< Network connection indicator (Pin 1)
+        MESSAGE_SEND = 2,  ///< General activity indicator (Pin 2)
+        COUNT          ///< Number of available LEDs
     };
 
-    // Initialize the indicator system
+    /**
+     * @brief Initializes the indicator system and the PCF8575 device.
+     * 
+     * @return true if initialization was successful, false otherwise.
+     */
     bool begin();
 
-    // Control methods
-    void set(LED led, bool state);
+    /**
+     * @brief Sets the state of a specific LED.
+     * 
+     * @param led The LED to modify (from LED_PINS enum).
+     * @param state True to turn the LED on, false to turn it off.
+     */
+    void set(LED_PINS led, bool state);
+
+    /**
+     * @brief Sets the state of all LEDs at once.
+     * 
+     * @param state True to turn all LEDs on, false to turn them off.
+     */
     void setAll(bool state);
-    void toggle(LED led);
-    void blink(LED led, uint8_t times = 1, uint16_t delayMs = 100);
-    
-    // Pattern methods
-    void flashSuccess();  // Three quick blinks
-    void flashError();    // One long flash
-    void flashWarning();  // Two medium flashes
+
+    /**
+     * @brief Toggles the state of a specific LED.
+     * 
+     * @param led The LED to toggle.
+     */
+    void toggle(LED_PINS led);
+
+    /**
+     * @brief Blinks a specific LED a given number of times.
+     * 
+     * @param led The LED to blink.
+     * @param times Number of blink repetitions (default is 1).
+     * @param delayMs Delay between on/off states in milliseconds (default is 100 ms).
+     */
+    void blink(LED_PINS led, uint8_t times = 1, uint16_t delayMs = 100);
+
+    /**
+     * @brief Displays a "success" feedback pattern (three short blinks).
+     */
+    void flashSuccess();
+
+    /**
+     * @brief Displays an "error" feedback pattern (one long blink).
+     */
+    void flashError();
+
+    /**
+     * @brief Displays a "warning" feedback pattern (two medium blinks).
+     */
+    void flashWarning();
 
 private:
-    static constexpr uint8_t PIN_MAP[] = {0, 1, 2};  // LED pin assignments
-    static constexpr uint16_t LONG_FLASH = 1000;     // Long flash duration (ms)
-    static constexpr uint16_t MED_FLASH = 500;       // Medium flash duration (ms)
-    static constexpr uint16_t SHORT_FLASH = 100;     // Short flash duration (ms)
-    
-    bool isValidLED(LED led) const;
-    uint8_t getLEDPin(LED led) const;
+    /// Duration for long flash patterns (in milliseconds).
+    static constexpr uint16_t LONG_FLASH  = 1000;
+    /// Duration for medium flash patterns (in milliseconds).
+    static constexpr uint16_t MED_FLASH   = 500;
+    /// Duration for short flash patterns (in milliseconds).
+    static constexpr uint16_t SHORT_FLASH = 100;
+
+    /**
+     * @brief Validates that the provided LED index is within bounds.
+     * 
+     * @param led The LED to validate.
+     * @return true if the LED is valid, false otherwise.
+     */
+    bool isValidLED(LED_PINS led) const;
 };
 
 #endif // INDICATORS_H

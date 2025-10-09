@@ -30,6 +30,7 @@ private:
     
     unsigned long _lastUpdate = 0;
     unsigned long _lastDebugPrint = 0;
+    unsigned long _lastClapTime = 0;
 
     static constexpr unsigned long UPDATE_INTERVAL = 20;   // ms
     static constexpr unsigned long DEBUG_INTERVAL  = 1000; // ms
@@ -37,11 +38,14 @@ private:
     static constexpr double CLAP_THRESHOLD = 0.6;          // Volume threshold for clap (normalized 0.0-1.0)
     static constexpr unsigned long CLAP_DEBOUNCE = 300;    // ms to ignore multiple detections
 
-    unsigned long _lastClapTime = 0;
     std::function<void()> _clapCallback;
 
     bool configureI2S() const;
-    void checkForClap();
+
+    // --- Factorized private helpers ---
+    void readSamplesAndComputeVolume();
+    void updateActivityLed();
+    void detectDoubleClap();
 };
 
 #endif // INMP441_H

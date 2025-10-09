@@ -109,7 +109,7 @@ void INMP441::updateActivityLed() {
 void INMP441::detectDoubleClap() {
     unsigned long now = millis();
 
-    if (_currentVolume <= CLAP_THRESHOLD) return;
+    if (_currentVolume * 100 <= CLAP_THRESHOLD) return;
     if (now - _lastClapTime <= CLAP_DEBOUNCE) return;
 
     if (_firstClapTime == 0) {

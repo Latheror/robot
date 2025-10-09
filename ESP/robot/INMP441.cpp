@@ -69,6 +69,12 @@ void INMP441::update() {
     readSamplesAndComputeVolume();
     updateActivityLed();
     detectDoubleClap();
+
+    // If recording, append sample to buffer
+    if (_recording) {
+        int32_t sample = readSample();
+        _recordBuffer.push_back(sample);
+    }
 }
 
 void INMP441::readSamplesAndComputeVolume() {
@@ -86,6 +92,8 @@ void INMP441::readSamplesAndComputeVolume() {
         int32_t aligned = buffer[i] >> 8;
         double normalized = (double)aligned / MAX_24BIT;
         sumSquares += normalized * normalized;
+
+        if (_recording) _recordBuffer.push_back(aligned);
     }
 
     _currentVolume = sqrt(sumSquares / samplesRead);
@@ -98,7 +106,7 @@ void INMP441::updateActivityLed() {
 void INMP441::detectDoubleClap() {
     unsigned long now = millis();
 
-    if (_currentVolume * 100 <= CLAP_THRESHOLD) return;
+    if (_currentVolume <= CLAP_THRESHOLD) return;
     if (now - _lastClapTime <= CLAP_DEBOUNCE) return;
 
     if (_firstClapTime == 0) {
@@ -133,5 +141,22 @@ float INMP441::getVolume() const {
 }
 
 bool INMP441::isVolumeAboveThreshold() const {
-    return (_currentVolume * 100.0) > AudioConfig::VOLUME_THRESHOLD;
+    return _currentVolume > AudioConfig::VOLUME_THRESHOLD;
+}
+
+// ---- Recording functions ----
+
+void INMP441::startRecording() {
+    _recordBuffer.clear();
+    _recording = true;
+    Serial.println("[MIC] Recording started");
+}
+
+void INMP441::stopRecording() {
+    _recording = false;
+    Serial.printf("[MIC] Recording stopped, %d samples captured\n", (int)_recordBuffer.size());
+}
+
+const std::vector<int32_t>& INMP441::getBuffer() const {
+    return _recordBuffer;
 }

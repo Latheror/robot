@@ -183,8 +183,7 @@ void setup()
         mqttHandler.setOnCommandReceivedCallback([]()
                                            {
             Serial.println("Command executed callback triggered.");
-            indicators.blink(Indicators::LED_PINS::MOTORS_MOVING, 3, 100);
-        });
+            indicators.blink(Indicators::LED_PINS::MOTORS_MOVING, 3, 100); });
 
         Serial.println("MQTT connected.");
         speaker.playWav("/connected_to_server.wav");
@@ -201,10 +200,15 @@ void setup()
     {
         Serial.println("Microphone ready.");
 
-        mic.setClapCallback([]()
-                            {
+        mic.setClapCallback([](){
             Serial.println("Clap detected!");
             speaker.playWav("/yesilisten.wav");
+        });
+
+        mic.setIsRecordingCallback([](bool recording){
+            Serial.print("Recording state: ");
+            Serial.println(recording ? "START" : "STOP");
+            indicators.set(Indicators::LED_PINS::IS_RECORDING, recording); 
         });
     }
     else

@@ -68,6 +68,12 @@ public:
     void setClapCallback(std::function<void()> callback);
 
     /**
+     * @brief Set callback to check if recording is active.
+     * @param callback Function returning true if recording, false otherwise
+     */
+    void setIsRecordingCallback(std::function<void(bool)> callback);
+
+    /**
      * @brief Start recording audio into internal buffer.
      */
     void startRecording();
@@ -93,6 +99,7 @@ private:
     unsigned long _lastClapTime = 0;        ///< Last clap timestamp
 
     std::function<void()> _clapCallback;    ///< Double-clap callback
+    std::function<void(bool)> _isRecordingCallback; ///< Callback to check if recording is active
 
     bool _recording = false;                ///< Recording flag
     std::vector<int32_t> _recordBuffer;     ///< Audio buffer for recording

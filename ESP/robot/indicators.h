@@ -21,6 +21,7 @@ public:
         MQTT  = 1,  ///< Network connection indicator (Pin 1)
         MESSAGE_SEND = 2,  ///< General activity indicator (Pin 2)
         MOTORS_MOVING = 3,  ///< Motor activity indicator (Pin 3)
+        IS_RECORDING = 4,  ///< Voice recording indicator (Pin 4)
         COUNT          ///< Number of available LEDs
     };
 

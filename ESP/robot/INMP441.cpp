@@ -8,6 +8,9 @@ INMP441::INMP441(int sampleRate) : _sampleRate(sampleRate) {}
 void INMP441::setClapCallback(std::function<void()> callback) {
     _clapCallback = callback;
 }
+void INMP441::setIsRecordingCallback(std::function<void(bool)> callback) {
+    _isRecordingCallback = callback;
+}
 
 bool INMP441::begin() {
     if (!configureI2S()) return false;

@@ -35,6 +35,9 @@ TaskHandle_t mqttTaskHandle;
 TaskHandle_t sensorTaskHandle;
 TaskHandle_t checkHeapTaskHandle;
 
+// --- Global WiFi state flag ---
+volatile bool wifiConnected = false;
+
 // --- Functions ---
 void sendSensorData()
 {
@@ -61,13 +64,12 @@ void sendSensorData()
              "}",
              now, temperature, humidity, light);
 
-    // Use the MqttHandler instance
     mqttHandler.publishMessage(MqttHandler::MQTT_TOPIC_SENSORS, sensorMsg);
-
     indicators.blink(Indicators::LED_PINS::MESSAGE_SEND, 3, 200);
 }
 
 // --- FreeRTOS Tasks ---
+
 void RoboEyesTask(void *pvParameters)
 {
     const TickType_t delayTicks = pdMS_TO_TICKS(10); // ~100 FPS
@@ -96,120 +98,171 @@ void MicTask(void *pvParameters)
     }
 }
 
-void MqttTask(void *pvParameters)
+// --- WiFi Task ---
+void WiFiTask(void *pvParameters)
 {
+    WiFi.mode(WIFI_STA);
+    Serial.println("Connecting to WiFi...");
+
+    unsigned long lastAttempt = 0;
+    const unsigned long retryInterval = 10000;
+    bool attempting = false;
+
     while (true)
     {
-        mqttHandler.handle();  // <-- Use class method
+        wl_status_t status = WiFi.status();
 
-        // WiFi reconnect if disconnected
-        if (WiFi.status() != WL_CONNECTED)
+        if (status == WL_CONNECTED)
         {
-            Serial.println("WiFi disconnected. Attempting to reconnect...");
-            WiFi.reconnect();
+            if (!wifiConnected)
+            {
+                wifiConnected = true;
+                Serial.println("WiFi connected!");
+                Serial.print("IP: ");
+                Serial.println(WiFi.localIP());
+
+                indicators.blink(Indicators::LED_PINS::WIFI, 3, 200);
+                indicators.set(Indicators::LED_PINS::WIFI, true);
+                speaker.playWav("/connected_to_wifi.wav");
+            }
+            attempting = false;
+        }
+        else
+        {
+            if (wifiConnected)
+            {
+                wifiConnected = false;
+                Serial.println("WiFi lost!");
+                indicators.set(Indicators::LED_PINS::WIFI, false);
+                WiFi.disconnect(true, false);
+                attempting = false;
+            }
+
+            unsigned long now = millis();
+            if (!attempting && (now - lastAttempt > retryInterval))
+            {
+                Serial.println("Attempting WiFi reconnect...");
+                WiFi.begin(NetworkConfig::WIFI_SSID, NetworkConfig::WIFI_PASSWORD);
+                attempting = true;
+                lastAttempt = now;
+            }
         }
 
-        vTaskDelay(pdMS_TO_TICKS(10));
+        //Serial.printf("WiFi status: %d\n", status);
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
+// --- MQTT Task ---
+void MqttTask(void *pvParameters)
+{
+    bool mqttConnected = false;
+
+    while (true)
+    {
+        if (!wifiConnected)
+        {
+            vTaskDelay(pdMS_TO_TICKS(2000));
+            continue;
+        }
+
+        // Ensure MQTT is connected
+        if (!mqttConnected)
+        {
+            Serial.println("Connecting to MQTT broker...");
+            if (mqttHandler.setup())
+            {
+                mqttConnected = true;
+                Serial.println("MQTT connected.");
+
+                mqttHandler.setOnCommandReceivedCallback([]()
+                {
+                    Serial.println("Command executed callback triggered.");
+                    indicators.blink(Indicators::LED_PINS::MOTORS_MOVING, 3, 100);
+                });
+
+                indicators.set(Indicators::LED_PINS::MQTT, true);
+                speaker.playWav("/connected_to_server.wav");
+            }
+            else
+            {
+                Serial.println("MQTT connection failed. Retrying...");
+                vTaskDelay(pdMS_TO_TICKS(5000));
+                continue;
+            }
+        }
+
+        // Handle MQTT messages
+        mqttHandler.handle();
+
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+}
+
+// --- Sensor Task ---
 void SensorTask(void *pvParameters)
 {
     while (true)
     {
+        if (!wifiConnected)
+        {
+            vTaskDelay(pdMS_TO_TICKS(2000)); // Wait for WiFi
+            continue;
+        }
+
         sendSensorData();
         vTaskDelay(pdMS_TO_TICKS(mqttInterval));
     }
 }
 
+// --- Heap Monitoring Task ---
 void CheckHeapTask(void *pvParameters)
 {
     while (true)
     {
         Serial.printf("[HEAP] Free heap: %u bytes\n", esp_get_free_heap_size());
-        vTaskDelay(pdMS_TO_TICKS(5000)); // Check every 5 seconds
+        vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
 
 // --- Setup ---
 void setup()
 {
-    // Disable I2C logs
     esp_log_level_set("i2c.master", ESP_LOG_NONE);
 
     Serial.begin(SystemConfig::SERIAL_BAUD_RATE);
-    while (!Serial) {
-        ; // Wait for the serial port to be ready
-    }
+    unsigned long serialStart = millis();
+    while (!Serial && millis() - serialStart < 2000)
+        delay(10); // Non-blocking serial wait
 
-    // Initialize hardware
+    // --- Initialize hardware ---
     indicators.begin();
     oled.begin();
     ServoController::begin();
     roboEyes.begin();
     speaker.begin();
-
     rgbLed.begin();
     rgbLed.setBrightness(50);
     rgbLed.setColor(0, 0, 255);
 
-    // Play startup sound
     speaker.listFiles();
     speaker.playWav("/start_speech.wav");
 
-    // Connect WiFi
-    WiFi.mode(WIFI_STA);
-    Serial.print("Connecting to WiFi");
-    WiFi.begin(NetworkConfig::WIFI_SSID, NetworkConfig::WIFI_PASSWORD);
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(500);
-        Serial.print(".");
-    }
-
-    Serial.println("WiFi connected");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-
-    indicators.blink(Indicators::LED_PINS::WIFI, 3, 200);
-    indicators.set(Indicators::LED_PINS::WIFI, true);
-    speaker.playWav("/connected_to_wifi.wav");
-
-    delay(500);
-
-    // Setup MQTT
-    if (mqttHandler.setup())  // <-- Use class method
-    {
-        mqttHandler.setOnCommandReceivedCallback([]()
-                                           {
-            Serial.println("Command executed callback triggered.");
-            indicators.blink(Indicators::LED_PINS::MOTORS_MOVING, 3, 100); });
-
-        Serial.println("MQTT connected.");
-        speaker.playWav("/connected_to_server.wav");
-        indicators.blink(Indicators::LED_PINS::MQTT, 3, 200);
-        indicators.set(Indicators::LED_PINS::MQTT, true);
-    }
-    else
-    {
-        Serial.println("MQTT connection failed.");
-    }
-
-    // Initialize microphone
+    // --- Microphone setup ---
     if (mic.begin())
     {
         Serial.println("Microphone ready.");
-
-        mic.setClapCallback([](){
-            Serial.println("Clap detected!");
-            speaker.playWav("/yesilisten.wav");
-        });
-
-        mic.setIsRecordingCallback([](bool recording){
-            Serial.print("Recording state: ");
-            Serial.println(recording ? "START" : "STOP");
-            indicators.set(Indicators::LED_PINS::IS_RECORDING, recording); 
-        });
+        mic.setClapCallback([]()
+                            {
+                                Serial.println("Clap detected!");
+                                speaker.playWav("/yesilisten.wav");
+                            });
+        mic.setIsRecordingCallback([](bool recording)
+                                   {
+                                       Serial.print("Recording state: ");
+                                       Serial.println(recording ? "START" : "STOP");
+                                       indicators.set(Indicators::LED_PINS::IS_RECORDING, recording);
+                                   });
     }
     else
     {
@@ -217,17 +270,17 @@ void setup()
     }
 
     // --- Create FreeRTOS tasks ---
+    xTaskCreatePinnedToCore(WiFiTask, "WiFi", 4096, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(MqttTask, "MQTT", 4096, NULL, 2, &mqttTaskHandle, 1);
+    xTaskCreatePinnedToCore(SensorTask, "Sensor", 4096, NULL, 2, &sensorTaskHandle, 1);
     xTaskCreate(RoboEyesTask, "RoboEyes", 4096, NULL, 3, &roboEyesTaskHandle);
     xTaskCreate(ServoTask, "Servo", 2048, NULL, 3, &servoTaskHandle);
     xTaskCreate(MicTask, "Mic", 4096, NULL, 2, &micTaskHandle);
-    xTaskCreate(MqttTask, "MQTT", 4096, NULL, 1, &mqttTaskHandle);
-    xTaskCreate(SensorTask, "Sensor", 4096, NULL, 2, &sensorTaskHandle);
     xTaskCreate(CheckHeapTask, "CheckHeap", 4096, NULL, 4, &checkHeapTaskHandle);
 }
 
 // --- Loop ---
 void loop()
 {
-    // FreeRTOS handles everything; just yield
-    vTaskDelay(portMAX_DELAY);
+    vTaskDelay(portMAX_DELAY); // All work handled by FreeRTOS
 }

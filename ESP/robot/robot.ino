@@ -225,15 +225,27 @@ void CheckHeapTask(void *pvParameters)
     }
 }
 
+// --- Serial Initialization Task ---
+void SerialInitTask(void *pvParameters)
+{
+    Serial.begin(SystemConfig::SERIAL_BAUD_RATE);
+    unsigned long serialStart = millis();
+    while (!Serial && millis() - serialStart < 2000)
+    {
+        vTaskDelay(pdMS_TO_TICKS(10)); // non-blocking delay
+    }
+    Serial.println("Serial initialized.");
+
+    vTaskDelete(NULL); // kill this task once done
+}
+
 // --- Setup ---
 void setup()
 {
     esp_log_level_set("i2c.master", ESP_LOG_NONE);
 
-    Serial.begin(SystemConfig::SERIAL_BAUD_RATE);
-    unsigned long serialStart = millis();
-    while (!Serial && millis() - serialStart < 2000)
-        delay(10); // Non-blocking serial wait
+    // --- Initialize Serial ---
+    xTaskCreate(SerialInitTask, "SerialInit", 1024, NULL, 1, NULL);
 
     // --- Initialize hardware ---
     indicators.begin();

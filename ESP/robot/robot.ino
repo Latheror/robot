@@ -245,10 +245,34 @@ void SerialInitTask(void *pvParameters)
 // --- LED Task ---
 void LEDTask(void *pvParameters)
 {
-    const TickType_t delayTicks = pdMS_TO_TICKS(10); // 100 FPS
+    const TickType_t delayTicks = pdMS_TO_TICKS(200); // 5 FPS
+    uint8_t colors[5][3] = {
+        {255, 0, 0},     // Red
+        {0, 255, 0},     // Green
+        {0, 0, 255},     // Blue
+        {255, 255, 0},   // Yellow
+        {255, 0, 255}    // Magenta
+    };
+
     while (true)
     {
-        strip.rainbow();
+        // Move colors along the LEDs
+        uint8_t temp[3];
+        memcpy(temp, colors[4], 3);  // Save last color
+
+        // Shift all colors down
+        for (int i = 4; i > 0; i--)
+            memcpy(colors[i], colors[i - 1], 3);
+
+        memcpy(colors[0], temp, 3); // Wrap last color to first
+
+        // Set LEDs
+        strip.setColor(LED_NAME_1, strip.color(colors[0][0], colors[0][1], colors[0][2]));
+        strip.setColor(LED_NAME_2, strip.color(colors[1][0], colors[1][1], colors[1][2]));
+        strip.setColor(LED_NAME_3, strip.color(colors[2][0], colors[2][1], colors[2][2]));
+        strip.setColor(LED_NAME_4, strip.color(colors[3][0], colors[3][1], colors[3][2]));
+        strip.setColor(LED_NAME_5, strip.color(colors[4][0], colors[4][1], colors[4][2]));
+
         strip.show();
         vTaskDelay(delayTicks);
     }
@@ -272,7 +296,6 @@ void setup()
     rgbLed.setBrightness(50);
     rgbLed.setColor(0, 0, 255);
     strip.begin();
-    strip.setAll(strip.color(0, 0, 255)); // Blue
 
     speaker.listFiles();
     speaker.playWav("/start_speech.wav");

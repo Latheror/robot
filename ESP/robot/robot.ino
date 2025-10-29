@@ -14,6 +14,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "PCF8575.h"
+#include "led_strip.h"
 
 // --- Timing constants ---
 const unsigned long mqttInterval = 120 * 1000;
@@ -26,6 +27,7 @@ INMP441 mic;
 RGBLed rgbLed;
 OLEDDisplay oled;
 RoboEyesDisplay roboEyes(oled);
+LEDStrip strip;
 
 // --- FreeRTOS task handles ---
 TaskHandle_t roboEyesTaskHandle;
@@ -34,6 +36,7 @@ TaskHandle_t micTaskHandle;
 TaskHandle_t mqttTaskHandle;
 TaskHandle_t sensorTaskHandle;
 TaskHandle_t checkHeapTaskHandle;
+TaskHandle_t ledTaskHandle;
 
 // --- Global WiFi state flag ---
 volatile bool wifiConnected = false;
@@ -239,6 +242,18 @@ void SerialInitTask(void *pvParameters)
     vTaskDelete(NULL); // kill this task once done
 }
 
+// --- LED Task ---
+void LEDTask(void *pvParameters)
+{
+    const TickType_t delayTicks = pdMS_TO_TICKS(10); // 100 FPS
+    while (true)
+    {
+        strip.rainbow();
+        strip.show();
+        vTaskDelay(delayTicks);
+    }
+}
+
 // --- Setup ---
 void setup()
 {
@@ -256,6 +271,8 @@ void setup()
     rgbLed.begin();
     rgbLed.setBrightness(50);
     rgbLed.setColor(0, 0, 255);
+    strip.begin();
+    strip.setAll(strip.color(0, 0, 255)); // Blue
 
     speaker.listFiles();
     speaker.playWav("/start_speech.wav");
@@ -289,6 +306,7 @@ void setup()
     xTaskCreate(ServoTask, "Servo", 2048, NULL, 3, &servoTaskHandle);
     xTaskCreate(MicTask, "Mic", 4096, NULL, 2, &micTaskHandle);
     xTaskCreate(CheckHeapTask, "CheckHeap", 4096, NULL, 4, &checkHeapTaskHandle);
+    xTaskCreate(LEDTask, "LED", 4096, NULL, 1, &ledTaskHandle);
 }
 
 // --- Loop ---

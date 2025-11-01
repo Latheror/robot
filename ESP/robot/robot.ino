@@ -13,21 +13,20 @@
 #include <Arduino.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "PCF8575.h"
 #include "led_strip.h"
 
 // --- Timing constants ---
 const unsigned long mqttInterval = 120 * 1000;
 
 // --- Hardware modules ---
+LEDStrip strip;
+Indicators indicators(strip);
 MqttHandler mqttHandler;
 Speaker speaker;
-Indicators indicators;
 INMP441 mic;
 RGBLed rgbLed;
 OLEDDisplay oled;
 RoboEyesDisplay roboEyes(oled);
-LEDStrip strip;
 
 // --- FreeRTOS task handles ---
 TaskHandle_t roboEyesTaskHandle;
@@ -68,7 +67,7 @@ void sendSensorData()
              now, temperature, humidity, light);
 
     mqttHandler.publishMessage(MqttHandler::MQTT_TOPIC_SENSORS, sensorMsg);
-    indicators.blink(Indicators::LED_PINS::MESSAGE_SEND, 3, 200);
+    indicators.blink(Indicators::LED_PINS::IS_SPEAKING, 3, 200);
 }
 
 // --- FreeRTOS Tasks ---
@@ -106,6 +105,9 @@ void WiFiTask(void *pvParameters)
 {
     WiFi.mode(WIFI_STA);
     Serial.println("Connecting to WiFi...");
+    
+    // Show red LED while disconnected
+    indicators.setColor(Indicators::LED_PINS::WIFI, 255, 0, 0);
 
     unsigned long lastAttempt = 0;
     const unsigned long retryInterval = 10000;
@@ -242,41 +244,12 @@ void SerialInitTask(void *pvParameters)
     vTaskDelete(NULL); // kill this task once done
 }
 
-// --- LED Task ---
-void LEDTask(void *pvParameters)
-{
-    const TickType_t delayTicks = pdMS_TO_TICKS(200); // 5 FPS
-    uint8_t colors[5][3] = {
-        {255, 0, 0},     // Red
-        {0, 255, 0},     // Green
-        {0, 0, 255},     // Blue
-        {255, 255, 0},   // Yellow
-        {255, 0, 255}    // Magenta
-    };
-
-    while (true)
-    {
-        // Move colors along the LEDs
-        uint8_t temp[3];
-        memcpy(temp, colors[4], 3);  // Save last color
-
-        // Shift all colors down
-        for (int i = 4; i > 0; i--)
-            memcpy(colors[i], colors[i - 1], 3);
-
-        memcpy(colors[0], temp, 3); // Wrap last color to first
-
-        // Set LEDs
-        strip.setColor(LED_NAME_1, strip.color(colors[0][0], colors[0][1], colors[0][2]));
-        strip.setColor(LED_NAME_2, strip.color(colors[1][0], colors[1][1], colors[1][2]));
-        strip.setColor(LED_NAME_3, strip.color(colors[2][0], colors[2][1], colors[2][2]));
-        strip.setColor(LED_NAME_4, strip.color(colors[3][0], colors[3][1], colors[3][2]));
-        strip.setColor(LED_NAME_5, strip.color(colors[4][0], colors[4][1], colors[4][2]));
-
-        strip.show();
-        vTaskDelay(delayTicks);
-    }
-}
+// All LED status handling is now done through the Indicators class in their respective tasks:
+// - WiFiTask: LED 1 - Red when disconnected, Green when connected
+// - MqttTask: LED 2 - Red when connecting, Green when connected, Off when disconnected
+// - INMP441: LED 3 - On when listening
+// - Speaker: LED 4 - Blinks when speaking
+// - Servos:  LED 5 - Purple when moving
 
 // --- Setup ---
 void setup()
@@ -313,7 +286,7 @@ void setup()
                                    {
                                        Serial.print("Recording state: ");
                                        Serial.println(recording ? "START" : "STOP");
-                                       indicators.set(Indicators::LED_PINS::IS_RECORDING, recording);
+                                       indicators.set(Indicators::LED_PINS::IS_LISTENING, recording);
                                    });
     }
     else
@@ -329,7 +302,6 @@ void setup()
     xTaskCreate(ServoTask, "Servo", 2048, NULL, 3, &servoTaskHandle);
     xTaskCreate(MicTask, "Mic", 4096, NULL, 2, &micTaskHandle);
     xTaskCreate(CheckHeapTask, "CheckHeap", 4096, NULL, 4, &checkHeapTaskHandle);
-    xTaskCreate(LEDTask, "LED", 4096, NULL, 1, &ledTaskHandle);
 }
 
 // --- Loop ---

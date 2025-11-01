@@ -6,10 +6,10 @@
 
 class RGBLed {
 public:
-    static constexpr uint8_t LED_PIN = 48;  // Pin connecté à la LED RGB
-    static constexpr uint8_t LED_COUNT = 1; // Une seule LED
+    static constexpr uint8_t RGB_LED_PIN = 48;  // RGB LED pin number
+    static constexpr uint8_t SINGLE_LED_COUNT = 1; // Number of LEDs (always 1 for this class)
     
-    RGBLed() : _pixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800) {}
+    RGBLed() : _pixel(SINGLE_LED_COUNT, RGB_LED_PIN, NEO_GRB + NEO_KHZ800) {}
     
     bool begin() {
         _pixel.begin();

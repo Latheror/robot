@@ -35,11 +35,16 @@ bool MqttHandler::setup() {
 bool MqttHandler::reconnect() {
     Serial.println("[MQTT] Attempting to connect...");
 
+    // Red for connecting
+    indicators.setColor(Indicators::LED_PINS::MQTT, 255, 0, 0);
+
     for (int attempt = 0; attempt < 3 && !mqttClient.connected(); attempt++) {
         if (mqttClient.connect(NetworkConfig::MQTT_CLIENT_ID)) {
             mqttClient.subscribe(MQTT_TOPIC_COMMANDS);
             mqttClient.subscribe(MQTT_TOPIC_AUDIO);
             Serial.println("[MQTT] Connected and subscribed");
+            // Green for connected
+            indicators.set(Indicators::LED_PINS::MQTT, true);
             return true;
         }
         delay(1000);
@@ -47,6 +52,8 @@ bool MqttHandler::reconnect() {
     }
 
     Serial.println("[MQTT] Failed to connect");
+    // Turn LED off for disconnected state
+    indicators.set(Indicators::LED_PINS::MQTT, false);
     return false;
 }
 
@@ -105,7 +112,8 @@ void MqttHandler::handleCommand(const char* message) {
         {"gripper", static_cast<int>(Joint::GRIPPER)}
     };
 
-    indicators.set(Indicators::LED_PINS::MOTORS_MOVING, true);
+    // Set motors indicator - Purple for movement
+    indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 255, 0, 255);
 
     for (const auto& map : servoMap) {
         if (servos.containsKey(map.name)) {
@@ -113,6 +121,7 @@ void MqttHandler::handleCommand(const char* message) {
         }
     }
 
+    // Turn off movement LED
     indicators.set(Indicators::LED_PINS::MOTORS_MOVING, false);
 
     if (onCommandReceivedCallback) onCommandReceivedCallback();

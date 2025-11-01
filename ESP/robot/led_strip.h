@@ -3,7 +3,7 @@
 #include <Adafruit_NeoPixel.h>
 
 #define LED_STRIP_PIN 13
-#define LED_COUNT     5
+#define STRIP_LED_COUNT 5
 #define LED_BRIGHTNESS 64
 
 enum LedName {
@@ -16,7 +16,7 @@ enum LedName {
 
 class LEDStrip {
 public:
-    LEDStrip(uint8_t pin = LED_STRIP_PIN, uint8_t numLeds = LED_COUNT);
+    LEDStrip(uint8_t pin = LED_STRIP_PIN, uint8_t numLeds = STRIP_LED_COUNT);
     void begin();
 
     void setColor(LedName led, uint32_t color);

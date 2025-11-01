@@ -34,6 +34,7 @@ class ServoController {
 public:
     static bool begin();
     static void update();
+    static bool isInitialized() { return _initialized; }
 
     static void setTargetAngle(Joint joint, float angle);
 
@@ -58,6 +59,7 @@ private:
     static std::array<float, static_cast<size_t>(Joint::COUNT)> currentAngles;
     static std::array<float, static_cast<size_t>(Joint::COUNT)> targetAngles;
     static std::array<float, static_cast<size_t>(Joint::COUNT)> speeds;
+    static bool _initialized;
 
     // Internal helpers
     static void updateJoint(Joint joint);

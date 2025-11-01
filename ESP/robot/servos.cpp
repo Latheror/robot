@@ -1,8 +1,11 @@
 #include "servos.h"
-#include <algorithm>
+#include "indicators.h"
+
+extern Indicators indicators;  // External variable declaration
 
 // Static member definitions
 Adafruit_PWMServoDriver ServoController::pwm = Adafruit_PWMServoDriver();
+bool ServoController::_initialized = false;
 
 // Physical servo mapping (board channels)
 std::array<ServoInfo, 7> ServoController::servos = {{
@@ -33,24 +36,49 @@ std::array<float, static_cast<size_t>(Joint::COUNT)> ServoController::targetAngl
 
 bool ServoController::begin() {
     Serial.println("[SERVO] Initializing servo controller...");
-    pwm.begin();
+    if (!pwm.begin()) {
+        Serial.println("[SERVO] Failed to initialize PCA9685! Robot arm control unavailable");
+        _initialized = false;
+        return false;
+    }
+    
     pwm.setPWMFreq(PWM_FREQ);
 
     for (size_t i = 0; i < static_cast<size_t>(Joint::COUNT); i++) {
         updateJoint(static_cast<Joint>(i));
     }
 
-    Serial.println("[SERVO] Initialization complete");
+    _initialized = true;
+    Serial.println("[SERVO] Initialization complete - Robot arm ready");
     return true;
 }
 
 // -------------------------------------------------------
 
 void ServoController::update() {
+    static bool wasMoving = false;
+    bool isAnyJointMoving = false;
+    
     for (size_t i = 0; i < static_cast<size_t>(Joint::COUNT); i++) {
         Joint joint = static_cast<Joint>(i);
         if (!atTarget(joint)) {
             updateJoint(joint);
+            isAnyJointMoving = true;
+        }
+    }
+
+    // Update LED based on movement status
+    if (isAnyJointMoving != wasMoving) {
+        wasMoving = isAnyJointMoving;
+        
+        if (isAnyJointMoving) {
+            // Blink green LED while servos are moving
+            Serial.println("[SERVO] Movement started - LED blinking");
+            indicators.blink(Indicators::LED_PINS::MOTORS_MOVING, 1, 100);
+        } else {
+            // Solid green when servos are stopped
+            Serial.println("[SERVO] Movement stopped - LED solid");
+            indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 0, 255, 0);
         }
     }
 }

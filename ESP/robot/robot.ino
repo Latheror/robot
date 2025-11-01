@@ -314,6 +314,13 @@ void setup()
     xTaskCreatePinnedToCore(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle, 1);
     xTaskCreatePinnedToCore(ServoTask, "Servo", 2048, NULL, 3, &servoTaskHandle, 1);
     xTaskCreatePinnedToCore(MicTask, "Mic", 4096, NULL, 4, &micTaskHandle, 1);
+
+    // Configure Robot Arm LED based on initialization status
+    if (!ServoController::isInitialized()) {
+        indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 255, 0, 0); // Red if not initialized
+    } else {
+        indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 0, 255, 0); // Green if initialized
+    }
 }
 
 // --- Loop ---

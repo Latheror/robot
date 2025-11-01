@@ -304,13 +304,16 @@ void setup()
     }
 
     // --- Create FreeRTOS tasks ---
-    xTaskCreatePinnedToCore(WiFiTask, "WiFi", 4096, NULL, 3, NULL, 0);
-    xTaskCreatePinnedToCore(MqttTask, "MQTT", 4096, NULL, 2, &mqttTaskHandle, 1);
-    xTaskCreatePinnedToCore(SensorTask, "Sensor", 4096, NULL, 2, &sensorTaskHandle, 1);
-    xTaskCreate(RoboEyesTask, "RoboEyes", 4096, NULL, 3, &roboEyesTaskHandle);
-    xTaskCreate(ServoTask, "Servo", 2048, NULL, 3, &servoTaskHandle);
-    xTaskCreate(MicTask, "Mic", 4096, NULL, 2, &micTaskHandle);
-    xTaskCreate(CheckHeapTask, "CheckHeap", 4096, NULL, 4, &checkHeapTaskHandle);
+    // Core 0: Network and background tasks
+    xTaskCreatePinnedToCore(WiFiTask, "WiFi", 4096, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(MqttTask, "MQTT", 4096, NULL, 1, &mqttTaskHandle, 0);
+    xTaskCreatePinnedToCore(SensorTask, "Sensor", 4096, NULL, 1, &sensorTaskHandle, 0);
+    xTaskCreatePinnedToCore(CheckHeapTask, "CheckHeap", 4096, NULL, 1, &checkHeapTaskHandle, 0);
+
+    // Core 1: Real-time tasks (audio, display, servos)
+    xTaskCreatePinnedToCore(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle, 1);
+    xTaskCreatePinnedToCore(ServoTask, "Servo", 2048, NULL, 3, &servoTaskHandle, 1);
+    xTaskCreatePinnedToCore(MicTask, "Mic", 4096, NULL, 4, &micTaskHandle, 1);
 }
 
 // --- Loop ---

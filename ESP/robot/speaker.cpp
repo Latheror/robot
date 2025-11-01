@@ -73,6 +73,13 @@ bool Speaker::initI2S() {
 
 bool Speaker::playTone(float frequency, uint32_t durationMs, float volume) {
     if (!_initialized || frequency <= 0 || durationMs == 0) return false;
+    if (!audioMutex) return false;
+
+    /* Wait for audio mutex */
+    if (xSemaphoreTake(audioMutex, portMAX_DELAY) != pdTRUE) {
+         Serial.println("[AUDIO] Failed to take audio mutex");
+         return false;
+    }
     
     // Clamp volume to valid range
     volume = std::clamp(volume, 0.0f, 1.0f);
@@ -104,6 +111,9 @@ bool Speaker::playTone(float frequency, uint32_t durationMs, float volume) {
     
     _playing = false;
     notifyPlaybackState(false);
+    
+    /* Release audio mutex */
+    xSemaphoreGive(audioMutex);
     return true;
 }
 
@@ -157,6 +167,13 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
 
 bool Speaker::playBuffer(const uint8_t* buffer, size_t length) {
     if (!_initialized || !buffer || length == 0) return false;
+    if (!audioMutex) return false;
+
+    /* Wait for audio mutex */
+    if (xSemaphoreTake(audioMutex, portMAX_DELAY) != pdTRUE) {
+         Serial.println("[AUDIO] Failed to take audio mutex");
+         return false;
+    }
     
     _playing = true;
     notifyPlaybackState(true);
@@ -173,12 +190,27 @@ bool Speaker::playBuffer(const uint8_t* buffer, size_t length) {
     
     _playing = false;
     notifyPlaybackState(false);
+    
+    /* Release audio mutex */
+    xSemaphoreGive(audioMutex);
     return success;
 }
 
 bool Speaker::playChunk(const uint8_t* chunk, size_t length) {
     if (!_initialized || !chunk || length == 0) return false;
-    return writeSamples(chunk, length);
+    if (!audioMutex) return false;
+
+    /* Wait for audio mutex */
+    if (xSemaphoreTake(audioMutex, portMAX_DELAY) != pdTRUE) {
+         Serial.println("[AUDIO] Failed to take audio mutex");
+         return false;
+    }
+
+    bool success = writeSamples(chunk, length);
+    
+    /* Release audio mutex */
+    xSemaphoreGive(audioMutex);
+    return success;
 }
 
 void Speaker::stop() {

@@ -89,6 +89,22 @@ public:
      */
     const std::vector<int32_t>& getBuffer() const;
 
+    /**
+     * @brief Enable clap detection
+     */
+    void enableClapDetection() { _clapDetectionEnabled = true; }
+
+    /**
+     * @brief Disable clap detection
+     */
+    void disableClapDetection() { _clapDetectionEnabled = false; }
+
+    /**
+     * @brief Check if clap detection is enabled
+     * @return true if enabled, false otherwise
+     */
+    bool isClapDetectionEnabled() const { return _clapDetectionEnabled; }
+
 private:
     const int _sampleRate;                  ///< Configured sample rate
     const i2s_port_t _i2sPort = I2S_NUM_1; ///< I2S port
@@ -102,6 +118,7 @@ private:
     std::function<void(bool)> _isRecordingCallback; ///< Callback to check if recording is active
 
     bool _recording = false;                ///< Recording flag
+    bool _clapDetectionEnabled = true;      ///< Clap detection enabled flag
     std::vector<int32_t> _recordBuffer;     ///< Audio buffer for recording
 
     static constexpr unsigned long UPDATE_INTERVAL = 20;  

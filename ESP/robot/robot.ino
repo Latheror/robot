@@ -267,6 +267,12 @@ void setup()
     speaker.setPlaybackCallback([](bool isPlaying) {
         // Blue when speaking, off when silent
         indicators.setColor(Indicators::LED_PINS::IS_SPEAKING, isPlaying ? 0 : 0, isPlaying ? 0 : 0, isPlaying ? 255 : 0);
+        // Disable clap detection during playback to prevent false triggers
+        if (isPlaying) {
+            mic.disableClapDetection();
+        } else {
+            mic.enableClapDetection();
+        }
     });
     rgbLed.begin();
     rgbLed.setBrightness(50);

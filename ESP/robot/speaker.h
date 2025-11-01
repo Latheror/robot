@@ -26,6 +26,9 @@ public:
         {}
     };
 
+    // Callback type for playback state changes
+    using PlaybackCallback = std::function<void(bool)>;
+
     // Initialize and configure the speaker
     bool begin(const AudioConfig& config = AudioConfig());
     
@@ -38,6 +41,11 @@ public:
     // Utility methods
     void stop();
     bool isPlaying() const;
+
+    // Set callback for playback state changes
+    void setPlaybackCallback(PlaybackCallback callback) {
+        _playbackCallback = callback;
+    }
     
     // Example methods
     void playExampleSound() {
@@ -59,11 +67,13 @@ private:
     bool _playing = false;
     AudioConfig _config;
     i2s_port_t _i2sPort = I2S_NUM_0;
+    PlaybackCallback _playbackCallback;
 
     // Internal methods
     bool initI2S();
     bool initFileSystem();
     size_t writeSamples(const void* buffer, size_t bytes);
+    void notifyPlaybackState(bool playing);
     
     // Tone generation
     static void generateTone(float frequency, float volume, 

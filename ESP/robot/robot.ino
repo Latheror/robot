@@ -67,7 +67,6 @@ void sendSensorData()
              now, temperature, humidity, light);
 
     mqttHandler.publishMessage(MqttHandler::MQTT_TOPIC_SENSORS, sensorMsg);
-    indicators.blink(Indicators::LED_PINS::IS_SPEAKING, 3, 200);
 }
 
 // --- FreeRTOS Tasks ---
@@ -265,6 +264,10 @@ void setup()
     ServoController::begin();
     roboEyes.begin();
     speaker.begin();
+    speaker.setPlaybackCallback([](bool isPlaying) {
+        // Blue when speaking, off when silent
+        indicators.setColor(Indicators::LED_PINS::IS_SPEAKING, isPlaying ? 0 : 0, isPlaying ? 0 : 0, isPlaying ? 255 : 0);
+    });
     rgbLed.begin();
     rgbLed.setBrightness(50);
     rgbLed.setColor(0, 0, 255);

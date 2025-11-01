@@ -83,6 +83,7 @@ bool Speaker::playTone(float frequency, uint32_t durationMs, float volume) {
     int16_t buffer[bufferSize];
     
     _playing = true;
+    notifyPlaybackState(true);
     size_t samplesProcessed = 0;
     
     while (samplesProcessed < samplesNeeded) {
@@ -94,6 +95,7 @@ bool Speaker::playTone(float frequency, uint32_t durationMs, float volume) {
         // Write to I2S
         if (!writeSamples(buffer, samplesToGenerate * sizeof(int16_t))) {
             _playing = false;
+            notifyPlaybackState(false);
             return false;
         }
         
@@ -101,6 +103,7 @@ bool Speaker::playTone(float frequency, uint32_t durationMs, float volume) {
     }
     
     _playing = false;
+    notifyPlaybackState(false);
     return true;
 }
 
@@ -130,6 +133,7 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
     }
     
     _playing = true;
+    notifyPlaybackState(true);
     uint8_t buffer[512];
     bool success = true;
     
@@ -143,6 +147,7 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
     
     file.close();
     _playing = false;
+    notifyPlaybackState(false);
 
     /* Release audio mutex */
     xSemaphoreGive(audioMutex);
@@ -154,6 +159,7 @@ bool Speaker::playBuffer(const uint8_t* buffer, size_t length) {
     if (!_initialized || !buffer || length == 0) return false;
     
     _playing = true;
+    notifyPlaybackState(true);
     const size_t chunkSize = 512;
     bool success = true;
     
@@ -166,6 +172,7 @@ bool Speaker::playBuffer(const uint8_t* buffer, size_t length) {
     }
     
     _playing = false;
+    notifyPlaybackState(false);
     return success;
 }
 
@@ -178,6 +185,7 @@ void Speaker::stop() {
     if (_initialized) {
         i2s_zero_dma_buffer(_i2sPort);
         _playing = false;
+        notifyPlaybackState(false);
     }
 }
 
@@ -212,6 +220,12 @@ size_t Speaker::writeSamples(const void* buffer, size_t bytes) {
     size_t bytesWritten = 0;
     esp_err_t err = i2s_write(_i2sPort, buffer, bytes, &bytesWritten, portMAX_DELAY);
     return (err == ESP_OK) ? bytesWritten : 0;
+}
+
+void Speaker::notifyPlaybackState(bool playing) {
+    if (_playbackCallback) {
+        _playbackCallback(playing);
+    }
 }
 
 void Speaker::generateTone(float frequency, float volume, 

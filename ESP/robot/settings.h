@@ -44,4 +44,16 @@ struct SystemConfig {
     static const int MQTT_BUFFER_SIZE = 50000;  // MQTT message buffer size
 };
 
+// Task Configuration
+struct TaskConfig {
+    static const int ROBO_EYES_DELAY_MS = 10;
+    static const int SERVO_UPDATE_DELAY_MS = 20;
+    static const int MIC_UPDATE_DELAY_MS = 10;
+    static const int WIFI_RETRY_INTERVAL_MS = 10000;
+    static const int MQTT_HANDLE_DELAY_MS = 50;
+    static const int SENSOR_SEND_INTERVAL_MS = 120000;  // 2 minutes
+    static const int HEAP_CHECK_INTERVAL_MS = 5000;
+    static const int SERIAL_INIT_TIMEOUT_MS = 2000;
+};
+
 #endif // SETTINGS_H

@@ -1,22 +1,25 @@
+// Standard libraries
+#include <Arduino.h>
 #include <Wire.h>
 #include <WiFi.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
+
+// Custom headers
 #include "wifi_manager.h"
 #include "mqtt_handler.h"
 #include "oled_display.h"
 #include "roboeyes_display.h"
-#include "esp_log.h"
 #include "servos.h"
 #include "speaker.h"
 #include "indicators.h"
 #include "INMP441.h"
 #include "rgb_led.h"
-#include <Arduino.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "led_strip.h"
 
 // --- Timing constants ---
-const unsigned long mqttInterval = 120 * 1000;
+const unsigned long mqttInterval = TaskConfig::SENSOR_SEND_INTERVAL_MS;
 
 // --- Hardware modules ---
 LEDStrip strip;
@@ -41,6 +44,12 @@ TaskHandle_t ledTaskHandle;
 volatile bool wifiConnected = false;
 
 // --- Functions ---
+/**
+ * @brief Sends mock sensor data via MQTT.
+ * 
+ * Generates random temperature, humidity, and light values and publishes them
+ * as a JSON message to the MQTT sensor topic.
+ */
 void sendSensorData()
 {
     unsigned long now = millis();
@@ -71,9 +80,14 @@ void sendSensorData()
 
 // --- FreeRTOS Tasks ---
 
+/**
+ * @brief Task for updating the RoboEyes display.
+ * 
+ * Runs at ~100 FPS to animate the robot's eyes.
+ */
 void RoboEyesTask(void *pvParameters)
 {
-    const TickType_t delayTicks = pdMS_TO_TICKS(10); // ~100 FPS
+    const TickType_t delayTicks = pdMS_TO_TICKS(TaskConfig::ROBO_EYES_DELAY_MS); // ~100 FPS
     while (true)
     {
         roboEyes.update();
@@ -86,7 +100,7 @@ void ServoTask(void *pvParameters)
     while (true)
     {
         ServoController::update();
-        vTaskDelay(pdMS_TO_TICKS(20));
+        vTaskDelay(pdMS_TO_TICKS(TaskConfig::SERVO_UPDATE_DELAY_MS));
     }
 }
 
@@ -95,7 +109,7 @@ void MicTask(void *pvParameters)
     while (true)
     {
         mic.update();
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(TaskConfig::MIC_UPDATE_DELAY_MS));
     }
 }
 
@@ -109,7 +123,7 @@ void WiFiTask(void *pvParameters)
     indicators.setColor(Indicators::LED_PINS::WIFI, 255, 0, 0);
 
     unsigned long lastAttempt = 0;
-    const unsigned long retryInterval = 10000;
+    const unsigned long retryInterval = TaskConfig::WIFI_RETRY_INTERVAL_MS;
     bool attempting = false;
 
     while (true)
@@ -199,7 +213,7 @@ void MqttTask(void *pvParameters)
         // Handle MQTT messages
         mqttHandler.handle();
 
-        vTaskDelay(pdMS_TO_TICKS(50));
+        vTaskDelay(pdMS_TO_TICKS(TaskConfig::MQTT_HANDLE_DELAY_MS));
     }
 }
 
@@ -225,7 +239,7 @@ void CheckHeapTask(void *pvParameters)
     while (true)
     {
         Serial.printf("[HEAP] Free heap: %u bytes\n", esp_get_free_heap_size());
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(pdMS_TO_TICKS(TaskConfig::HEAP_CHECK_INTERVAL_MS));
     }
 }
 
@@ -234,7 +248,7 @@ void SerialInitTask(void *pvParameters)
 {
     Serial.begin(SystemConfig::SERIAL_BAUD_RATE);
     unsigned long serialStart = millis();
-    while (!Serial && millis() - serialStart < 2000)
+    while (!Serial && millis() - serialStart < TaskConfig::SERIAL_INIT_TIMEOUT_MS)
     {
         vTaskDelay(pdMS_TO_TICKS(10)); // non-blocking delay
     }

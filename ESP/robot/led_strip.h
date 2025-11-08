@@ -4,7 +4,7 @@
 
 #define LED_STRIP_PIN 13
 #define STRIP_LED_COUNT 5
-#define LED_BRIGHTNESS 64
+#define LED_BRIGHTNESS 3
 
 enum LedName {
     LED_NAME_1 = 0,

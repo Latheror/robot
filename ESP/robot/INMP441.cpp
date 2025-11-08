@@ -1,8 +1,5 @@
 #include "INMP441.h"
 
-unsigned long _firstClapTime = 0;
-const unsigned long DOUBLE_CLAP_MAX_DELAY = 500; // ms between claps
-
 INMP441::INMP441(int sampleRate) : _sampleRate(sampleRate) {}
 
 void INMP441::setClapCallback(std::function<void()> callback) {

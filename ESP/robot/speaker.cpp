@@ -1,4 +1,4 @@
-#include "Speaker.h"
+#include "speaker.h"
 #include <LittleFS.h>
 #include <math.h>
 
@@ -267,15 +267,15 @@ void Speaker::generateTone(float frequency, float volume,
     constexpr float two_pi = 6.283185307179586476925286766559f;
     
     static float phase = 0.0f;
-    float phaseIncrement = TWO_PI * frequency / sampleRate;
+    float phaseIncrement = two_pi * frequency / sampleRate;
     
     for (size_t i = 0; i < samples; i++) {
         float sample = sinf(phase) * volume;
         buffer[i] = static_cast<int16_t>(sample * MAX_AMPLITUDE);
         
         phase += phaseIncrement;
-        if (phase >= TWO_PI) {
-            phase -= TWO_PI;
+        if (phase >= two_pi) {
+            phase -= two_pi;
         }
     }
 }

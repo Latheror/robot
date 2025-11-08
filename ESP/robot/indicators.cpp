@@ -1,4 +1,4 @@
-#include "Indicators.h"
+#include "indicators.h"
 
 Indicators::Indicators(LEDStrip& strip) : _strip(strip) {}
 

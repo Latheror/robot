@@ -9,36 +9,37 @@
 #define SCL_PIN 18
 #define OLED_ADDR 0x3C
 
-/// <summary>
-/// Manages the initialization and control of an SH1106 OLED display.
-/// Provides I2C scanning and safe display startup.
-/// </summary>
+/**
+ * @brief Manages the initialization and control of an SH1106 OLED display.
+ * Provides I2C scanning and safe display startup.
+ */
 class OLEDDisplay {
 public:
-    /// <summary>
-    /// Constructor for OLEDDisplay.
-    /// </summary>
+    /**
+     * @brief Constructor for OLEDDisplay.
+     */
     OLEDDisplay();
 
-    /// <summary>
-    /// Initialize the OLED display and perform an I2C scan.
-    /// </summary>
+    /**
+     * @brief Initialize the OLED display and perform an I2C scan.
+     */
     void begin();
 
-    /// <summary>
-    /// Clear the display contents.
-    /// </summary>
+    /**
+     * @brief Clear the display contents.
+     */
     void clear();
 
-    /// <summary>
-    /// Return a reference to the underlying Adafruit display driver.
-    /// </summary>
+    /**
+     * @brief Return a reference to the underlying Adafruit display driver.
+     * @return Reference to the Adafruit_SH1106G display.
+     */
     Adafruit_SH1106G& get();
 
 private:
-    /// <summary>
-    /// Scan I2C bus and print detected devices.
-    /// </summary>
+    /**
+     * @brief Scan I2C bus and print detected devices.
+     */
     void scanI2C();
 
     Adafruit_SH1106G display;

@@ -2,49 +2,49 @@
 #include <Arduino.h>
 #include "oled_display.h"
 
-/// <summary>
-/// Encapsulates RoboEyes animation logic, tied to an OLED display.
-/// Handles moods, animations, blinking, and timed updates.
-/// </summary>
+/**
+ * @brief Encapsulates RoboEyes animation logic, tied to an OLED display.
+ * Handles moods, animations, blinking, and timed updates.
+ */
 class RoboEyesDisplay {
 public:
-    /// <summary>
-    /// Constructor. Requires an initialized OLEDDisplay instance.
-    /// </summary>
-    /// <param name="oled">Reference to an OLEDDisplay object.</param>
+    /**
+     * @brief Constructor. Requires an initialized OLEDDisplay instance.
+     * @param oled Reference to an OLEDDisplay object.
+     */
     RoboEyesDisplay(OLEDDisplay& oled);
 
-    /// <summary>
-    /// Initialize RoboEyes logic and random seed.
-    /// </summary>
+    /**
+     * @brief Initialize RoboEyes logic and random seed.
+     */
     void begin();
 
-    /// <summary>
-    /// Handle frame updates, OLED refresh, and mood/animation changes.
-    /// Call this in the main loop.
-    /// </summary>
+    /**
+     * @brief Handle frame updates, OLED refresh, and mood/animation changes.
+     * Call this in the main loop.
+     */
     void update();
 
 private:
-    /// <summary>
-    /// Checks if an I2C device is available at the given address.
-    /// </summary>
-    /// <param name="address">I2C device address</param>
-    /// <returns>true if device responds, false otherwise</returns>
+    /**
+     * @brief Checks if an I2C device is available at the given address.
+     * @param address I2C device address.
+     * @return true if device responds, false otherwise.
+     */
     bool isI2CAvailable(uint8_t address);
 
-    OLEDDisplay& oled;
+    OLEDDisplay& oled; ///< Reference to the OLED display
 
-    /// <summary>
-    /// Opaque pointer to RoboEyes object.
-    /// </summary>
+    /**
+     * @brief Opaque pointer to RoboEyes object.
+     */
     void* roboEyesPtr;
 
-    unsigned long lastFrame;
-    unsigned long lastOledUpdate;
-    unsigned long lastChange;
+    unsigned long lastFrame;     ///< Last frame update time
+    unsigned long lastOledUpdate; ///< Last OLED update time
+    unsigned long lastChange;     ///< Last mood change time
 
-    static constexpr unsigned long frameInterval = 10;      // 100 FPS
-    static constexpr unsigned long oledInterval = 100;     // 10 FPS
-    static constexpr unsigned long changeInterval = 10000; // 10s
+    static constexpr unsigned long frameInterval = 10;      ///< 100 FPS
+    static constexpr unsigned long oledInterval = 100;     ///< 10 FPS
+    static constexpr unsigned long changeInterval = 10000; ///< 10s
 };

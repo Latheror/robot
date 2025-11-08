@@ -125,6 +125,7 @@ private:
     static constexpr unsigned long UPDATE_INTERVAL = 20;  
     static constexpr double MAX_24BIT = 8388607.0;
     static constexpr double CLAP_THRESHOLD = 0.6;
+    static constexpr unsigned long CLAP_DEBOUNCE = 300;
     static constexpr unsigned long DOUBLE_CLAP_MAX_DELAY = 500;
 
     /**

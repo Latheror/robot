@@ -47,4 +47,27 @@ private:
     Adafruit_NeoPixel _pixel; ///< NeoPixel object
 };
 
+// Inline method definitions
+inline bool RGBLed::begin() {
+    _pixel.begin();
+    _pixel.clear();
+    _pixel.show();
+    return true;
+}
+
+inline void RGBLed::setColor(uint8_t r, uint8_t g, uint8_t b) {
+    _pixel.setPixelColor(0, _pixel.Color(r, g, b));
+    _pixel.show();
+}
+
+inline void RGBLed::clear() {
+    _pixel.clear();
+    _pixel.show();
+}
+
+inline void RGBLed::setBrightness(uint8_t brightness) {
+    _pixel.setBrightness(brightness);
+    _pixel.show();
+}
+
 #endif // RGB_LED_H

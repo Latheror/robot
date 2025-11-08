@@ -63,7 +63,7 @@ bool INMP441::configureI2S() const {
 
 void INMP441::update() {
     unsigned long now = millis();
-    if (now - _lastUpdate < UPDATE_INTERVAL) return;
+    if (now - _lastUpdate < INMP441::UPDATE_INTERVAL) return;
     _lastUpdate = now;
 
     readSamplesAndComputeVolume();
@@ -90,7 +90,7 @@ void INMP441::readSamplesAndComputeVolume() {
 
     for (int i = 0; i < samplesRead; i++) {
         int32_t aligned = buffer[i] >> 8;
-        double normalized = (double)aligned / MAX_24BIT;
+        double normalized = (double)aligned / INMP441::MAX_24BIT;
         sumSquares += normalized * normalized;
 
         if (_recording) _recordBuffer.push_back(aligned);
@@ -108,14 +108,14 @@ void INMP441::detectDoubleClap() {
     
     unsigned long now = millis();
 
-    if (_currentVolume * 100 <= CLAP_THRESHOLD) return;
-    if (now - _lastClapTime <= CLAP_DEBOUNCE) return;
+    if (_currentVolume * 100 <= INMP441::CLAP_THRESHOLD) return;
+    if (now - _lastClapTime <= INMP441::CLAP_DEBOUNCE) return;
 
     if (_firstClapTime == 0) {
         _firstClapTime = now;
         Serial.println("[MIC] First clap detected");
     } else {
-        if (now - _firstClapTime <= DOUBLE_CLAP_MAX_DELAY) {
+        if (now - _firstClapTime <= INMP441::DOUBLE_CLAP_MAX_DELAY) {
             Serial.println("[MIC] Double clap detected!");
             if (_clapCallback) _clapCallback();
         }
@@ -124,7 +124,7 @@ void INMP441::detectDoubleClap() {
 
     _lastClapTime = now;
 
-    if (_firstClapTime && (now - _firstClapTime) > DOUBLE_CLAP_MAX_DELAY)
+    if (_firstClapTime && (now - _firstClapTime) > INMP441::DOUBLE_CLAP_MAX_DELAY)
         _firstClapTime = 0;
 }
 

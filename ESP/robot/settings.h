@@ -12,7 +12,7 @@ struct NetworkConfig {
     static constexpr int WIFI_RETRY_DELAY = 500;               ///< Delay between retries (ms)
 
     // MQTT Settings
-    static constexpr const char* MQTT_BROKER = "192.168.238.21"; ///< MQTT broker IP
+    static constexpr const char* MQTT_BROKER = "192.168.145.21"; ///< MQTT broker IP
     static constexpr int MQTT_PORT = 1883;                       ///< MQTT port
     static constexpr const char* MQTT_CLIENT_ID = "ESP32-Robot"; ///< MQTT client ID
 };
@@ -22,7 +22,7 @@ struct NetworkConfig {
  */
 struct AudioConfig {
     static const int SAMPLING_RATE = 44100;      ///< Audio sampling rate (Hz)
-    static const int VOLUME_THRESHOLD = 1;       ///< Voice detection threshold (in % of max volume)
+    static const float VOLUME_THRESHOLD = 0.1f;       ///< Voice detection threshold (in % of max volume)
     static const int AVERAGING_SAMPLES = 64;     ///< Samples for moving average
 };
 

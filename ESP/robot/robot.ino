@@ -289,8 +289,8 @@ void setup()
         }
     });
     rgbLed.begin();
-    rgbLed.setBrightness(50);
-    rgbLed.setColor(0, 0, 255);
+    rgbLed.setBrightness(0);
+    rgbLed.clear();
     strip.begin();
 
     speaker.listFiles();

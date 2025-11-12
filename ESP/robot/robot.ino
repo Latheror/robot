@@ -269,13 +269,22 @@ void setup()
 {
     esp_log_level_set("i2c.master", ESP_LOG_NONE);
 
+    // Set I2C timeout to prevent blocking (5ms)
+    Wire.setTimeout(3000);
+
     // --- Initialize Serial ---
     xTaskCreate(SerialInitTask, "SerialInit", 1024, NULL, 1, NULL);
 
     // --- Initialize hardware ---
     indicators.begin();
-    oled.begin();
-    ServoController::begin();
+    if (!oled.begin()) {
+        Serial.println("OLED initialization failed - display disabled");
+    }
+    if (!ServoController::begin()) {
+        indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 255, 0, 0); // Red if not initialized
+    } else {
+        indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 0, 255, 0); // Green if initialized
+    }
     roboEyes.begin();
     speaker.begin();
     speaker.setPlaybackCallback([](bool isPlaying) {

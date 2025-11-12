@@ -22,8 +22,9 @@ public:
 
     /**
      * @brief Initialize the OLED display and perform an I2C scan.
+     * @return true if successful, false otherwise.
      */
-    void begin();
+    bool begin();
 
     /**
      * @brief Clear the display contents.

@@ -38,7 +38,7 @@ void OLEDDisplay::scanI2C() {
 /// <summary>
 /// Initialize the OLED display and perform an I2C scan.
 /// </summary>
-void OLEDDisplay::begin() {
+bool OLEDDisplay::begin() {
     Wire.begin(SDA_PIN, SCL_PIN, 100000); // SDA, SCL, frequency
     delay(100);
 
@@ -46,11 +46,12 @@ void OLEDDisplay::begin() {
 
     if (!display.begin(OLED_ADDR, true)) {
         Serial.println(F("Failed to initialize SH1106"));
-        for (;;) ; // halt
+        return false; // Don't halt, just return false
     }
 
     display.clearDisplay();
     display.display();
+    return true;
 }
 
 /// <summary>

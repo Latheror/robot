@@ -22,7 +22,7 @@ struct NetworkConfig {
  */
 struct AudioConfig {
     static const int SAMPLING_RATE = 44100;      ///< Audio sampling rate (Hz)
-    static const float VOLUME_THRESHOLD = 0.1f;       ///< Voice detection threshold (in % of max volume)
+    static constexpr float VOLUME_THRESHOLD = 0.1f;       ///< Voice detection threshold (in % of max volume)
     static const int AVERAGING_SAMPLES = 64;     ///< Samples for moving average
 };
 

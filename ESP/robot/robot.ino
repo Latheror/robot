@@ -302,9 +302,6 @@ void setup()
     rgbLed.clear();
     strip.begin();
 
-    speaker.listFiles();
-    speaker.playWav("/start_speech.wav");
-
     // --- Microphone setup ---
     if (mic.begin())
     {
@@ -325,6 +322,9 @@ void setup()
     {
         Serial.println("Microphone initialization failed.");
     }
+
+    speaker.listFiles();
+    speaker.playWav("/start_speech.wav");
 
     // --- Create FreeRTOS tasks ---
     // Core 0: Network and background tasks

@@ -1,33 +1,23 @@
-# Use Python 3.11 slim for compatibility
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libsndfile1 \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y gcc g++ && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip, setuptools, wheel
-RUN pip install --upgrade pip setuptools wheel
+RUN pip install -U pip setuptools wheel
 
-# Install numpy first to prevent build errors (needed by pkuseg)
-RUN pip install numpy
+RUN pip install torch
 
-# CPU-only PyTorch + torchaudio
-RUN pip install torch==2.2.0+cpu torchaudio==2.2.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip install "numpy>=1.24,<1.26"
 
-# Copy requirements.txt and install the rest
 COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code
-COPY . .
+RUN pip install --no-deps chatterbox-tts
 
-# Expose port for FastAPI
+COPY app.py .
+
 EXPOSE 8000
 
-# Run FastAPI
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "app.py"]

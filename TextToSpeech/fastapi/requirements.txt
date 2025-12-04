@@ -1,8 +1,5 @@
 soundfile
+huggingface_hub
+safetensors
 fastapi
 uvicorn
-safetensors
-huggingface-hub
-chatterbox-tts
-pkuseg
-gradio

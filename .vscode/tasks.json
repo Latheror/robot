@@ -126,6 +126,22 @@
       "presentation": {
         "reveal": "always"
       }
+    },
+    {
+      "label": "[ESP] Erase Flash",
+      "type": "shell",
+      "command": "D:/Projets/Robot/.venv/Scripts/python.exe",
+      "args": [
+        "-m",
+        "esptool",
+        "--port",
+        "COM7",
+        "erase-flash"
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
     }
   ]
 }

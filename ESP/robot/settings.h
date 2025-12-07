@@ -6,8 +6,8 @@
  */
 struct NetworkConfig {
     // WiFi Settings
-    static constexpr const char* WIFI_SSID = "Roro3";           ///< WiFi SSID
-    static constexpr const char* WIFI_PASSWORD = "rorororo";    ///< WiFi password
+    static constexpr const char* WIFI_SSID = "SSID";           ///< WiFi SSID
+    static constexpr const char* WIFI_PASSWORD = "Password";    ///< WiFi password
     static constexpr int WIFI_TIMEOUT_MS = 10000;              ///< Connection timeout (ms)
     static constexpr int WIFI_RETRY_DELAY = 500;               ///< Delay between retries (ms)
 

@@ -1,3 +1,6 @@
 [submodule "Backend/whisper.cpp"]
 	path = Backend/whisper.cpp
 	url = https://github.com/ggml-org/whisper.cpp
+[submodule "TextToSpeech/Chatterbox-TTS-Server"]
+	path = TextToSpeech/Chatterbox-TTS-Server
+	url = https://github.com/devnen/Chatterbox-TTS-Server.git

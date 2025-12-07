@@ -103,11 +103,26 @@
       "command": "docker-compose",
       "args": [
         "-f",
-        "TextToSpeech/docker-compose.yml",
+        "TextToSpeech/Chatterbox-TTS-Server/docker-compose-cpu.yml",
         "up",
         "--build"
       ],
       "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "[CHATTERBOX] Init Submodule",
+      "type": "shell",
+      "command": "git",
+      "args": [
+        "submodule",
+        "update",
+        "--init",
+        "--recursive"
+      ],
+      "group": "build",
       "presentation": {
         "reveal": "always"
       }

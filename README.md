@@ -99,3 +99,17 @@ EMQX is an open-source, scalable MQTT broker. Running it in a Docker container i
 
 - For production, consider customizing the configuration and using Docker volumes.
 - See the official documentation: [EMQX Docker](https://hub.docker.com/r/emqx/emqx)
+
+## Chapter: Text-to-Speech with Chatterbox TTS Server
+
+The project uses the [Chatterbox TTS Server](https://github.com/devnen/Chatterbox-TTS-Server) for text-to-speech functionality, configured for French language using the Thomcles/Chatterbox-TTS-French model.
+
+The server is included as a git submodule in `TextToSpeech/Chatterbox-TTS-Server/`.
+
+To run the CPU version:
+```
+cd TextToSpeech/Chatterbox-TTS-Server
+docker-compose -f docker-compose-cpu.yml up --build
+```
+
+The server will be available at http://localhost:8004

@@ -26,13 +26,6 @@ public:
     void update();
 
 private:
-    /**
-     * @brief Checks if an I2C device is available at the given address.
-     * @param address I2C device address.
-     * @return true if device responds, false otherwise.
-     */
-    bool isI2CAvailable(uint8_t address);
-
     OLEDDisplay& oled; ///< Reference to the OLED display
 
     /**
@@ -43,6 +36,7 @@ private:
     unsigned long lastFrame;     ///< Last frame update time
     unsigned long lastOledUpdate; ///< Last OLED update time
     unsigned long lastChange;     ///< Last mood change time
+    bool oledAvailable;           ///< Tracks if OLED is available
 
     static constexpr unsigned long frameInterval = 10;      ///< 100 FPS
     static constexpr unsigned long oledInterval = 100;     ///< 10 FPS

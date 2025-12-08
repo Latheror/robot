@@ -37,6 +37,12 @@ public:
      */
     Adafruit_SH1106G& get();
 
+    /**
+     * @brief Check if the OLED display is initialized and available.
+     * @return true if successfully initialized, false otherwise.
+     */
+    bool isInitialized() const;
+
 private:
     /**
      * @brief Scan I2C bus and print detected devices.
@@ -44,4 +50,5 @@ private:
     void scanI2C();
 
     Adafruit_SH1106G display;
+    bool initialized = false; ///< Tracks if the display was successfully initialized
 };

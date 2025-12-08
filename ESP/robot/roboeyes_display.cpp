@@ -2,7 +2,7 @@
 #include <FluxGarage_RoboEyes.h>
 
 RoboEyesDisplay::RoboEyesDisplay(OLEDDisplay& oledRef)
-    : oled(oledRef), lastFrame(0), lastOledUpdate(0), lastChange(0)
+    : oled(oledRef), lastFrame(0), lastOledUpdate(0), lastChange(0), oledAvailable(false)
 {
     // Construct RoboEyes dynamically
     roboEyesPtr = new RoboEyes<Adafruit_SH1106G>(oled.get());
@@ -10,6 +10,11 @@ RoboEyesDisplay::RoboEyesDisplay(OLEDDisplay& oledRef)
 
 void RoboEyesDisplay::begin() {
     auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+
+    oledAvailable = oled.isInitialized();
+    if (!oledAvailable) {
+        Serial.println("RoboEyes: OLED display not available, eye animations disabled");
+    }
 
     roboEyes->begin(SCREEN_WIDTH, SCREEN_HEIGHT, 100);
     roboEyes->setAutoblinker(true, 3, 2);
@@ -23,6 +28,10 @@ void RoboEyesDisplay::begin() {
 }
 
 void RoboEyesDisplay::update() {
+    if (!oledAvailable) {
+        return;
+    }
+
     auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
 
     unsigned long now = millis();
@@ -33,11 +42,7 @@ void RoboEyesDisplay::update() {
     }
 
     if (now - lastOledUpdate >= oledInterval) {
-        if (isI2CAvailable(OLED_ADDR)) {
-            oled.get().display();
-        } else {
-            Serial.println("OLED not detected on I2C!");
-        }
+        oled.get().display();
         lastOledUpdate = now;
     }
 
@@ -61,9 +66,4 @@ void RoboEyesDisplay::update() {
 
         Serial.println("RoboEyes: new random mood/animation");
     }
-}
-
-bool RoboEyesDisplay::isI2CAvailable(uint8_t address) {
-    Wire.beginTransmission(address);
-    return (Wire.endTransmission() == 0);
 }

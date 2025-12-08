@@ -46,11 +46,13 @@ bool OLEDDisplay::begin() {
 
     if (!display.begin(OLED_ADDR, true)) {
         Serial.println(F("Failed to initialize SH1106"));
+        initialized = false;
         return false; // Don't halt, just return false
     }
 
     display.clearDisplay();
     display.display();
+    initialized = true;
     return true;
 }
 
@@ -67,4 +69,11 @@ void OLEDDisplay::clear() {
 /// </summary>
 Adafruit_SH1106G& OLEDDisplay::get() {
     return display;
+}
+
+/// <summary>
+/// Check if the OLED display is initialized and available.
+/// </summary>
+bool OLEDDisplay::isInitialized() const {
+    return initialized;
 }

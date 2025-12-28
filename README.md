@@ -72,7 +72,7 @@ The embedded system running on the ESP32 microcontroller:
 - `speaker.cpp/h` - Audio playback
 
 ### 🎤 Speech Recognition
-**Location**: `Backend/whisper.cpp/`
+**Location**: `SpeechToText/whisper/`
 
 Local speech-to-text processing using OpenAI Whisper:
 - Runs on the device for privacy and low latency

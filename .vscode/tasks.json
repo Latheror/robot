@@ -22,9 +22,9 @@
       "command": "cmake",
       "args": [
         "-S",
-        "Backend/whisper.cpp",
+        "SpeechToText/whisper",
         "-B",
-        "Backend/whisper.cpp/build",
+        "SpeechToText/whisper/build",
         "-G",
         "Visual Studio 17 2022"
       ],
@@ -39,7 +39,7 @@
       "command": "cmake",
       "args": [
         "--build",
-        "Backend/whisper.cpp/build"
+        "SpeechToText/whisper/build"
       ],
       "group": "build",
       "presentation": {
@@ -49,12 +49,12 @@
     {
       "label": "[WHISPER] Test Sample",
       "type": "shell",
-      "command": "Backend/whisper.cpp/examples/main.exe",
+      "command": "SpeechToText/whisper/examples/main.exe",
       "args": [
         "-m",
-        "Backend/whisper.cpp/models/ggml-base.en.bin",
+        "SpeechToText/whisper/models/ggml-base.en.bin",
         "-f",
-        "Backend/whisper.cpp/samples/jfk.wav"
+        "SpeechToText/whisper/samples/jfk.wav"
       ],
       "group": "test",
       "presentation": {

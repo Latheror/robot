@@ -98,12 +98,12 @@
       }
     },
     {
-      "label": "[CHATTERBOX] Launch container",
+      "label": "[CHATTERBOX] Launch container (NVIDIA)",
       "type": "shell",
       "command": "docker-compose",
       "args": [
         "-f",
-        "TextToSpeech/Chatterbox-TTS-Server/docker-compose-cpu.yml",
+        "TextToSpeech/Chatterbox-TTS-Server/docker-compose.yml",
         "up",
         "--build"
       ],
@@ -137,6 +137,49 @@
         "--port",
         "COM7",
         "erase-flash"
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "[LLM] Pull Images",
+      "type": "shell",
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "LLM/docker-compose.yml",
+        "pull"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "[LLM] Start Services",
+      "type": "shell",
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "LLM/docker-compose.yml",
+        "up",
+        "-d"
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "[LLM] Stop Services",
+      "type": "shell",
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "LLM/docker-compose.yml",
+        "down"
       ],
       "group": "test",
       "presentation": {

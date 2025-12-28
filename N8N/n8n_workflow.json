@@ -1,19 +1,73 @@
 {
   "nodes": [
     {
-      "parameters": {
-        "topics": "robot/1/sensors",
-        "options": {}
-      },
-      "name": "MQTT Trigger",
-      "type": "n8n-nodes-base.mqttTrigger",
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -260,
-        -520
+        -368,
+        -1088
       ],
-      "id": "a695b143-c998-4313-b2e1-78c11c9839ce",
-      "notesInFlow": true,
+      "id": "142f279b-1e81-415c-a560-4441bd472524",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://host.docker.internal:8004/tts",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"{{ $json.text }}\",\n  \"voice_mode\": \"predefined\",\n  \"predefined_voice_id\": \"French.mp3\",\n  \"output_format\": \"wav\",\n  \"split_text\": true,\n  \"chunk_size\": 120,\n  \"temperature\": 0.8,\n  \"exaggeration\": 1.3,\n  \"cfg_weight\": 0.5,\n  \"speed_factor\": 1,\n  \"language\": \"fr\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        688,
+        -1104
+      ],
+      "id": "1f4be51f-2f2d-41c6-b062-37edcf5e2916",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      text: \"Coucou, je suis le robot ! Tu veux être mon pote ?\"\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        -1104
+      ],
+      "id": "a0298673-d719-461b-9c3d-9027e6b66526",
+      "name": "Code6"
+    },
+    {
+      "parameters": {
+        "jsCode": "const CHUNK_SIZE = /*8000*/500; // ~8 KB per chunk, adjust if needed\nconst itemsOut = [];\n\n// Loop over all input items (from HTTP Request node)\nitems.forEach(item => {\n    const binaryItem = item.binary?.data;\n    if (!binaryItem) return;\n\n    // Convert WAV to Base64\n    const wavBase64 = binaryItem.data.toString('base64');\n\n    // Calculate number of chunks\n    const totalChunks = Math.ceil(wavBase64.length / CHUNK_SIZE);\n\n    for (let i = 0; i < totalChunks; i++) {\n        const start = i * CHUNK_SIZE;\n        const end = Math.min(start + CHUNK_SIZE, wavBase64.length);\n        const chunk = wavBase64.slice(start, end);\n\n        itemsOut.push({\n            json: {\n                topic: \"robot/1/audio\",\n                chunk_index: i,\n                total_chunks: totalChunks,\n                message: chunk\n            }\n        });\n    }\n});\n\nreturn itemsOut;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        -1104
+      ],
+      "id": "204d63b7-10ee-4a04-8cd0-6d081a7e33d3",
+      "name": "Code7"
+    },
+    {
+      "parameters": {
+        "topic": "robot/1/audio",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        -1104
+      ],
+      "id": "4d18df0a-601c-4dc1-a8a3-ad8cda4ff667",
+      "name": "MQTT3",
       "credentials": {
         "mqtt": {
           "id": "QNkEkFR5XkAgbE0j",
@@ -23,29 +77,73 @@
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "={{ $json.text }}",
+        "topic": "robot/1/audio",
         "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.9,
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
       "position": [
-        560,
-        -540
+        1104,
+        -800
       ],
-      "id": "f8eb8a64-a9de-4d17-9914-48bf7606c51e",
-      "name": "AI Agent"
+      "id": "615ef5b7-1d33-4ca2-a854-1268b2ee32a0",
+      "name": "MQTT1",
+      "credentials": {
+        "mqtt": {
+          "id": "QNkEkFR5XkAgbE0j",
+          "name": "MQTT account"
+        }
+      }
     },
     {
       "parameters": {
-        "model": "=llama3:latest",
+        "jsCode": "const CHUNK_SIZE = /*8000*/500; // ~8 KB per chunk, adjust if needed\nconst itemsOut = [];\n\n// Loop over all input items (from HTTP Request node)\nitems.forEach(item => {\n    const binaryItem = item.binary?.data;\n    if (!binaryItem) return;\n\n    // Convert WAV to Base64\n    const wavBase64 = binaryItem.data.toString('base64');\n\n    // Calculate number of chunks\n    const totalChunks = Math.ceil(wavBase64.length / CHUNK_SIZE);\n\n    for (let i = 0; i < totalChunks; i++) {\n        const start = i * CHUNK_SIZE;\n        const end = Math.min(start + CHUNK_SIZE, wavBase64.length);\n        const chunk = wavBase64.slice(start, end);\n\n        itemsOut.push({\n            json: {\n                topic: \"robot/1/audio\",\n                chunk_index: i,\n                total_chunks: totalChunks,\n                message: chunk\n            }\n        });\n    }\n});\n\nreturn itemsOut;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -800
+      ],
+      "id": "789b47be-3daf-4218-b184-ef7806b6cbdb",
+      "name": "Code4"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      text: \"Parle de Pixel le chat. Maximum 10 mots.\"\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -800
+      ],
+      "id": "aab6466d-f876-4d3f-a663-72e2097ae779",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      text: $input.first().json.output\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        -800
+      ],
+      "id": "4c738c8a-c68e-49dc-bd36-ae16a691b118",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "model": "=llama3.2:latest",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
       "position": [
-        560,
-        -320
+        64,
+        -688
       ],
       "id": "95505815-39f7-4fab-98e3-17dc8dcd32e5",
       "name": "Ollama Chat Model",
@@ -58,30 +156,33 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get the incoming sensor message\nconst rawMessage = $input.first().json.message;\n\nif (!rawMessage) {\n  return [];\n}\n\n// Parse the incoming JSON\nlet mqttMessage;\ntry {\n  mqttMessage = JSON.parse(rawMessage);\n} catch (error) {\n  console.error(\"Failed to parse MQTT message:\", error);\n  return [];\n}\n\n// Here you define logic to convert sensor values into servo angles\n// For demonstration, we'll just map temperature/humidity/light to some angles\nconst servos = {\n  //root: Math.min(Math.max(Math.round(mqttMessage.sensors.temperature), 0), 180),\n  //root: Math.floor(Math.random() * 180),\n  arm_a1: Math.min(Math.max(Math.round(mqttMessage.sensors.humidity), 0), 180),\n  arm_b: Math.floor(Math.random() * 180),\n  wrist_a: Math.floor(Math.random() * 180),\n  wrist_b: Math.floor(Math.random() * 180),\n  gripper: Math.floor(Math.random() * 180)\n};\n\n// Build the command JSON\nconst commandMessage = {\n  servos\n};\n\n// Output as JSON to feed into MQTT Publish node\nreturn [\n  {\n    json: commandMessage\n  }\n];\n\n"
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
       "position": [
-        40,
-        -180
+        64,
+        -896
       ],
-      "id": "211ba92c-47ab-48a5-bad7-692dd063165c",
-      "name": "Code1"
+      "id": "f8eb8a64-a9de-4d17-9914-48bf7606c51e",
+      "name": "AI Agent"
     },
     {
       "parameters": {
-        "topic": "robot/1/commands",
+        "topics": "robot/1/sensors",
         "options": {}
       },
-      "type": "n8n-nodes-base.mqtt",
+      "name": "MQTT Trigger",
+      "type": "n8n-nodes-base.mqttTrigger",
       "typeVersion": 1,
       "position": [
-        240,
-        -180
+        -384,
+        -800
       ],
-      "id": "cd9a4ec4-0f10-40f3-bd40-604c0bb8a8c0",
-      "name": "MQTT",
+      "id": "a695b143-c998-4313-b2e1-78c11c9839ce",
+      "notesInFlow": true,
       "credentials": {
         "mqtt": {
           "id": "QNkEkFR5XkAgbE0j",
@@ -91,106 +192,27 @@
     },
     {
       "parameters": {
-        "url": "=http://host.docker.internal:8000/synthesize?text={{ $json[\"text\"] }}",
+        "method": "POST",
+        "url": "=http://host.docker.internal:8004/tts",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"{{ $json.text }}\",\n  \"voice_mode\": \"predefined\",\n  \"predefined_voice_id\": \"French.mp3\",\n  \"output_format\": \"wav\",\n  \"split_text\": true,\n  \"chunk_size\": 120,\n  \"temperature\": 0.8,\n  \"exaggeration\": 1.3,\n  \"cfg_weight\": 0.5,\n  \"speed_factor\": 1,\n  \"language\": \"fr\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        280,
-        -720
+        656,
+        -800
       ],
-      "id": "4f76c218-85ff-41c7-9200-9e39d6200227",
+      "id": "978cb3f3-821b-4480-8733-3bf73c07ad64",
       "name": "HTTP Request"
-    },
-    {
-      "parameters": {
-        "jsCode": "return [\n  {\n    json: {\n      text: \"Bonjour, ceci est un test\"\n    }\n  }\n];\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        40,
-        -720
-      ],
-      "id": "4c738c8a-c68e-49dc-bd36-ae16a691b118",
-      "name": "Code2"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Get the raw message string\nconst rawMessage = $input.first().json.message;\n\n// Log for debugging\nconsole.log(\"rawMessage:\", rawMessage);\n\nif (!rawMessage) {\n  // If no message, return empty\n  return [];\n}\n\n// Parse the JSON string into an object\nlet mqttMessage;\ntry {\n  mqttMessage = JSON.parse(rawMessage);\n} catch (error) {\n  console.error(\"Failed to parse MQTT message:\", error);\n  return [];\n}\n\n// Retrieve sensor values\nconst sensors = mqttMessage.sensors;\nconst units = mqttMessage.units;\nconst topic = $input.first().json.topic;\n\n// Format the text for the LLM\nconst formattedText = `\nReceived data from topic \"${topic}\":\n- Temperature: ${sensors.temperature} ${units.temperature}\n- Humidity: ${sensors.humidity} ${units.humidity}\n- Light: ${sensors.light} ${units.light}\nTimestamp: ${mqttMessage.timestamp}\n\nPlease analyze this data and provide insights or alerts if necessary.\n`;\n\nreturn [\n  {\n    json: {\n      text: formattedText\n    }\n  }\n];\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        40,
-        -540
-      ],
-      "id": "100dcfa0-70dc-4505-b84d-addb29c02263",
-      "name": "Code",
-      "disabled": true
-    },
-    {
-      "parameters": {
-        "jsCode": "return [\n  {\n    json: {\n      text: \"Génère un texte court en français (maximum 10 mots). Ne réponds QUE ce texte final\"\n    }\n  }\n];\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        40,
-        -360
-      ],
-      "id": "aab6466d-f876-4d3f-a663-72e2097ae779",
-      "name": "Code3"
-    },
-    {
-      "parameters": {
-        "jsCode": "return items.map(item => {\n    // Access the binary data from the HTTP Request node\n    const binaryItem = item.binary?.data;\n    if (!binaryItem) {\n        return {};\n    }\n\n    // Convert to Base64\n    const wavBase64 = binaryItem.data.toString('base64');\n\n    return {\n        json: {\n            topic: \"robot/1/audio\",\n            message: wavBase64\n        }\n    };\n});\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        500,
-        -720
-      ],
-      "id": "789b47be-3daf-4218-b184-ef7806b6cbdb",
-      "name": "Code4"
-    },
-    {
-      "parameters": {
-        "topic": "robot/1/audio",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.mqtt",
-      "typeVersion": 1,
-      "position": [
-        720,
-        -720
-      ],
-      "id": "615ef5b7-1d33-4ca2-a854-1268b2ee32a0",
-      "name": "MQTT1",
-      "credentials": {
-        "mqtt": {
-          "id": "QNkEkFR5XkAgbE0j",
-          "name": "MQTT account"
-        }
-      }
     }
   ],
   "connections": {
-    "MQTT Trigger": {
+    "When clicking ‘Test workflow’": {
       "main": [
         [
-          {
-            "node": "Code1",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Code2",
-            "type": "main",
-            "index": 0
-          },
           {
             "node": "Code3",
             "type": "main",
@@ -199,55 +221,44 @@
         ]
       ]
     },
-    "Ollama Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code1": {
+    "HTTP Request1": {
       "main": [
         [
           {
-            "node": "MQTT",
+            "node": "Code7",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "HTTP Request": {
+    "Code6": {
       "main": [
         [
           {
-            "node": "Code4",
+            "node": "HTTP Request1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code2": {
+    "Code7": {
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "MQTT3",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code": {
+    "Code4": {
       "main": [
         [
           {
-            "node": "AI Agent",
+            "node": "MQTT1",
             "type": "main",
             "index": 0
           }
@@ -265,11 +276,55 @@
         ]
       ]
     },
-    "Code4": {
+    "Code2": {
       "main": [
         [
           {
-            "node": "MQTT1",
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MQTT Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code4",
             "type": "main",
             "index": 0
           }
@@ -279,6 +334,7 @@
   },
   "pinData": {},
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "519cb7ee30052a2c1ee684a37d1b04074cd4dfcad920cd1a733487297c2c389c"
   }
 }

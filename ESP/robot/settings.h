@@ -6,13 +6,13 @@
  */
 struct NetworkConfig {
     // WiFi Settings
-    static constexpr const char* WIFI_SSID = "SSID";           ///< WiFi SSID
-    static constexpr const char* WIFI_PASSWORD = "Password";    ///< WiFi password
+    static constexpr const char* WIFI_SSID = "RoroMeme";           ///< WiFi SSID
+    static constexpr const char* WIFI_PASSWORD = "roromemewifi3";    ///< WiFi password
     static constexpr int WIFI_TIMEOUT_MS = 10000;              ///< Connection timeout (ms)
     static constexpr int WIFI_RETRY_DELAY = 500;               ///< Delay between retries (ms)
 
     // MQTT Settings
-    static constexpr const char* MQTT_BROKER = "192.168.145.21"; ///< MQTT broker IP
+    static constexpr const char* MQTT_BROKER = "192.168.1.210"; ///< MQTT broker IP
     static constexpr int MQTT_PORT = 1883;                       ///< MQTT port
     static constexpr const char* MQTT_CLIENT_ID = "ESP32-Robot"; ///< MQTT client ID
 };
@@ -39,8 +39,8 @@ struct PinConfig {
     static const int VOICE_ACTIVITY_LED = 7;  ///< Voice detection indicator
 
     // Display Pins (if using I2C OLED)
-    static const int DISPLAY_SDA = 21;  ///< I2C Data
-    static const int DISPLAY_SCL = 22;  ///< I2C Clock
+    static const int DISPLAY_SDA = 17;  ///< I2C Data
+    static const int DISPLAY_SCL = 18;  ///< I2C Clock
 };
 
 /**

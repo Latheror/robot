@@ -39,7 +39,7 @@ void OLEDDisplay::scanI2C() {
 /// Initialize the OLED display and perform an I2C scan.
 /// </summary>
 bool OLEDDisplay::begin() {
-    Wire.begin(SDA_PIN, SCL_PIN, 100000); // SDA, SCL, frequency
+    Wire.begin(PinConfig::DISPLAY_SDA, PinConfig::DISPLAY_SCL, 100000); // SDA, SCL, frequency
     delay(100);
 
     scanI2C(); // scan before initializing the display

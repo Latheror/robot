@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <driver/i2s.h>
 #include "FS.h"
+#include "settings.h"
 
 /**
  * Handles audio playback via I2S on ESP32.
@@ -19,7 +20,7 @@ public:
         uint8_t dmaBufLen;
         
         AudioConfig() :
-            sampleRate(24000),
+            sampleRate(::AudioConfig::SAMPLING_RATE),
             bitsPerSample(16),
             dmaBufCount(8),
             dmaBufLen(64)

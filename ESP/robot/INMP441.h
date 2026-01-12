@@ -23,11 +23,11 @@ public:
     /**
      * @brief Default sample rate (must match speaker rate).
      */
-    static constexpr int DEFAULT_SAMPLE_RATE = 24000;
+    static constexpr int DEFAULT_SAMPLE_RATE = ::AudioConfig::SAMPLING_RATE;
 
     /**
      * @brief Constructor.
-     * @param sampleRate Desired sample rate (default: 24000 Hz)
+     * @param sampleRate Desired sample rate (default: 16000 Hz)
      */
     explicit INMP441(int sampleRate = DEFAULT_SAMPLE_RATE);
 

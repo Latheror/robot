@@ -53,7 +53,7 @@ volatile bool wifiConnected = false;
 void sendSensorData()
 {
     unsigned long now = millis();
-    char sensorMsg[256];
+    char sensorMsg[512];
 
     float temperature = 22.5 + (random(-100, 100) / 100.0f);
     float humidity = 45.0 + (random(-50, 50) / 10.0f);
@@ -291,10 +291,14 @@ void setup()
         // Blue when speaking, off when silent
         indicators.setColor(Indicators::LED_PINS::IS_SPEAKING, isPlaying ? 0 : 0, isPlaying ? 0 : 0, isPlaying ? 255 : 0);
         // Disable clap detection during playback to prevent false triggers
-        if (isPlaying) {
-            mic.disableClapDetection();
+        if (mic.isInitialized()) {
+            if (isPlaying) {
+                mic.disableClapDetection();
+            } else {
+                mic.enableClapDetection();
+            }
         } else {
-            mic.enableClapDetection();
+            Serial.println("[SPEAKER] Microphone not initialized, skipping clap detection toggle");
         }
     });
     rgbLed.begin();
@@ -309,7 +313,11 @@ void setup()
         mic.setClapCallback([]()
                             {
                                 Serial.println("Clap detected!");
-                                speaker.playWav("/yesilisten.wav");
+                                if (speaker.isInitialized()) {
+                                    speaker.playWav("/yesilisten.wav");
+                                } else {
+                                    Serial.println("[MIC] Speaker not initialized, skipping playWav");
+                                }
                             });
         mic.setIsRecordingCallback([](bool recording)
                                    {
@@ -335,7 +343,7 @@ void setup()
 
     // Core 1: Real-time tasks (audio, display, servos)
     xTaskCreatePinnedToCore(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle, 1);
-    xTaskCreatePinnedToCore(ServoTask, "Servo", 2048, NULL, 3, &servoTaskHandle, 1);
+    xTaskCreatePinnedToCore(ServoTask, "Servo", 4096, NULL, 3, &servoTaskHandle, 1);
     xTaskCreatePinnedToCore(MicTask, "Mic", 4096, NULL, 4, &micTaskHandle, 1);
 
     // Configure Robot Arm LED based on initialization status

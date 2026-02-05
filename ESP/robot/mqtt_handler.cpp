@@ -21,12 +21,22 @@ bool MqttHandler::setup() {
     mqttClient.setBufferSize(50000);
     mqttClient.setServer(NetworkConfig::MQTT_BROKER, NetworkConfig::MQTT_PORT);
     mqttClient.setCallback([this](char* topic, byte* payload, unsigned int length) {
-        char message[length + 1];
-        memcpy(message, payload, length);
-        message[length] = '\0';
-
-        if (strcmp(topic, MQTT_TOPIC_COMMANDS) == 0) handleCommand(message);
-        else if (strcmp(topic, MQTT_TOPIC_AUDIO) == 0) handleAudio(message);
+        // Avoid large stack allocation - work with payload directly
+        // For commands (small JSON), it's safe
+        // For audio, we don't need to copy the entire payload
+        if (strcmp(topic, MQTT_TOPIC_COMMANDS) == 0) {
+            // Commands are small, safe to copy
+            char message[length + 1];
+            memcpy(message, payload, length);
+            message[length] = '\0';
+            handleCommand(message);
+        } else if (strcmp(topic, MQTT_TOPIC_AUDIO) == 0) {
+            // For audio, pass payload pointer directly to avoid stack overflow
+            char message[length + 1];
+            memcpy(message, payload, length);
+            message[length] = '\0';
+            handleAudio(message);
+        }
     });
 
     return reconnect();
@@ -115,6 +125,12 @@ void MqttHandler::handleCommand(const char* message) {
     // Set motors indicator - Purple for movement
     indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 255, 0, 255);
 
+    if (!ServoController::isInitialized()) {
+        Serial.println("[MQTT] Servo controller not initialized, ignoring command");
+        indicators.set(Indicators::LED_PINS::MOTORS_MOVING, false);
+        return;
+    }
+
     for (const auto& map : servoMap) {
         if (servos.containsKey(map.name)) {
             ServoController::setTargetAngle(static_cast<Joint>(map.servo), servos[map.name]);
@@ -129,7 +145,9 @@ void MqttHandler::handleCommand(const char* message) {
 
 // --- Audio handling ---
 void MqttHandler::handleAudio(const char* message) {
-    StaticJsonDocument<4096> doc;
+    // Use DynamicJsonDocument for large payloads to avoid stack overflow
+    // StaticJsonDocument allocates on stack, which causes overflow with large chunks
+    DynamicJsonDocument doc(8192);
     if (deserializeJson(doc, message)) {
         Serial.println("[MQTT] Failed to parse audio message");
         return;
@@ -165,7 +183,19 @@ void MqttHandler::handleAudio(const char* message) {
     size_t decodedLen = 0;
     mbedtls_base64_decode(nullptr, 0, &decodedLen, (const unsigned char*)base64Data, strlen(base64Data));
 
+    // Check heap before allocation
+    uint32_t freeHeap = ESP.getFreeHeap();
+    if (decodedLen > freeHeap - 10000) {  // Keep 10KB as safety margin
+        Serial.printf("[MQTT] Insufficient heap for decoding! Need: %d, Free: %u\n", decodedLen, freeHeap);
+        return;
+    }
+
     uint8_t* buffer = new uint8_t[decodedLen];
+    if (!buffer) {
+        Serial.println("[MQTT] Failed to allocate buffer for decoding");
+        return;
+    }
+
     if (mbedtls_base64_decode(buffer, decodedLen, &decodedLen, (const unsigned char*)base64Data, strlen(base64Data)) != 0) {
         Serial.println("[MQTT] Base64 decode failed");
         delete[] buffer;

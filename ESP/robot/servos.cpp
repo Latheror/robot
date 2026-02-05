@@ -56,6 +56,11 @@ bool ServoController::begin() {
 // -------------------------------------------------------
 
 void ServoController::update() {
+    if (!_initialized) {
+        Serial.println("[SERVO] Controller not initialized, skipping update");
+        return;
+    }
+
     static bool wasMoving = false;
     bool isAnyJointMoving = false;
     
@@ -86,6 +91,11 @@ void ServoController::update() {
 // -------------------------------------------------------
 
 void ServoController::setTargetAngle(Joint joint, float angle) {
+    if (!_initialized) {
+        Serial.println("[SERVO] Controller not initialized, ignoring setTargetAngle");
+        return;
+    }
+
     size_t idx = static_cast<size_t>(joint);
     if (idx >= joints.size()) {
         Serial.print("[ERROR] Invalid joint index: ");

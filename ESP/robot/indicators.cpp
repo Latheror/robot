@@ -54,24 +54,6 @@ void Indicators::blink(LED_PINS led, uint8_t times, uint16_t delayMs) {
     }
 }
 
-void Indicators::flashSuccess() {
-    // Three quick green flashes
-    setColor(LED_PINS::WIFI, 0, 255, 0);  // Green
-    blink(LED_PINS::WIFI, 3, SHORT_FLASH);
-}
-
-void Indicators::flashError() {
-    // One long red flash
-    setColor(LED_PINS::MQTT, 255, 0, 0);  // Red
-    blink(LED_PINS::MQTT, 1, LONG_FLASH);
-}
-
-void Indicators::flashWarning() {
-    // Two medium yellow flashes
-    setColor(LED_PINS::IS_LISTENING, 255, 255, 0);  // Yellow
-    blink(LED_PINS::IS_LISTENING, 2, MED_FLASH);
-}
-
 bool Indicators::isValidLED(LED_PINS led) const {
     return led < COUNT;
 }

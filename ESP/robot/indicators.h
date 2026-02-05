@@ -81,21 +81,6 @@ public:
      */
     void blink(LED_PINS led, uint8_t times = 1, uint16_t delayMs = 100);
 
-    /**
-     * @brief Displays a "success" feedback pattern (three short green blinks).
-     */
-    void flashSuccess();
-
-    /**
-     * @brief Displays an "error" feedback pattern (one long red blink).
-     */
-    void flashError();
-
-    /**
-     * @brief Displays a "warning" feedback pattern (two medium yellow blinks).
-     */
-    void flashWarning();
-
 private:
     /// Duration for long flash patterns (in milliseconds).
     static constexpr uint16_t LONG_FLASH  = 1000;

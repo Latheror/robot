@@ -31,16 +31,6 @@ void LEDStrip::blink(uint32_t color, uint16_t delayMs) {
     delay(delayMs);
 }
 
-void LEDStrip::rainbow() {
-    for (uint8_t i = 0; i < _numLeds; i++) {
-        uint16_t hue = (_hue + i * 30) % 360;
-        _strip.setPixelColor(i, _strip.ColorHSV(hue * 182)); // 0–65535
-    }
-    _strip.show();
-    _hue = (_hue + 5) % 360;
-    delay(20);
-}
-
 void LEDStrip::setBrightness(uint8_t brightness) {
     _strip.setBrightness(brightness);
     _strip.show();

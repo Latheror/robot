@@ -62,11 +62,6 @@ public:
     void blink(uint32_t color, uint16_t delayMs);
 
     /**
-     * @brief Displays a rainbow effect.
-     */
-    void rainbow();
-
-    /**
      * @brief Sets the brightness of the strip.
      * @param brightness The brightness level (0-255).
      */

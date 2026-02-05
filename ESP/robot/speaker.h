@@ -103,11 +103,6 @@ public:
         _playbackCallback = callback;
     }
     
-    // Example methods
-    void playExampleSound() {
-        playTone(440, 500);  // Play A4 note for 500ms
-    }
-    
     // File system methods
     static bool checkFile(const char* path);
     static void listFiles(const char* directory = "/");

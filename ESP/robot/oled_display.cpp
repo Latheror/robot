@@ -7,42 +7,11 @@
 OLEDDisplay::OLEDDisplay() : display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1) {}
 
 /// <summary>
-/// Perform I2C scan and print all connected devices.
-/// </summary>
-void OLEDDisplay::scanI2C() {
-    byte error, address;
-    int nDevices = 0;
-
-    Serial.println("Scanning I2C bus...");
-
-    for (address = 1; address < 127; address++) {
-        Wire.beginTransmission(address);
-        error = Wire.endTransmission();
-
-        if (error == 0) {
-            Serial.print("I2C device found at address 0x");
-            if (address < 16) Serial.print("0");
-            Serial.print(address, HEX);
-            Serial.println(" !");
-            nDevices++;
-        }
-    }
-
-    if (nDevices == 0) {
-        Serial.println("No I2C devices found\n");
-    } else {
-        Serial.println("I2C scan complete\n");
-    }
-}
-
-/// <summary>
-/// Initialize the OLED display and perform an I2C scan.
+/// Initialize the OLED display.
 /// </summary>
 bool OLEDDisplay::begin() {
     Wire.begin(PinConfig::DISPLAY_SDA, PinConfig::DISPLAY_SCL, 100000); // SDA, SCL, frequency
     delay(100);
-
-    scanI2C(); // scan before initializing the display
 
     if (!display.begin(OLED_ADDR, true)) {
         Serial.println(F("Failed to initialize SH1106"));

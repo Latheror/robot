@@ -17,6 +17,7 @@
 #include "INMP441.h"
 #include "rgb_led.h"
 #include "led_strip.h"
+#include "i2c_scanner.h"
 
 // --- Timing constants ---
 const unsigned long mqttInterval = TaskConfig::SENSOR_SEND_INTERVAL_MS;
@@ -267,6 +268,9 @@ void setup()
     }
     Serial.println("Serial initialized.");
 
+    // --- Scan I2C bus for connected devices ---
+    i2cScan();
+
     // --- Initialize hardware SYNCHRONOUSLY before FreeRTOS tasks ---
     indicators.begin();
     if (!oled.begin()) {
@@ -283,14 +287,10 @@ void setup()
         // Blue when speaking, off when silent
         indicators.setColor(Indicators::LED_PINS::IS_SPEAKING, isPlaying ? 0 : 0, isPlaying ? 0 : 0, isPlaying ? 255 : 0);
         // Disable clap detection during playback to prevent false triggers
-        if (mic.isInitialized()) {
-            if (isPlaying) {
-                mic.disableClapDetection();
-            } else {
-                mic.enableClapDetection();
-            }
+        if (isPlaying) {
+            mic.disableClapDetection();
         } else {
-            Serial.println("[SPEAKER] Microphone not initialized, skipping clap detection toggle");
+            mic.enableClapDetection();
         }
     });
     rgbLed.begin();
@@ -305,11 +305,7 @@ void setup()
         mic.setClapCallback([]()
                             {
                                 Serial.println("Clap detected!");
-                                if (speaker.isInitialized()) {
-                                    speaker.playWav("/yesilisten.wav");
-                                } else {
-                                    Serial.println("[MIC] Speaker not initialized, skipping playWav");
-                                }
+                                speaker.playWav("/yesilisten.wav");
                             });
         mic.setIsRecordingCallback([](bool recording)
                                    {

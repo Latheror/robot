@@ -243,20 +243,6 @@ void CheckHeapTask(void *pvParameters)
     }
 }
 
-// --- Serial Initialization Task ---
-void SerialInitTask(void *pvParameters)
-{
-    Serial.begin(SystemConfig::SERIAL_BAUD_RATE);
-    unsigned long serialStart = millis();
-    while (!Serial && millis() - serialStart < TaskConfig::SERIAL_INIT_TIMEOUT_MS)
-    {
-        vTaskDelay(pdMS_TO_TICKS(10)); // non-blocking delay
-    }
-    Serial.println("Serial initialized.");
-
-    vTaskDelete(NULL); // kill this task once done
-}
-
 // All LED status handling is now done through the Indicators class in their respective tasks:
 // - WiFiTask: LED 1 - Red when disconnected, Green when connected
 // - MqttTask: LED 2 - Red when connecting, Green when connected, Off when disconnected
@@ -272,10 +258,16 @@ void setup()
     // Set I2C timeout to prevent blocking (5ms)
     Wire.setTimeout(3000);
 
-    // --- Initialize Serial ---
-    xTaskCreate(SerialInitTask, "SerialInit", 1024, NULL, 1, NULL);
+    // --- Initialize Serial FIRST (synchronously) ---
+    Serial.begin(SystemConfig::SERIAL_BAUD_RATE);
+    unsigned long serialStart = millis();
+    while (!Serial && millis() - serialStart < TaskConfig::SERIAL_INIT_TIMEOUT_MS)
+    {
+        delay(10);
+    }
+    Serial.println("Serial initialized.");
 
-    // --- Initialize hardware ---
+    // --- Initialize hardware SYNCHRONOUSLY before FreeRTOS tasks ---
     indicators.begin();
     if (!oled.begin()) {
         Serial.println("OLED initialization failed - display disabled");
@@ -334,7 +326,7 @@ void setup()
     speaker.listFiles();
     speaker.playWav("/start_speech.wav");
 
-    // --- Create FreeRTOS tasks ---
+    // --- Create FreeRTOS tasks AFTER all hardware is initialized ---
     // Core 0: Network and background tasks
     xTaskCreatePinnedToCore(WiFiTask, "WiFi", 4096, NULL, 2, NULL, 0);
     xTaskCreatePinnedToCore(MqttTask, "MQTT", 4096, NULL, 1, &mqttTaskHandle, 0);

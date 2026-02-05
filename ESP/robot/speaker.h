@@ -5,6 +5,61 @@
 #include <driver/i2s.h>
 #include "FS.h"
 #include "settings.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+
+/**
+ * @class MutexGuard
+ * @brief RAII wrapper for FreeRTOS semaphore/mutex
+ * 
+ * Automatically acquires mutex on construction and releases on destruction.
+ * Prevents deadlock and ensures mutex is released even if function returns early.
+ */
+class MutexGuard {
+public:
+    /**
+     * @brief Acquire mutex with optional timeout
+     * @param mutex The FreeRTOS semaphore handle
+     * @param timeoutMs Timeout in milliseconds (0 = no wait, portMAX_DELAY = wait forever)
+     */
+    explicit MutexGuard(SemaphoreHandle_t mutex, uint32_t timeoutMs = 0) 
+        : _mutex(mutex), _acquired(false) {
+        if (!_mutex) {
+            Serial.println("[MUTEX] Error: NULL mutex handle");
+            return;
+        }
+        
+        TickType_t timeout = (timeoutMs == 0) ? 0 : pdMS_TO_TICKS(timeoutMs);
+        _acquired = (xSemaphoreTake(_mutex, timeout) == pdTRUE);
+        
+        if (!_acquired) {
+            Serial.println("[MUTEX] Failed to acquire mutex (timeout)");
+        }
+    }
+    
+    /**
+     * @brief Destructor - automatically release mutex if acquired
+     */
+    ~MutexGuard() {
+        if (_acquired && _mutex) {
+            xSemaphoreGive(_mutex);
+        }
+    }
+    
+    /**
+     * @brief Check if mutex was successfully acquired
+     * @return true if acquired, false otherwise
+     */
+    bool isAcquired() const { return _acquired; }
+    
+    // Delete copy operations - mutex guard should not be copied
+    MutexGuard(const MutexGuard&) = delete;
+    MutexGuard& operator=(const MutexGuard&) = delete;
+    
+private:
+    SemaphoreHandle_t _mutex;
+    bool _acquired;
+};
 
 /**
  * Handles audio playback via I2S on ESP32.

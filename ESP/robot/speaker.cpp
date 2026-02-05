@@ -75,10 +75,10 @@ bool Speaker::playTone(float frequency, uint32_t durationMs, float volume) {
     if (!_initialized || frequency <= 0 || durationMs == 0) return false;
     if (!audioMutex) return false;
 
-    /* Wait for audio mutex */
-    if (xSemaphoreTake(audioMutex, portMAX_DELAY) != pdTRUE) {
-         Serial.println("[AUDIO] Failed to take audio mutex");
-         return false;
+    MutexGuard guard(audioMutex, 100);  // 100ms timeout
+    if (!guard.isAcquired()) {
+        Serial.println("[AUDIO] Failed to acquire audio mutex for playTone");
+        return false;
     }
     
     // Clamp volume to valid range
@@ -112,9 +112,7 @@ bool Speaker::playTone(float frequency, uint32_t durationMs, float volume) {
     _playing = false;
     notifyPlaybackState(false);
     
-    /* Release audio mutex */
-    xSemaphoreGive(audioMutex);
-    return true;
+    return true;  // MutexGuard destructor will auto-release
 }
 
 bool Speaker::playWav(const char* path, bool skipHeader) {
@@ -124,16 +122,15 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
     if (!_initialized || !path) return false;
     if (!audioMutex) return false;
 
-    /* Wait for audio mutex */
-    if (xSemaphoreTake(audioMutex, portMAX_DELAY) != pdTRUE) {
-         Serial.println("[AUDIO] Failed to take audio mutex");
-         return false;
+    MutexGuard guard(audioMutex, 100);  // 100ms timeout
+    if (!guard.isAcquired()) {
+        Serial.println("[AUDIO] Failed to acquire audio mutex for playWav");
+        return false;
     }
 
     File file = LittleFS.open(path);
     if (!file) {
         Serial.println("[AUDIO] Failed to open WAV file");
-        xSemaphoreGive(audioMutex);
         return false;
     }
     
@@ -159,20 +156,17 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
     _playing = false;
     notifyPlaybackState(false);
 
-    /* Release audio mutex */
-    xSemaphoreGive(audioMutex);
-    
-    return success;
+    return success;  // MutexGuard destructor will auto-release
 }
 
 bool Speaker::playBuffer(const uint8_t* buffer, size_t length) {
     if (!_initialized || !buffer || length == 0) return false;
     if (!audioMutex) return false;
 
-    /* Wait for audio mutex */
-    if (xSemaphoreTake(audioMutex, portMAX_DELAY) != pdTRUE) {
-         Serial.println("[AUDIO] Failed to take audio mutex");
-         return false;
+    MutexGuard guard(audioMutex, 100);  // 100ms timeout
+    if (!guard.isAcquired()) {
+        Serial.println("[AUDIO] Failed to acquire audio mutex for playBuffer");
+        return false;
     }
     
     _playing = true;
@@ -191,26 +185,20 @@ bool Speaker::playBuffer(const uint8_t* buffer, size_t length) {
     _playing = false;
     notifyPlaybackState(false);
     
-    /* Release audio mutex */
-    xSemaphoreGive(audioMutex);
-    return success;
+    return success;  // MutexGuard destructor will auto-release
 }
 
 bool Speaker::playChunk(const uint8_t* chunk, size_t length) {
     if (!_initialized || !chunk || length == 0) return false;
     if (!audioMutex) return false;
 
-    /* Wait for audio mutex */
-    if (xSemaphoreTake(audioMutex, portMAX_DELAY) != pdTRUE) {
-         Serial.println("[AUDIO] Failed to take audio mutex");
-         return false;
+    MutexGuard guard(audioMutex, 100);  // 100ms timeout
+    if (!guard.isAcquired()) {
+        Serial.println("[AUDIO] Failed to acquire audio mutex for playChunk");
+        return false;
     }
 
-    bool success = writeSamples(chunk, length);
-    
-    /* Release audio mutex */
-    xSemaphoreGive(audioMutex);
-    return success;
+    return writeSamples(chunk, length);  // MutexGuard destructor will auto-release
 }
 
 void Speaker::stop() {

@@ -82,10 +82,30 @@ void INMP441::readSamplesAndComputeVolume() {
     int32_t buffer[NUM_SAMPLES];
     size_t bytesRead = 0;
 
-    esp_err_t res = i2s_read(_i2sPort, (char*)buffer, sizeof(buffer), &bytesRead, portMAX_DELAY);
-    if (res != ESP_OK || bytesRead == 0) return;
+    // Use 100ms timeout instead of portMAX_DELAY to prevent indefinite blocking
+    const TickType_t timeout = pdMS_TO_TICKS(100);
+    esp_err_t res = i2s_read(_i2sPort, (char*)buffer, sizeof(buffer), &bytesRead, timeout);
+    
+    if (res != ESP_OK) {
+        if (res == ESP_ERR_TIMEOUT) {
+            Serial.println("[MIC] I2S read timeout - hardware may be stuck");
+        } else {
+            Serial.printf("[MIC] I2S read error: %d\n", res);
+        }
+        return;
+    }
+    
+    if (bytesRead == 0) return;
 
     int samplesRead = bytesRead / sizeof(int32_t);
+    
+    // Guard against division by zero
+    if (samplesRead <= 0) {
+        Serial.println("[MIC] Warning: samplesRead is 0 or negative");
+        _currentVolume = 0.0;
+        return;
+    }
+    
     double sumSquares = 0.0;
 
     for (int i = 0; i < samplesRead; i++) {

@@ -38,9 +38,9 @@ struct PinConfig {
     // Indicator LEDs
     static const int VOICE_ACTIVITY_LED = 7;  ///< Voice detection indicator
 
-    // Display Pins (if using I2C OLED)
-    static const int DISPLAY_SDA = 17;  ///< I2C Data
-    static const int DISPLAY_SCL = 18;  ///< I2C Clock
+    // I2C Pins
+    static const int I2C_SDA = 17;  ///< I2C Data
+    static const int I2C_SCL = 18;  ///< I2C Clock
 };
 
 /**

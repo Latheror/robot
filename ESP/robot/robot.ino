@@ -259,7 +259,7 @@ void setup()
 
     // Set I2C timeout to prevent blocking (5ms)
     Wire.setTimeout(3000);
-    Wire.begin(PinConfig::DISPLAY_SDA, PinConfig::DISPLAY_SCL);  // Initialize I2C bus with correct pins
+    Wire.begin(PinConfig::I2C_SDA, PinConfig::I2C_SCL);  // Initialize I2C bus with correct pins
 
     // --- Initialize Serial FIRST (synchronously) ---
     Serial.begin(SystemConfig::SERIAL_BAUD_RATE);

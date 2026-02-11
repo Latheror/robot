@@ -10,7 +10,6 @@ OLEDDisplay::OLEDDisplay() : display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1) {}
 /// Initialize the OLED display.
 /// </summary>
 bool OLEDDisplay::begin() {
-    Wire.begin(PinConfig::DISPLAY_SDA, PinConfig::DISPLAY_SCL, 100000); // SDA, SCL, frequency
     delay(100);
 
     if (!display.begin(OLED_ADDR, true)) {

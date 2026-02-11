@@ -259,7 +259,7 @@ void setup()
 
     // Set I2C timeout to prevent blocking (5ms)
     Wire.setTimeout(3000);
-    Wire.begin();  // Initialize I2C bus
+    Wire.begin(PinConfig::DISPLAY_SDA, PinConfig::DISPLAY_SCL);  // Initialize I2C bus with correct pins
 
     // --- Initialize Serial FIRST (synchronously) ---
     Serial.begin(SystemConfig::SERIAL_BAUD_RATE);
@@ -275,15 +275,15 @@ void setup()
 
     // --- Initialize hardware SYNCHRONOUSLY before FreeRTOS tasks ---
     // indicators.begin();
-    // if (!oled.begin()) {
-    //     Serial.println("OLED initialization failed - display disabled");
-    // }
-    // if (!ServoController::begin()) {
-    //     indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 255, 0, 0); // Red if not initialized
-    // } else {
-    //     indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 0, 255, 0); // Green if initialized
-    // }
-    // roboEyes.begin();
+    if (!oled.begin()) {
+        Serial.println("OLED initialization failed - display disabled");
+    }
+    if (!ServoController::begin()) {
+        indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 255, 0, 0); // Red if not initialized
+    } else {
+        indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 0, 255, 0); // Green if initialized
+    }
+    roboEyes.begin();
     speaker.begin();
     speaker.setPlaybackCallback([](bool isPlaying) {
         // Blue when speaking, off when silent
@@ -332,7 +332,7 @@ void setup()
     //xTaskCreatePinnedToCore(CheckHeapTask, "CheckHeap", 4096, NULL, 1, &checkHeapTaskHandle, 0);
 
     // Core 1: Real-time tasks (audio, display, servos)
-    //xTaskCreatePinnedToCore(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle, 1);
+    xTaskCreatePinnedToCore(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle, 1);
     //xTaskCreatePinnedToCore(ServoTask, "Servo", 4096, NULL, 3, &servoTaskHandle, 1);
     //xTaskCreatePinnedToCore(MicTask, "Mic", 4096, NULL, 4, &micTaskHandle, 1);
 

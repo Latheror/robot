@@ -31,9 +31,9 @@ struct AudioConfig {
  */
 struct PinConfig {
     // I2S Pins (INMP441 Microphone)
-    static const int I2S_SCK = 37;    ///< Serial Clock (BCLK)
-    static const int I2S_WS = 36;     ///< Word Select (LRCL)
-    static const int I2S_SD = 38;     ///< Serial Data
+    static const int I2S_SCK = 4;    ///< Serial Clock (BCLK)
+    static const int I2S_WS = 5;     ///< Word Select (LRCL)
+    static const int I2S_SD = 6;     ///< Serial Data
 
     // Indicator LEDs
     static const int VOICE_ACTIVITY_LED = 7;  ///< Voice detection indicator

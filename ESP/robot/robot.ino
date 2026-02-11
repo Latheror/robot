@@ -274,6 +274,7 @@ void setup()
     i2cScan();
 
     // --- Initialize hardware SYNCHRONOUSLY before FreeRTOS tasks ---
+    strip.begin();
     indicators.begin();
     if (!oled.begin()) {
         Serial.println("OLED initialization failed - display disabled");
@@ -284,7 +285,9 @@ void setup()
         indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 0, 255, 0); // Green if initialized
     }
     roboEyes.begin();
-    speaker.begin();
+    if (!speaker.begin()) {
+        Serial.println("Speaker initialization failed");
+    }
     speaker.setPlaybackCallback([](bool isPlaying) {
         // Blue when speaking, off when silent
         indicators.setColor(Indicators::LED_PINS::IS_SPEAKING, isPlaying ? 0 : 0, isPlaying ? 0 : 0, isPlaying ? 255 : 0);
@@ -300,26 +303,26 @@ void setup()
     rgbLed.clear();
     strip.begin();
 
-    // // --- Microphone setup ---
-    // if (mic.begin())
-    // {
-    //     Serial.println("Microphone ready.");
-    //     mic.setClapCallback([]()
-    //                         {
-    //                             Serial.println("Clap detected!");
-    //                             speaker.playWav("/yesilisten.wav");
-    //                         });
-    //     mic.setIsRecordingCallback([](bool recording)
-    //                                {
-    //                                    Serial.print("Recording state: ");
-    //                                    Serial.println(recording ? "START" : "STOP");
-    //                                    indicators.set(Indicators::LED_PINS::IS_LISTENING, recording);
-    //                                });
-    // }
-    // else
-    // {
-    //     Serial.println("Microphone initialization failed.");
-    // }
+    // --- Microphone setup ---
+    if (mic.begin())
+    {
+        Serial.println("Microphone ready.");
+        mic.setClapCallback([]()
+                            {
+                                Serial.println("Clap detected!");
+                                speaker.playWav("/yesilisten.wav");
+                            });
+        mic.setIsRecordingCallback([](bool recording)
+                                   {
+                                       Serial.print("Recording state: ");
+                                       Serial.println(recording ? "START" : "STOP");
+                                       indicators.set(Indicators::LED_PINS::IS_LISTENING, recording);
+                                   });
+    }
+    else
+    {
+        Serial.println("Microphone initialization failed.");
+    }
 
     speaker.listFiles();
     speaker.playWav("/start_speech.wav");
@@ -334,7 +337,7 @@ void setup()
     // Core 1: Real-time tasks (audio, display, servos)
     xTaskCreatePinnedToCore(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle, 1);
     //xTaskCreatePinnedToCore(ServoTask, "Servo", 4096, NULL, 3, &servoTaskHandle, 1);
-    //xTaskCreatePinnedToCore(MicTask, "Mic", 4096, NULL, 4, &micTaskHandle, 1);
+    xTaskCreatePinnedToCore(MicTask, "Mic", 4096, NULL, 4, &micTaskHandle, 1);
 
     // Configure Robot Arm LED based on initialization status
     if (!ServoController::isInitialized()) {

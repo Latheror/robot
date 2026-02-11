@@ -23,7 +23,7 @@ bool MqttHandler::setup() {
     mqttClient.setServer(NetworkConfig::MQTT_BROKER, NetworkConfig::MQTT_PORT);
     mqttClient.setCallback([this](char* topic, byte* payload, unsigned int length) {
         // Safety check: reject too-large messages
-        if (length > 4096) {
+        if (length > 16384) {
             Serial.printf("[MQTT] Message too large (%u bytes), rejected\n", length);
             return;
         }

@@ -328,7 +328,7 @@ void setup()
     // Core 0: Network and background tasks
     xTaskCreatePinnedToCore(WiFiTask, "WiFi", 4096, NULL, 2, NULL, 0);
     xTaskCreatePinnedToCore(MqttTask, "MQTT", 4096, NULL, 1, &mqttTaskHandle, 0);
-    //xTaskCreatePinnedToCore(SensorTask, "Sensor", 4096, NULL, 1, &sensorTaskHandle, 0);
+    xTaskCreatePinnedToCore(SensorTask, "Sensor", 4096, NULL, 1, &sensorTaskHandle, 0);
     xTaskCreatePinnedToCore(CheckHeapTask, "CheckHeap", 4096, NULL, 1, &checkHeapTaskHandle, 0);
 
     // Core 1: Real-time tasks (audio, display, servos)

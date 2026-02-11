@@ -175,7 +175,7 @@ void MqttHandler::handleAudio(const char* message) {
     
     // Use DynamicJsonDocument for large payloads to avoid stack overflow
     // StaticJsonDocument allocates on stack, which causes overflow with large chunks
-    DynamicJsonDocument doc(8192);
+    DynamicJsonDocument doc(16384);
     if (deserializeJson(doc, message)) {
         Serial.println("[MQTT] Failed to parse audio message");
         xSemaphoreGive(audioMutex);
@@ -191,6 +191,8 @@ void MqttHandler::handleAudio(const char* message) {
     int chunkIndex = doc["chunk_index"];
     int totalChunks = doc["total_chunks"];
     const char* base64Data = doc["message"];
+
+    Serial.printf("[MQTT] Processing chunk %d/%d, base64 length: %u\n", chunkIndex, totalChunks, strlen(base64Data));
 
     if (chunkIndex == 0) {
         // Reset previous state if exists
@@ -231,10 +233,7 @@ void MqttHandler::handleAudio(const char* message) {
     }
 
     size_t decodedLen = 0;
-    if (mbedtls_base64_decode(nullptr, 0, &decodedLen, (const unsigned char*)base64Data, strlen(base64Data)) != 0) {
-        Serial.println("[MQTT] Failed to calculate base64 decode size");
-        return;
-    }
+    mbedtls_base64_decode(nullptr, 0, &decodedLen, (const unsigned char*)base64Data, strlen(base64Data));
 
     // Check heap before allocation - reserve at least 50% free
     uint32_t freeHeap = ESP.getFreeHeap();

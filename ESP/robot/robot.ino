@@ -274,7 +274,7 @@ void setup()
     i2cScan();
 
     // --- Initialize hardware SYNCHRONOUSLY before FreeRTOS tasks ---
-    // indicators.begin();
+    indicators.begin();
     if (!oled.begin()) {
         Serial.println("OLED initialization failed - display disabled");
     }
@@ -298,7 +298,7 @@ void setup()
     rgbLed.begin();
     rgbLed.setBrightness(0);
     rgbLed.clear();
-    // strip.begin();
+    strip.begin();
 
     // // --- Microphone setup ---
     // if (mic.begin())
@@ -329,7 +329,7 @@ void setup()
     xTaskCreatePinnedToCore(WiFiTask, "WiFi", 4096, NULL, 2, NULL, 0);
     xTaskCreatePinnedToCore(MqttTask, "MQTT", 4096, NULL, 1, &mqttTaskHandle, 0);
     //xTaskCreatePinnedToCore(SensorTask, "Sensor", 4096, NULL, 1, &sensorTaskHandle, 0);
-    //xTaskCreatePinnedToCore(CheckHeapTask, "CheckHeap", 4096, NULL, 1, &checkHeapTaskHandle, 0);
+    xTaskCreatePinnedToCore(CheckHeapTask, "CheckHeap", 4096, NULL, 1, &checkHeapTaskHandle, 0);
 
     // Core 1: Real-time tasks (audio, display, servos)
     xTaskCreatePinnedToCore(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle, 1);

@@ -201,6 +201,7 @@ void MqttTask(void *pvParameters)
                 });
 
                 indicators.set(Indicators::LED_PINS::MQTT, true);
+                vTaskDelay(pdMS_TO_TICKS(2000)); // Delay to allow WiFi connection sound to finish
                 speaker.playWav("/connected_to_server.wav");
             }
             else
@@ -258,6 +259,7 @@ void setup()
 
     // Set I2C timeout to prevent blocking (5ms)
     Wire.setTimeout(3000);
+    Wire.begin();  // Initialize I2C bus
 
     // --- Initialize Serial FIRST (synchronously) ---
     Serial.begin(SystemConfig::SERIAL_BAUD_RATE);
@@ -272,16 +274,16 @@ void setup()
     i2cScan();
 
     // --- Initialize hardware SYNCHRONOUSLY before FreeRTOS tasks ---
-    indicators.begin();
-    if (!oled.begin()) {
-        Serial.println("OLED initialization failed - display disabled");
-    }
-    if (!ServoController::begin()) {
-        indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 255, 0, 0); // Red if not initialized
-    } else {
-        indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 0, 255, 0); // Green if initialized
-    }
-    roboEyes.begin();
+    // indicators.begin();
+    // if (!oled.begin()) {
+    //     Serial.println("OLED initialization failed - display disabled");
+    // }
+    // if (!ServoController::begin()) {
+    //     indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 255, 0, 0); // Red if not initialized
+    // } else {
+    //     indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 0, 255, 0); // Green if initialized
+    // }
+    // roboEyes.begin();
     speaker.begin();
     speaker.setPlaybackCallback([](bool isPlaying) {
         // Blue when speaking, off when silent
@@ -296,28 +298,28 @@ void setup()
     rgbLed.begin();
     rgbLed.setBrightness(0);
     rgbLed.clear();
-    strip.begin();
+    // strip.begin();
 
-    // --- Microphone setup ---
-    if (mic.begin())
-    {
-        Serial.println("Microphone ready.");
-        mic.setClapCallback([]()
-                            {
-                                Serial.println("Clap detected!");
-                                speaker.playWav("/yesilisten.wav");
-                            });
-        mic.setIsRecordingCallback([](bool recording)
-                                   {
-                                       Serial.print("Recording state: ");
-                                       Serial.println(recording ? "START" : "STOP");
-                                       indicators.set(Indicators::LED_PINS::IS_LISTENING, recording);
-                                   });
-    }
-    else
-    {
-        Serial.println("Microphone initialization failed.");
-    }
+    // // --- Microphone setup ---
+    // if (mic.begin())
+    // {
+    //     Serial.println("Microphone ready.");
+    //     mic.setClapCallback([]()
+    //                         {
+    //                             Serial.println("Clap detected!");
+    //                             speaker.playWav("/yesilisten.wav");
+    //                         });
+    //     mic.setIsRecordingCallback([](bool recording)
+    //                                {
+    //                                    Serial.print("Recording state: ");
+    //                                    Serial.println(recording ? "START" : "STOP");
+    //                                    indicators.set(Indicators::LED_PINS::IS_LISTENING, recording);
+    //                                });
+    // }
+    // else
+    // {
+    //     Serial.println("Microphone initialization failed.");
+    // }
 
     speaker.listFiles();
     speaker.playWav("/start_speech.wav");
@@ -326,13 +328,13 @@ void setup()
     // Core 0: Network and background tasks
     xTaskCreatePinnedToCore(WiFiTask, "WiFi", 4096, NULL, 2, NULL, 0);
     xTaskCreatePinnedToCore(MqttTask, "MQTT", 4096, NULL, 1, &mqttTaskHandle, 0);
-    xTaskCreatePinnedToCore(SensorTask, "Sensor", 4096, NULL, 1, &sensorTaskHandle, 0);
-    xTaskCreatePinnedToCore(CheckHeapTask, "CheckHeap", 4096, NULL, 1, &checkHeapTaskHandle, 0);
+    //xTaskCreatePinnedToCore(SensorTask, "Sensor", 4096, NULL, 1, &sensorTaskHandle, 0);
+    //xTaskCreatePinnedToCore(CheckHeapTask, "CheckHeap", 4096, NULL, 1, &checkHeapTaskHandle, 0);
 
     // Core 1: Real-time tasks (audio, display, servos)
-    xTaskCreatePinnedToCore(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle, 1);
-    xTaskCreatePinnedToCore(ServoTask, "Servo", 4096, NULL, 3, &servoTaskHandle, 1);
-    xTaskCreatePinnedToCore(MicTask, "Mic", 4096, NULL, 4, &micTaskHandle, 1);
+    //xTaskCreatePinnedToCore(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle, 1);
+    //xTaskCreatePinnedToCore(ServoTask, "Servo", 4096, NULL, 3, &servoTaskHandle, 1);
+    //xTaskCreatePinnedToCore(MicTask, "Mic", 4096, NULL, 4, &micTaskHandle, 1);
 
     // Configure Robot Arm LED based on initialization status
     if (!ServoController::isInitialized()) {

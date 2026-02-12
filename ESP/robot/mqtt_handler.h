@@ -53,6 +53,7 @@ public:
     static constexpr const char* MQTT_TOPIC_COMMANDS = "robot/1/commands";  ///< Topic for receiving robot commands
     static constexpr const char* MQTT_TOPIC_AUDIO    = "robot/1/audio";     ///< Topic for receiving audio chunks
     static constexpr const char* MQTT_TOPIC_SENSORS  = "robot/1/sensors";   ///< Topic for publishing sensor data
+    static constexpr const char* MQTT_TOPIC_FACE     = "robot/1/face";      ///< Topic for setting face expressions
 
 private:
     /// Internal WiFi client used by PubSubClient.
@@ -102,6 +103,14 @@ private:
      * @param message The JSON message containing the audio chunk data.
      */
     void handleAudio(const char* message);
+
+    /**
+     * @brief Handles incoming "face" messages from the MQTT broker.
+     *
+     * Parses the JSON payload and sets the robot's face expression.
+     * @param message The JSON message containing the face expression data.
+     */
+    void handleFaceSetMessage(const char* message);
 };
 
 #endif // MQTT_HANDLER_H

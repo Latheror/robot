@@ -49,21 +49,241 @@ void RoboEyesDisplay::update() {
     if (now - lastChange >= changeInterval) {
         lastChange = now;
 
-        int mood = random(4);
-        switch (mood) {
-            case 0: roboEyes->setMood(HAPPY); break;
-            case 1: roboEyes->setMood(TIRED); break;
-            case 2: roboEyes->setMood(ANGRY); break;
-            default: roboEyes->setMood(DEFAULT); break;
+        int moodIndex = random(4);
+        Mood mood;
+        switch (moodIndex) {
+            case 0: mood = Mood::MOOD_HAPPY; break;
+            case 1: mood = Mood::MOOD_TIRED; break;
+            case 2: mood = Mood::MOOD_ANGRY; break;
+            default: mood = Mood::MOOD_DEFAULT; break;
         }
+        setMood(mood);
 
-        int anim = random(3);
-        switch (anim) {
-            case 0: roboEyes->blink(); break;
-            case 1: roboEyes->anim_laugh(); break;
-            case 2: roboEyes->anim_confused(); break;
+        int animIndex = random(3);
+        Animation animation;
+        switch (animIndex) {
+            case 0: animation = Animation::ANIM_BLINK; break;
+            case 1: animation = Animation::ANIM_LAUGH; break;
+            case 2: animation = Animation::ANIM_CONFUSED; break;
         }
+        triggerAnimation(animation);
 
         Serial.println("RoboEyes: new random mood/animation");
     }
+}
+
+bool RoboEyesDisplay::setMood(Mood mood) {
+    if (!oledAvailable) {
+        return false;
+    }
+
+    auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+
+    switch (mood) {
+        case Mood::MOOD_HAPPY:
+            roboEyes->setMood(HAPPY);
+            Serial.println("RoboEyes: Mood set to HAPPY");
+            break;
+        case Mood::MOOD_TIRED:
+            roboEyes->setMood(TIRED);
+            Serial.println("RoboEyes: Mood set to TIRED");
+            break;
+        case Mood::MOOD_ANGRY:
+            roboEyes->setMood(ANGRY);
+            Serial.println("RoboEyes: Mood set to ANGRY");
+            break;
+        case Mood::MOOD_DEFAULT:
+            roboEyes->setMood(DEFAULT);
+            Serial.println("RoboEyes: Mood set to DEFAULT");
+            break;
+        default:
+            Serial.println("RoboEyes: Unknown mood");
+            return false;
+    }
+
+    return true;
+}
+
+bool RoboEyesDisplay::triggerAnimation(Animation animation) {
+    if (!oledAvailable) {
+        return false;
+    }
+
+    auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+
+    switch (animation) {
+        case Animation::ANIM_BLINK:
+            roboEyes->blink();
+            Serial.println("RoboEyes: Animation triggered BLINK");
+            break;
+        case Animation::ANIM_LAUGH:
+            roboEyes->anim_laugh();
+            Serial.println("RoboEyes: Animation triggered LAUGH");
+            break;
+        case Animation::ANIM_CONFUSED:
+            roboEyes->anim_confused();
+            Serial.println("RoboEyes: Animation triggered CONFUSED");
+            break;
+        default:
+            Serial.println("RoboEyes: Unknown animation");
+            return false;
+    }
+
+    return true;
+}
+
+bool RoboEyesDisplay::setPosition(Position position) {
+    if (!oledAvailable) {
+        return false;
+    }
+
+    auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+
+    switch (position) {
+        case Position::POS_N:
+            roboEyes->setPosition(N);
+            Serial.println("RoboEyes: Position set to N");
+            break;
+        case Position::POS_NE:
+            roboEyes->setPosition(NE);
+            Serial.println("RoboEyes: Position set to NE");
+            break;
+        case Position::POS_E:
+            roboEyes->setPosition(E);
+            Serial.println("RoboEyes: Position set to E");
+            break;
+        case Position::POS_SE:
+            roboEyes->setPosition(SE);
+            Serial.println("RoboEyes: Position set to SE");
+            break;
+        case Position::POS_S:
+            roboEyes->setPosition(S);
+            Serial.println("RoboEyes: Position set to S");
+            break;
+        case Position::POS_SW:
+            roboEyes->setPosition(SW);
+            Serial.println("RoboEyes: Position set to SW");
+            break;
+        case Position::POS_W:
+            roboEyes->setPosition(W);
+            Serial.println("RoboEyes: Position set to W");
+            break;
+        case Position::POS_NW:
+            roboEyes->setPosition(NW);
+            Serial.println("RoboEyes: Position set to NW");
+            break;
+        case Position::POS_DEFAULT:
+            roboEyes->setPosition(DEFAULT);
+            Serial.println("RoboEyes: Position set to DEFAULT");
+            break;
+        default:
+            Serial.println("RoboEyes: Unknown position");
+            return false;
+    }
+
+    return true;
+}
+
+bool RoboEyesDisplay::setCuriosity(bool enabled) {
+    if (!oledAvailable) {
+        return false;
+    }
+
+    auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+    roboEyes->setCuriosity(enabled);
+    Serial.printf("RoboEyes: Curiosity set to %s\n", enabled ? "ON" : "OFF");
+    return true;
+}
+
+bool RoboEyesDisplay::setSweat(bool enabled) {
+    if (!oledAvailable) {
+        return false;
+    }
+
+    auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+    roboEyes->setSweat(enabled);
+    Serial.printf("RoboEyes: Sweat set to %s\n", enabled ? "ON" : "OFF");
+    return true;
+}
+
+bool RoboEyesDisplay::setHFlicker(bool enabled, uint8_t amplitude) {
+    if (!oledAvailable) {
+        return false;
+    }
+
+    auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+    roboEyes->setHFlicker(enabled, amplitude);
+    Serial.printf("RoboEyes: H-Flicker set to %s (amplitude: %d)\n", enabled ? "ON" : "OFF", amplitude);
+    return true;
+}
+
+bool RoboEyesDisplay::setVFlicker(bool enabled, uint8_t amplitude) {
+    if (!oledAvailable) {
+        return false;
+    }
+
+    auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+    roboEyes->setVFlicker(enabled, amplitude);
+    Serial.printf("RoboEyes: V-Flicker set to %s (amplitude: %d)\n", enabled ? "ON" : "OFF", amplitude);
+    return true;
+}
+
+bool RoboEyesDisplay::setAutoblinker(bool enabled, int interval, int variation) {
+    if (!oledAvailable) {
+        return false;
+    }
+
+    auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+    roboEyes->setAutoblinker(enabled, interval, variation);
+    Serial.printf("RoboEyes: Autoblinker set to %s (interval: %d, variation: %d)\n", enabled ? "ON" : "OFF", interval, variation);
+    return true;
+}
+
+bool RoboEyesDisplay::setIdleMode(bool enabled, int interval, int variation) {
+    if (!oledAvailable) {
+        return false;
+    }
+
+    auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+    roboEyes->setIdleMode(enabled, interval, variation);
+    Serial.printf("RoboEyes: Idle mode set to %s (interval: %d, variation: %d)\n", enabled ? "ON" : "OFF", interval, variation);
+    return true;
+}
+
+bool RoboEyesDisplay::openEyes(bool left, bool right) {
+    if (!oledAvailable) {
+        return false;
+    }
+
+    auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+    if (left && right) {
+        roboEyes->open();
+        Serial.println("RoboEyes: Both eyes opened");
+    } else if (left) {
+        roboEyes->open(1, 0);
+        Serial.println("RoboEyes: Left eye opened");
+    } else if (right) {
+        roboEyes->open(0, 1);
+        Serial.println("RoboEyes: Right eye opened");
+    }
+    return true;
+}
+
+bool RoboEyesDisplay::closeEyes(bool left, bool right) {
+    if (!oledAvailable) {
+        return false;
+    }
+
+    auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+    if (left && right) {
+        roboEyes->close();
+        Serial.println("RoboEyes: Both eyes closed");
+    } else if (left) {
+        roboEyes->close(1, 0);
+        Serial.println("RoboEyes: Left eye closed");
+    } else if (right) {
+        roboEyes->close(0, 1);
+        Serial.println("RoboEyes: Right eye closed");
+    }
+    return true;
 }

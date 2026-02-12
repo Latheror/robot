@@ -3,6 +3,7 @@
 #include "servos.h"
 #include "Speaker.h"
 #include "indicators.h"
+#include "roboeyes_display.h"
 #include <LittleFS.h>
 #include <mbedtls/base64.h>
 #include <Arduino.h>
@@ -10,6 +11,7 @@
 extern Speaker speaker;
 extern Indicators indicators;
 extern SemaphoreHandle_t audioMutex;
+extern RoboEyesDisplay roboEyes;
 
 MqttHandler::MqttHandler() {
     // mqttClient is already initialized internally with wifiClient
@@ -42,6 +44,8 @@ bool MqttHandler::setup() {
             handleCommand(message.get());
         } else if (strcmp(topic, MQTT_TOPIC_AUDIO) == 0) {
             handleAudio(message.get());
+        } else if (strcmp(topic, MQTT_TOPIC_FACE) == 0) {
+            handleFaceSetMessage(message.get());
         }
     });
 
@@ -58,6 +62,7 @@ bool MqttHandler::reconnect() {
         if (mqttClient.connect(NetworkConfig::MQTT_CLIENT_ID)) {
             mqttClient.subscribe(MQTT_TOPIC_COMMANDS);
             mqttClient.subscribe(MQTT_TOPIC_AUDIO);
+            mqttClient.subscribe(MQTT_TOPIC_FACE);
             Serial.println("[MQTT] Connected and subscribed");
             // Green for connected
             indicators.set(Indicators::LED_PINS::MQTT, true);
@@ -271,5 +276,163 @@ void MqttHandler::handleAudio(const char* message) {
     } else {
         audioState.lastChunkIndex = chunkIndex;
         xSemaphoreGive(audioMutex);  // Release mutex
+    }
+}
+
+// --- Face handling ---
+void MqttHandler::handleFaceSetMessage(const char* message) {
+    // Validate input
+    if (!message) {
+        Serial.println("[MQTT] Error: NULL message pointer in handleFaceSetMessage");
+        return;
+    }
+
+    Serial.println("[MQTT] Received face command:");
+    Serial.println(message);
+
+    StaticJsonDocument<SystemConfig::JSON_DOC_SIZE> doc;
+    if (deserializeJson(doc, message)) {
+        Serial.println("[MQTT] Failed to parse face JSON");
+        return;
+    }
+
+    bool success = false;
+
+    // Handle mood
+    if (doc.containsKey("mood")) {
+        const char* moodStr = doc["mood"];
+        Mood mood;
+        if (strcmp(moodStr, "happy") == 0) {
+            mood = Mood::MOOD_HAPPY;
+        } else if (strcmp(moodStr, "tired") == 0) {
+            mood = Mood::MOOD_TIRED;
+        } else if (strcmp(moodStr, "angry") == 0) {
+            mood = Mood::MOOD_ANGRY;
+        } else if (strcmp(moodStr, "default") == 0) {
+            mood = Mood::MOOD_DEFAULT;
+        } else {
+            Serial.printf("[MQTT] Unknown mood '%s'\n", moodStr);
+            success = false;
+        }
+        if (roboEyes.setMood(mood)) {
+            success = true;
+        }
+    }
+
+    // Handle position
+    if (doc.containsKey("position")) {
+        const char* posStr = doc["position"];
+        Position position;
+        if (strcmp(posStr, "n") == 0) {
+            position = Position::POS_N;
+        } else if (strcmp(posStr, "ne") == 0) {
+            position = Position::POS_NE;
+        } else if (strcmp(posStr, "e") == 0) {
+            position = Position::POS_E;
+        } else if (strcmp(posStr, "se") == 0) {
+            position = Position::POS_SE;
+        } else if (strcmp(posStr, "s") == 0) {
+            position = Position::POS_S;
+        } else if (strcmp(posStr, "sw") == 0) {
+            position = Position::POS_SW;
+        } else if (strcmp(posStr, "w") == 0) {
+            position = Position::POS_W;
+        } else if (strcmp(posStr, "nw") == 0) {
+            position = Position::POS_NW;
+        } else if (strcmp(posStr, "default") == 0) {
+            position = Position::POS_DEFAULT;
+        } else {
+            Serial.printf("[MQTT] Unknown position '%s'\n", posStr);
+            success = false;
+        }
+        if (roboEyes.setPosition(position)) {
+            success = true;
+        }
+    }
+
+    // Handle animation
+    if (doc.containsKey("animation")) {
+        const char* animStr = doc["animation"];
+        Animation animation;
+        if (strcmp(animStr, "blink") == 0) {
+            animation = Animation::ANIM_BLINK;
+        } else if (strcmp(animStr, "laugh") == 0) {
+            animation = Animation::ANIM_LAUGH;
+        } else if (strcmp(animStr, "confused") == 0) {
+            animation = Animation::ANIM_CONFUSED;
+        } else {
+            Serial.printf("[MQTT] Unknown animation '%s'\n", animStr);
+            success = false;
+        }
+        if (roboEyes.triggerAnimation(animation)) {
+            success = true;
+        }
+    }
+
+    // Handle curiosity
+    if (doc.containsKey("curiosity")) {
+        bool enabled = doc["curiosity"];
+        success = roboEyes.setCuriosity(enabled) || success;
+    }
+
+    // Handle sweat
+    if (doc.containsKey("sweat")) {
+        bool enabled = doc["sweat"];
+        success = roboEyes.setSweat(enabled) || success;
+    }
+
+    // Handle horizontal flicker
+    if (doc.containsKey("h_flicker")) {
+        JsonObject flicker = doc["h_flicker"];
+        bool enabled = flicker["enabled"] | false;
+        uint8_t amplitude = flicker["amplitude"] | 2;
+        success = roboEyes.setHFlicker(enabled, amplitude) || success;
+    }
+
+    // Handle vertical flicker
+    if (doc.containsKey("v_flicker")) {
+        JsonObject flicker = doc["v_flicker"];
+        bool enabled = flicker["enabled"] | false;
+        uint8_t amplitude = flicker["amplitude"] | 2;
+        success = roboEyes.setVFlicker(enabled, amplitude) || success;
+    }
+
+    // Handle autoblinker
+    if (doc.containsKey("autoblinker")) {
+        JsonObject blinker = doc["autoblinker"];
+        bool enabled = blinker["enabled"] | false;
+        int interval = blinker["interval"] | 3;
+        int variation = blinker["variation"] | 2;
+        success = roboEyes.setAutoblinker(enabled, interval, variation) || success;
+    }
+
+    // Handle idle mode
+    if (doc.containsKey("idle_mode")) {
+        JsonObject idle = doc["idle_mode"];
+        bool enabled = idle["enabled"] | false;
+        int interval = idle["interval"] | 2;
+        int variation = idle["variation"] | 2;
+        success = roboEyes.setIdleMode(enabled, interval, variation) || success;
+    }
+
+    // Handle eye control
+    if (doc.containsKey("eyes")) {
+        JsonObject eyes = doc["eyes"];
+        if (eyes.containsKey("open")) {
+            JsonObject open = eyes["open"];
+            bool left = open["left"] | true;
+            bool right = open["right"] | true;
+            success = roboEyes.openEyes(left, right) || success;
+        }
+        if (eyes.containsKey("close")) {
+            JsonObject close = eyes["close"];
+            bool left = close["left"] | true;
+            bool right = close["right"] | true;
+            success = roboEyes.closeEyes(left, right) || success;
+        }
+    }
+
+    if (!success) {
+        Serial.println("[MQTT] Failed to set face expression");
     }
 }

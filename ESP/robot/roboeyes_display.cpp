@@ -2,7 +2,7 @@
 #include <FluxGarage_RoboEyes.h>
 
 RoboEyesDisplay::RoboEyesDisplay(OLEDDisplay& oledRef)
-    : oled(oledRef), lastFrame(0), lastOledUpdate(0), lastChange(0), oledAvailable(false)
+    : oled(oledRef), lastFrame(0), lastOledUpdate(0), lastChange(0), oledAvailable(false), mqttControlled(false)
 {
     // Construct RoboEyes dynamically
     roboEyesPtr = new RoboEyes<Adafruit_SH1106G>(oled.get());
@@ -19,6 +19,10 @@ void RoboEyesDisplay::begin() {
     roboEyes->begin(SCREEN_WIDTH, SCREEN_HEIGHT, 100);
     roboEyes->setAutoblinker(true, 3, 2);
     roboEyes->setIdleMode(true, 2, 2);
+
+    // Set default eyes at startup
+    setMood(Mood::MOOD_DEFAULT);
+    setPosition(Position::POS_DEFAULT);
 
     lastFrame = millis();
     lastOledUpdate = millis();
@@ -46,7 +50,7 @@ void RoboEyesDisplay::update() {
         lastOledUpdate = now;
     }
 
-    if (now - lastChange >= changeInterval) {
+    if (now - lastChange >= changeInterval && !mqttControlled) {
         lastChange = now;
 
         int moodIndex = random(4);
@@ -130,6 +134,11 @@ bool RoboEyesDisplay::triggerAnimation(Animation animation) {
     }
 
     return true;
+}
+
+void RoboEyesDisplay::enableMqttControl() {
+    mqttControlled = true;
+    Serial.println("RoboEyes: MQTT control enabled - stopping automatic random changes");
 }
 
 bool RoboEyesDisplay::setPosition(Position position) {

@@ -287,6 +287,9 @@ void MqttHandler::handleFaceSetMessage(const char* message) {
         return;
     }
 
+    // Enable MQTT control on first message (stops automatic random changes)
+    roboEyes.enableMqttControl();
+
     Serial.println("[MQTT] Received face command:");
     Serial.println(message);
 

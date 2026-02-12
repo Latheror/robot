@@ -66,6 +66,12 @@ public:
     bool triggerAnimation(Animation animation);
 
     /**
+     * @brief Enable MQTT control mode (stops automatic random changes).
+     * Called when the first MQTT message is received.
+     */
+    void enableMqttControl();
+
+    /**
      * @brief Set the position of the RoboEyes.
      * @param position The position to set.
      * @return True if the position was set successfully, false otherwise.
@@ -148,6 +154,7 @@ private:
     unsigned long lastOledUpdate; ///< Last OLED update time
     unsigned long lastChange;     ///< Last mood change time
     bool oledAvailable;           ///< Tracks if OLED is available
+    bool mqttControlled;          ///< Tracks if face has been controlled via MQTT
 
     static constexpr unsigned long frameInterval = 10;      ///< 100 FPS
     static constexpr unsigned long oledInterval = 100;     ///< 10 FPS

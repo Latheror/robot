@@ -108,7 +108,50 @@ private:
      * @brief Handles incoming "face" messages from the MQTT broker.
      *
      * Parses the JSON payload and sets the robot's face expression.
+     * Enables MQTT control mode on first message (stops automatic random changes).
+     *
      * @param message The JSON message containing the face expression data.
+     *
+     * @note All fields are optional. Send only the properties you want to change.
+     *
+     * Example message with all possible fields:
+     * @code{.json}
+     * {
+     *   "mood": "happy",           // "happy", "tired", "angry", "default"
+     *   "position": "ne",          // "n", "ne", "e", "se", "s", "sw", "w", "nw", "default"
+     *   "animation": "laugh",      // "blink", "laugh", "confused"
+     *   "curiosity": true,         // boolean: enable/disable curiosity mode
+     *   "sweat": false,            // boolean: enable/disable sweat drops
+     *   "h_flicker": {             // horizontal flicker settings
+     *     "enabled": true,
+     *     "amplitude": 2
+     *   },
+     *   "v_flicker": {             // vertical flicker settings
+     *     "enabled": false,
+     *     "amplitude": 2
+     *   },
+     *   "autoblinker": {           // automatic blinking settings
+     *     "enabled": true,
+     *     "interval": 3,           // seconds between blinks
+     *     "variation": 2           // random variation in seconds
+     *   },
+     *   "idle_mode": {             // automatic repositioning settings
+     *     "enabled": false,
+     *     "interval": 2,           // seconds between repositions
+     *     "variation": 2           // random variation in seconds
+     *   },
+     *   "eyes": {                  // manual eye control
+     *     "open": {                // open specific eyes
+     *       "left": true,
+     *       "right": true
+     *     },
+     *     "close": {               // close specific eyes
+     *       "left": false,
+     *       "right": false
+     *     }
+     *   }
+     * }
+     * @endcode
      */
     void handleFaceSetMessage(const char* message);
 };

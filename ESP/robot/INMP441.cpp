@@ -30,7 +30,7 @@ bool INMP441::configureI2S() const {
         .communication_format = I2S_COMM_FORMAT_I2S_MSB,
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
         .dma_buf_count = 8,
-        .dma_buf_len = 64,
+        .dma_buf_len = SystemConfig::DMA_BUF_LEN,
         .use_apll = false,
         .tx_desc_auto_clear = false,
         .fixed_mclk = 0
@@ -78,12 +78,12 @@ void INMP441::update() {
 }
 
 void INMP441::readSamplesAndComputeVolume() {
-    const int NUM_SAMPLES = 256;
+    const int NUM_SAMPLES = SystemConfig::MIC_NUM_SAMPLES;
     int32_t buffer[NUM_SAMPLES];
     size_t bytesRead = 0;
 
     // Use 100ms timeout instead of portMAX_DELAY to prevent indefinite blocking
-    const TickType_t timeout = pdMS_TO_TICKS(100);
+    const TickType_t timeout = pdMS_TO_TICKS(SystemConfig::MIC_READ_TIMEOUT_MS);
     esp_err_t res = i2s_read(_i2sPort, (char*)buffer, sizeof(buffer), &bytesRead, timeout);
     
     if (res != ESP_OK) {
@@ -153,7 +153,7 @@ int32_t INMP441::readSample() {
     size_t bytes_read = 0;
 
     if (i2s_read(_i2sPort, &sample, sizeof(sample), &bytes_read, portMAX_DELAY) == ESP_OK) {
-        return sample >> 8;  // 24 valid bits
+        return sample >> SystemConfig::MIC_BIT_SHIFT;  // 24 valid bits
     }
     return 0;
 }

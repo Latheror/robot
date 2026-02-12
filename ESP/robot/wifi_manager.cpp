@@ -17,7 +17,7 @@ bool WiFiManager::connect() {
         delay(NetworkConfig::WIFI_RETRY_DELAY);
         
         // Log progress every second
-        if ((millis() - startAttemptTime) % 1000 == 0) {
+        if ((millis() - startAttemptTime) % NetworkConfig::WIFI_LOG_INTERVAL_MS == 0) {
             Serial.printf("[WiFi] Connecting... (%d ms elapsed)\n", 
                          (int)(millis() - startAttemptTime));
         }

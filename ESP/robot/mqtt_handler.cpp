@@ -19,11 +19,11 @@ MqttHandler::MqttHandler() {
 bool MqttHandler::setup() {
     Serial.println("[MQTT] Initializing...");
 
-    mqttClient.setBufferSize(50000);
+    mqttClient.setBufferSize(SystemConfig::MQTT_BUFFER_SIZE);
     mqttClient.setServer(NetworkConfig::MQTT_BROKER, NetworkConfig::MQTT_PORT);
     mqttClient.setCallback([this](char* topic, byte* payload, unsigned int length) {
         // Safety check: reject too-large messages
-        if (length > 16384) {
+        if (length > SystemConfig::MQTT_MAX_MESSAGE_SIZE) {
             Serial.printf("[MQTT] Message too large (%u bytes), rejected\n", length);
             return;
         }
@@ -63,7 +63,7 @@ bool MqttHandler::reconnect() {
             indicators.set(Indicators::LED_PINS::MQTT, true);
             return true;
         }
-        delay(1000);
+        delay(TaskConfig::MQTT_RECONNECT_DELAY_MS);
         Serial.println("[MQTT] Retry connecting...");
     }
 
@@ -77,7 +77,7 @@ void MqttHandler::handle() {
     static unsigned long lastReconnectAttempt = 0;
 
     if (!mqttClient.connected()) {
-        if (millis() - lastReconnectAttempt > 5000) {
+        if (millis() - lastReconnectAttempt > SystemConfig::RECONNECT_DELAY_MS) {
             lastReconnectAttempt = millis();
             reconnect();
         }
@@ -116,7 +116,7 @@ void MqttHandler::handleCommand(const char* message) {
     Serial.println("[MQTT] Received command:");
     Serial.println(message);
 
-    StaticJsonDocument<512> doc;
+    StaticJsonDocument<SystemConfig::JSON_DOC_SIZE> doc;
     if (deserializeJson(doc, message)) {
         Serial.println("[MQTT] Failed to parse command JSON");
         return;
@@ -168,14 +168,14 @@ void MqttHandler::handleAudio(const char* message) {
         return;
     }
     
-    if (xSemaphoreTake(audioMutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+    if (xSemaphoreTake(audioMutex, pdMS_TO_TICKS(SystemConfig::MUTEX_TIMEOUT_MS)) != pdTRUE) {
         Serial.println("[MQTT] Failed to acquire audio mutex (timeout), audio chunk rejected");
         return;
     }
     
     // Use DynamicJsonDocument for large payloads to avoid stack overflow
     // StaticJsonDocument allocates on stack, which causes overflow with large chunks
-    DynamicJsonDocument doc(16384);
+    DynamicJsonDocument doc(SystemConfig::AUDIO_JSON_DOC_SIZE);
     if (deserializeJson(doc, message)) {
         Serial.println("[MQTT] Failed to parse audio message");
         xSemaphoreGive(audioMutex);
@@ -265,7 +265,7 @@ void MqttHandler::handleAudio(const char* message) {
         Serial.println("[MQTT] Finished writing audio file, playing...");
         xSemaphoreGive(audioMutex);  // Release before playback
         speaker.playWav(TEMP_AUDIO_FILE);
-        xSemaphoreTake(audioMutex, pdMS_TO_TICKS(100));  // Re-acquire to reset state safely
+        xSemaphoreTake(audioMutex, pdMS_TO_TICKS(SystemConfig::MUTEX_TIMEOUT_MS));  // Re-acquire to reset state safely
         audioState = {};  // reset
         xSemaphoreGive(audioMutex);
     } else {

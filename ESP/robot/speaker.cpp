@@ -75,7 +75,7 @@ bool Speaker::playTone(float frequency, uint32_t durationMs, float volume) {
     if (!_initialized || frequency <= 0 || durationMs == 0) return false;
     if (!audioMutex) return false;
 
-    MutexGuard guard(audioMutex, 100);  // 100ms timeout
+    MutexGuard guard(audioMutex, SystemConfig::MUTEX_TIMEOUT_MS);  // 100ms timeout
     if (!guard.isAcquired()) {
         Serial.println("[AUDIO] Failed to acquire audio mutex for playTone");
         return false;
@@ -86,7 +86,7 @@ bool Speaker::playTone(float frequency, uint32_t durationMs, float volume) {
     
     // Calculate number of samples needed
     const size_t samplesNeeded = (_config.sampleRate * durationMs) / 1000;
-    const size_t bufferSize = 256; // Process in chunks
+    const size_t bufferSize = SystemConfig::AUDIO_CHUNK_SIZE; // Process in chunks
     int16_t buffer[bufferSize];
     
     _playing = true;
@@ -122,7 +122,7 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
     if (!_initialized || !path) return false;
     if (!audioMutex) return false;
 
-    MutexGuard guard(audioMutex, 100);  // 100ms timeout
+    MutexGuard guard(audioMutex, SystemConfig::MUTEX_TIMEOUT_MS);  // 100ms timeout
     if (!guard.isAcquired()) {
         Serial.println("[AUDIO] Failed to acquire audio mutex for playWav");
         return false;
@@ -136,12 +136,12 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
     
     // Skip WAV header if requested (typically 44 bytes)
     if (skipHeader) {
-        file.seek(44);
+        file.seek(SystemConfig::WAV_HEADER_SIZE);
     }
     
     _playing = true;
     notifyPlaybackState(true);
-    uint8_t buffer[512];
+    uint8_t buffer[SystemConfig::AUDIO_BUFFER_SIZE];
     bool success = true;
     
     while (file.available()) {
@@ -163,7 +163,7 @@ bool Speaker::playBuffer(const uint8_t* buffer, size_t length) {
     if (!_initialized || !buffer || length == 0) return false;
     if (!audioMutex) return false;
 
-    MutexGuard guard(audioMutex, 100);  // 100ms timeout
+    MutexGuard guard(audioMutex, SystemConfig::MUTEX_TIMEOUT_MS);  // 100ms timeout
     if (!guard.isAcquired()) {
         Serial.println("[AUDIO] Failed to acquire audio mutex for playBuffer");
         return false;
@@ -192,7 +192,7 @@ bool Speaker::playChunk(const uint8_t* chunk, size_t length) {
     if (!_initialized || !chunk || length == 0) return false;
     if (!audioMutex) return false;
 
-    MutexGuard guard(audioMutex, 100);  // 100ms timeout
+    MutexGuard guard(audioMutex, SystemConfig::MUTEX_TIMEOUT_MS);  // 100ms timeout
     if (!guard.isAcquired()) {
         Serial.println("[AUDIO] Failed to acquire audio mutex for playChunk");
         return false;
@@ -251,7 +251,6 @@ void Speaker::notifyPlaybackState(bool playing) {
 void Speaker::generateTone(float frequency, float volume, 
                          int16_t* buffer, size_t samples,
                          uint32_t sampleRate) {
-    static constexpr int16_t MAX_AMPLITUDE = 32767;
     constexpr float two_pi = 6.283185307179586476925286766559f;
     
     static float phase = 0.0f;
@@ -259,7 +258,7 @@ void Speaker::generateTone(float frequency, float volume,
     
     for (size_t i = 0; i < samples; i++) {
         float sample = sinf(phase) * volume;
-        buffer[i] = static_cast<int16_t>(sample * MAX_AMPLITUDE);
+        buffer[i] = static_cast<int16_t>(sample * SystemConfig::MAX_AMPLITUDE);
         
         phase += phaseIncrement;
         if (phase >= two_pi) {

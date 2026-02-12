@@ -10,6 +10,7 @@ struct NetworkConfig {
     static constexpr const char* WIFI_PASSWORD = "roromemewifi3";    ///< WiFi password
     static constexpr int WIFI_TIMEOUT_MS = 10000;              ///< Connection timeout (ms)
     static constexpr int WIFI_RETRY_DELAY = 500;               ///< Delay between retries (ms)
+    static const int WIFI_LOG_INTERVAL_MS = 1000;              ///< WiFi connection log interval
 
     // MQTT Settings
     static constexpr const char* MQTT_BROKER = "192.168.1.210"; ///< MQTT broker IP
@@ -49,6 +50,19 @@ struct PinConfig {
 struct SystemConfig {
     static const int SERIAL_BAUD_RATE = 115200;   ///< Serial baud rate
     static const int MQTT_BUFFER_SIZE = 50000;    ///< MQTT message buffer size
+    static const int MQTT_MAX_MESSAGE_SIZE = 16384; ///< Maximum MQTT message size
+    static const int JSON_DOC_SIZE = 512;         ///< Default JSON document size
+    static const int AUDIO_CHUNK_SIZE = 256;      ///< Audio processing chunk size
+    static const int AUDIO_BUFFER_SIZE = 512;     ///< Audio processing buffer size
+    static const int WAV_HEADER_SIZE = 44;        ///< WAV file header size
+    static const int16_t MAX_AMPLITUDE = 32767;   ///< Maximum audio amplitude
+    static const int DMA_BUF_LEN = 64;            ///< I2S DMA buffer length
+    static const int MIC_BIT_SHIFT = 8;           ///< Microphone bit shift for 24-bit to 16-bit
+    static const int MIC_NUM_SAMPLES = 256;       ///< Microphone sample count
+    static const int MIC_READ_TIMEOUT_MS = 100;   ///< Microphone I2S read timeout
+    static const int MUTEX_TIMEOUT_MS = 100;      ///< Mutex wait timeout
+    static const int RECONNECT_DELAY_MS = 5000;   ///< MQTT reconnect delay
+    static const int AUDIO_JSON_DOC_SIZE = 16384; ///< JSON document size for audio messages
 };
 
 /**
@@ -62,6 +76,7 @@ struct TaskConfig {
     static const int MQTT_HANDLE_DELAY_MS = 50;       ///< MQTT handle delay
     static const int SENSOR_SEND_INTERVAL_MS = 120000; ///< Sensor send interval (2 minutes)
     static const int HEAP_CHECK_INTERVAL_MS = 5000;    ///< Heap check interval
+    static const int MQTT_RECONNECT_DELAY_MS = 1000; ///< Delay after MQTT reconnect
     static const int SERIAL_INIT_TIMEOUT_MS = 2000;    ///< Serial init timeout
 };
 

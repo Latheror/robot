@@ -52,6 +52,10 @@ bool MqttHandler::setup() {
     return reconnect();
 }
 
+/**
+ * @brief Attempts to reconnect to the MQTT broker.
+ * @return true if successful, false otherwise.
+ */
 bool MqttHandler::reconnect() {
     Serial.println("[MQTT] Attempting to connect...");
 
@@ -92,6 +96,12 @@ void MqttHandler::handle() {
     mqttClient.loop();
 }
 
+/**
+ * @brief Publishes a message to an MQTT topic.
+ * @param topic The topic to publish to.
+ * @param message The message to publish.
+ * @return true if successful, false otherwise.
+ */
 bool MqttHandler::publishMessage(const char* topic, const char* message) {
     Serial.printf("[MQTT] Publishing to %s: %s\n", topic, message);
     return mqttClient.connected() && mqttClient.publish(topic, message);
@@ -102,6 +112,11 @@ void MqttHandler::setOnCommandReceivedCallback(std::function<void()> callback) {
 }
 
 // --- Command handling ---
+
+/**
+ * @brief Handles incoming MQTT commands.
+ * @param message The command message.
+ */
 void MqttHandler::handleCommand(const char* message) {
     // Validate input
     if (!message) {
@@ -166,6 +181,11 @@ void MqttHandler::handleCommand(const char* message) {
 }
 
 // --- Audio handling ---
+
+/**
+ * @brief Handles incoming audio chunk messages from MQTT.
+ * @param message The JSON message containing audio data.
+ */
 void MqttHandler::handleAudio(const char* message) {
     // Protect audioState with mutex to prevent race conditions
     if (!audioMutex) {
@@ -280,6 +300,56 @@ void MqttHandler::handleAudio(const char* message) {
 }
 
 // --- Face handling ---
+
+/**
+ * @brief Handles incoming "face" messages from the MQTT broker.
+ *
+ * Parses the JSON payload and sets the robot's face expression.
+ * Enables MQTT control mode on first message (stops automatic random changes).
+ *
+ * @param message The JSON message containing the face expression data.
+ *
+ * @note All fields are optional. Send only the properties you want to change.
+ *
+ * Example message with all possible fields:
+ * @code{.json}
+ * {
+ *   "mood": "happy",           // "happy", "tired", "angry", "default"
+ *   "position": "ne",          // "n", "ne", "e", "se", "s", "sw", "w", "nw", "default"
+ *   "animation": "laugh",      // "blink", "laugh", "confused"
+ *   "curiosity": true,         // boolean: enable/disable curiosity mode
+ *   "sweat": false,            // boolean: enable/disable sweat drops
+ *   "h_flicker": {             // horizontal flicker settings
+ *     "enabled": true,
+ *     "amplitude": 2
+ *   },
+ *   "v_flicker": {             // vertical flicker settings
+ *     "enabled": false,
+ *     "amplitude": 2
+ *   },
+ *   "autoblinker": {           // automatic blinking settings
+ *     "enabled": true,
+ *     "interval": 3,           // seconds between blinks
+ *     "variation": 2           // random variation in seconds
+ *   },
+ *   "idle_mode": {             // automatic repositioning settings
+ *     "enabled": false,
+ *     "interval": 2,           // seconds between repositions
+ *     "variation": 2           // random variation in seconds
+ *   },
+ *   "eyes": {                  // manual eye control
+ *     "open": {                // open specific eyes
+ *       "left": true,
+ *       "right": true
+ *     },
+ *     "close": {               // close specific eyes
+ *       "left": false,
+ *       "right": false
+ *     }
+ *   }
+ * }
+ * @endcode
+ */
 void MqttHandler::handleFaceSetMessage(const char* message) {
     // Validate input
     if (!message) {

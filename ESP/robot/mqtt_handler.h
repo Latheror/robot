@@ -81,77 +81,28 @@ private:
     /// Temporary file path for storing received audio before playback.
     static constexpr const char* TEMP_AUDIO_FILE = "/temp_audio.wav";
 
+    // Internal methods
     /**
-     * @brief Attempts to reconnect to the MQTT broker if the connection is lost.
-     * @return True if reconnection succeeds, false otherwise.
+     * @brief Attempts to reconnect to the MQTT broker.
+     * @return true if successful, false otherwise.
      */
     bool reconnect();
 
     /**
-     * @brief Handles incoming "command" messages from the MQTT broker.
-     * 
-     * Parses the JSON payload, controls servos, and triggers feedback sounds.
-     * @param message The JSON message received on the command topic.
+     * @brief Handles incoming command messages from MQTT.
+     * @param message The JSON message containing servo commands.
      */
     void handleCommand(const char* message);
 
     /**
-     * @brief Handles incoming "audio" messages from the MQTT broker.
-     * 
-     * Decodes base64-encoded WAV chunks and writes them to LittleFS,
-     * then plays the audio once all chunks are received.
-     * @param message The JSON message containing the audio chunk data.
+     * @brief Handles incoming audio chunk messages from MQTT.
+     * @param message The JSON message containing audio data.
      */
     void handleAudio(const char* message);
 
     /**
-     * @brief Handles incoming "face" messages from the MQTT broker.
-     *
-     * Parses the JSON payload and sets the robot's face expression.
-     * Enables MQTT control mode on first message (stops automatic random changes).
-     *
-     * @param message The JSON message containing the face expression data.
-     *
-     * @note All fields are optional. Send only the properties you want to change.
-     *
-     * Example message with all possible fields:
-     * @code{.json}
-     * {
-     *   "mood": "happy",           // "happy", "tired", "angry", "default"
-     *   "position": "ne",          // "n", "ne", "e", "se", "s", "sw", "w", "nw", "default"
-     *   "animation": "laugh",      // "blink", "laugh", "confused"
-     *   "curiosity": true,         // boolean: enable/disable curiosity mode
-     *   "sweat": false,            // boolean: enable/disable sweat drops
-     *   "h_flicker": {             // horizontal flicker settings
-     *     "enabled": true,
-     *     "amplitude": 2
-     *   },
-     *   "v_flicker": {             // vertical flicker settings
-     *     "enabled": false,
-     *     "amplitude": 2
-     *   },
-     *   "autoblinker": {           // automatic blinking settings
-     *     "enabled": true,
-     *     "interval": 3,           // seconds between blinks
-     *     "variation": 2           // random variation in seconds
-     *   },
-     *   "idle_mode": {             // automatic repositioning settings
-     *     "enabled": false,
-     *     "interval": 2,           // seconds between repositions
-     *     "variation": 2           // random variation in seconds
-     *   },
-     *   "eyes": {                  // manual eye control
-     *     "open": {                // open specific eyes
-     *       "left": true,
-     *       "right": true
-     *     },
-     *     "close": {               // close specific eyes
-     *       "left": false,
-     *       "right": false
-     *     }
-     *   }
-     * }
-     * @endcode
+     * @brief Handles incoming face control messages from MQTT.
+     * @param message The JSON message containing face settings.
      */
     void handleFaceSetMessage(const char* message);
 };

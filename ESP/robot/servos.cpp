@@ -135,47 +135,61 @@ bool ServoController::atTarget(Joint joint) {
 
 // -------------------------------------------------------
 
+/**
+ * @brief Converts angle to PWM value.
+ * @param angle The angle in degrees.
+ * @return The PWM value.
+ */
 uint16_t ServoController::angleToPWM(float angle) {
     return map((int)angle, 0, 180, PWM_MIN, PWM_MAX);
 }
 
 // -------------------------------------------------------
 
+/**
+ * @brief Validates a joint index.
+ * @param joint The joint to validate.
+ * @return true if valid, false otherwise.
+ */
 bool ServoController::isValidJoint(Joint joint) {
     return static_cast<size_t>(joint) < static_cast<size_t>(Joint::COUNT);
 }
 
 // -------------------------------------------------------
 
+/**
+ * @brief Updates a specific joint.
+ * @param joint The joint to update.
+ */
 void ServoController::updateJoint(Joint joint) {
 
     //Serial.print("[SERVO] Updating joint ");
     //Serial.println(static_cast<size_t>(joint));
 
     size_t idx = static_cast<size_t>(joint);
-    if (idx >= joints.size()) return;
+    if (idx >= ServoController::joints.size()) return;
 
-    const auto& config = joints[idx];
-    float error = targetAngles[idx] - currentAngles[idx];
+    const auto& config = ServoController::joints[idx];
+    float error = ServoController::targetAngles[idx] - ServoController::currentAngles[idx];
 
     if (fabs(error) <= 0.01) return;
 
     // Smooth motion step
     float step = config.speed * (error > 0 ? 1 : -1);
-    currentAngles[idx] += step;
+    ServoController::currentAngles[idx] += step;
 
-    if ((step > 0 && currentAngles[idx] > targetAngles[idx]) ||
-        (step < 0 && currentAngles[idx] < targetAngles[idx])) {
-        currentAngles[idx] = targetAngles[idx];
+    if ((step > 0 && ServoController::currentAngles[idx] > ServoController::targetAngles[idx]) ||
+        (step < 0 && ServoController::currentAngles[idx] < ServoController::targetAngles[idx])) {
+        ServoController::currentAngles[idx] = ServoController::targetAngles[idx];
     }
 
     // Apply to each physical servo
     for (uint8_t i = 0; i < config.servoCount; i++) {
         int8_t servoIndex = config.servos[i];
-        if (servoIndex < 0 || (size_t)servoIndex >= servos.size()) continue;
+        if (servoIndex < 0 || (size_t)servoIndex >= ServoController::servos.size()) continue;
 
-        const auto& servo = servos[servoIndex];
-        float angle = (i == 0) ? currentAngles[idx] : 180 - currentAngles[idx];
+        const auto& servo = ServoController::servos[servoIndex];
+        float angle = (i == 0) ? ServoController::currentAngles[idx] : 180 - ServoController::currentAngles[idx];
 
         pwm.setPWM(servo.pwmIndex, 0, angleToPWM(angle));
 

@@ -1,14 +1,7 @@
 #include "oled_display.h"
 
-/// <summary>
-/// Constructor for OLEDDisplay.
-/// Initializes the Adafruit_SH1106G member.
-/// </summary>
 OLEDDisplay::OLEDDisplay() : display(OledDisplayConfig::SCREEN_WIDTH, OledDisplayConfig::SCREEN_HEIGHT, &Wire, -1) {}
 
-/// <summary>
-/// Initialize the OLED display.
-/// </summary>
 bool OLEDDisplay::begin() {
     delay(SystemConfig::OLED_INIT_DELAY_MS);
 
@@ -24,24 +17,15 @@ bool OLEDDisplay::begin() {
     return true;
 }
 
-/// <summary>
-/// Clear the OLED display.
-/// </summary>
 void OLEDDisplay::clear() {
     display.clearDisplay();
     display.display();
 }
 
-/// <summary>
-/// Return a reference to the internal Adafruit display object.
-/// </summary>
 Adafruit_SH1106G& OLEDDisplay::get() {
     return display;
 }
 
-/// <summary>
-/// Check if the OLED display is initialized and available.
-/// </summary>
 bool OLEDDisplay::isInitialized() const {
     return initialized;
 }

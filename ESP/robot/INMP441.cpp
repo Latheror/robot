@@ -5,6 +5,7 @@ INMP441::INMP441(int sampleRate) : _sampleRate(sampleRate) {}
 void INMP441::setClapCallback(std::function<void()> callback) {
     _clapCallback = callback;
 }
+
 void INMP441::setIsRecordingCallback(std::function<void(bool)> callback) {
     _isRecordingCallback = callback;
 }
@@ -19,6 +20,10 @@ bool INMP441::begin() {
     return true;
 }
 
+/**
+ * @brief Configures the I2S interface for the microphone.
+ * @return true if successful, false otherwise.
+ */
 bool INMP441::configureI2S() const {
     Serial.println("[MIC] Configuring I2S...");
 
@@ -77,6 +82,9 @@ void INMP441::update() {
     }
 }
 
+/**
+ * @brief Reads samples from I2S and computes the current volume.
+ */
 void INMP441::readSamplesAndComputeVolume() {
     const int NUM_SAMPLES = SystemConfig::MIC_NUM_SAMPLES;
     int32_t buffer[NUM_SAMPLES];
@@ -119,10 +127,16 @@ void INMP441::readSamplesAndComputeVolume() {
     _currentVolume = sqrt(sumSquares / samplesRead);
 }
 
+/**
+ * @brief Updates the activity LED based on volume threshold.
+ */
 void INMP441::updateActivityLed() {
     digitalWrite(PinConfig::VOICE_ACTIVITY_LED, isVolumeAboveThreshold() ? HIGH : LOW);
 }
 
+/**
+ * @brief Detects double clap events.
+ */
 void INMP441::detectDoubleClap() {
     if (!_clapDetectionEnabled) return;
     
@@ -148,6 +162,10 @@ void INMP441::detectDoubleClap() {
         _firstClapTime = 0;
 }
 
+/**
+ * @brief Reads a single sample from the microphone.
+ * @return The sample value.
+ */
 int32_t INMP441::readSample() {
     int32_t sample = 0;
     size_t bytes_read = 0;

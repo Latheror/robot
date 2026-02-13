@@ -25,6 +25,10 @@ bool Speaker::begin(const AudioConfig& config) {
     return true;
 }
 
+/**
+ * @brief Initializes the file system for audio file access.
+ * @return true if successful, false otherwise.
+ */
 bool Speaker::initFileSystem() {
     if (!LittleFS.begin(true)) {
         Serial.println("[AUDIO] Failed to mount file system");
@@ -36,6 +40,10 @@ bool Speaker::initFileSystem() {
     return true;
 }
 
+/**
+ * @brief Initializes the I2S peripheral for audio output.
+ * @return true if successful, false otherwise.
+ */
 bool Speaker::initI2S() {
     const i2s_config_t config = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
@@ -159,6 +167,7 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
     return success;  // MutexGuard destructor will auto-release
 }
 
+
 bool Speaker::playBuffer(const uint8_t* buffer, size_t length) {
     if (!_initialized || !buffer || length == 0) return false;
     if (!audioMutex) return false;
@@ -188,6 +197,7 @@ bool Speaker::playBuffer(const uint8_t* buffer, size_t length) {
     return success;  // MutexGuard destructor will auto-release
 }
 
+
 bool Speaker::playChunk(const uint8_t* chunk, size_t length) {
     if (!_initialized || !chunk || length == 0) return false;
     if (!audioMutex) return false;
@@ -201,6 +211,7 @@ bool Speaker::playChunk(const uint8_t* chunk, size_t length) {
     return writeSamples(chunk, length);  // MutexGuard destructor will auto-release
 }
 
+
 void Speaker::stop() {
     if (_initialized) {
         i2s_zero_dma_buffer(_i2sPort);
@@ -209,14 +220,15 @@ void Speaker::stop() {
     }
 }
 
+
 bool Speaker::isPlaying() const {
     return _playing;
 }
 
-bool Speaker::checkFile(const char* path) {
-    return LittleFS.exists(path);
-}
-
+/**
+ * @brief Lists files in a directory.
+ * @param directory The directory path.
+ */
 void Speaker::listFiles(const char* directory) {
     File root = LittleFS.open(directory);
     if (!root || !root.isDirectory()) {
@@ -236,18 +248,36 @@ void Speaker::listFiles(const char* directory) {
     }
 }
 
+/**
+ * @brief Writes audio samples to the I2S interface.
+ * @param buffer The buffer containing samples.
+ * @param bytes The number of bytes to write.
+ * @return The number of bytes written.
+ */
 size_t Speaker::writeSamples(const void* buffer, size_t bytes) {
     size_t bytesWritten = 0;
     esp_err_t err = i2s_write(_i2sPort, buffer, bytes, &bytesWritten, portMAX_DELAY);
     return (err == ESP_OK) ? bytesWritten : 0;
 }
 
+/**
+ * @brief Notifies the playback state callback.
+ * @param playing Whether playback is active.
+ */
 void Speaker::notifyPlaybackState(bool playing) {
     if (_playbackCallback) {
         _playbackCallback(playing);
     }
 }
 
+/**
+ * @brief Generates a tone into a buffer.
+ * @param frequency The frequency of the tone.
+ * @param volume The volume level.
+ * @param buffer The buffer to fill.
+ * @param samples The number of samples to generate.
+ * @param sampleRate The sample rate.
+ */
 void Speaker::generateTone(float frequency, float volume, 
                          int16_t* buffer, size_t samples,
                          uint32_t sampleRate) {

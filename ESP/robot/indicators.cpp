@@ -54,6 +54,12 @@ void Indicators::blink(LED_PINS led, uint8_t times, uint16_t delayMs) {
     }
 }
 
+/**
+ * @brief Validates that the provided LED index is within bounds.
+ * 
+ * @param led The LED to validate.
+ * @return true if the LED is valid, false otherwise.
+ */
 bool Indicators::isValidLED(LED_PINS led) const {
     return led < COUNT;
 }

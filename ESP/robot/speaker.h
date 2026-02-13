@@ -85,26 +85,72 @@ public:
     // Callback type for playback state changes
     using PlaybackCallback = std::function<void(bool)>;
 
-    // Initialize and configure the speaker
+    /**
+     * @brief Initialize and configure the speaker.
+     * @param config Audio configuration settings.
+     * @return true if successful, false otherwise.
+     */
     bool begin(const AudioConfig& config = AudioConfig());
     
     // Audio playback methods
+    /**
+     * @brief Play a tone at specified frequency and duration.
+     * @param frequency Tone frequency in Hz.
+     * @param durationMs Duration in milliseconds.
+     * @param volume Volume level (0.0 to 1.0).
+     * @return true if successful, false otherwise.
+     */
     bool playTone(float frequency, uint32_t durationMs, float volume = 1.0f);
+
+    /**
+     * @brief Play a WAV file from the file system.
+     * @param path Path to the WAV file.
+     * @param skipHeader Whether to skip the WAV header.
+     * @return true if successful, false otherwise.
+     */
     bool playWav(const char* path, bool skipHeader = true);
+
+    /**
+     * @brief Play audio from a buffer.
+     * @param buffer Audio data buffer.
+     * @param length Buffer length in bytes.
+     * @return true if successful, false otherwise.
+     */
     bool playBuffer(const uint8_t* buffer, size_t length);
+
+    /**
+     * @brief Play a chunk of audio data.
+     * @param chunk Audio chunk data.
+     * @param length Chunk length in bytes.
+     * @return true if successful, false otherwise.
+     */
     bool playChunk(const uint8_t* chunk, size_t length);
     
     // Utility methods
+    /**
+     * @brief Stop current audio playback.
+     */
     void stop();
+
+    /**
+     * @brief Check if audio is currently playing.
+     * @return true if playing, false otherwise.
+     */
     bool isPlaying() const;
 
-    // Set callback for playback state changes
+    /**
+     * @brief Set callback for playback state changes.
+     * @param callback Function called when playback starts/stops.
+     */
     void setPlaybackCallback(PlaybackCallback callback) {
         _playbackCallback = callback;
     }
     
     // File system methods
-    static bool checkFile(const char* path);
+    /**
+     * @brief List files in a directory.
+     * @param directory Directory path to list.
+     */
     static void listFiles(const char* directory = "/");
 
 private:
@@ -125,11 +171,8 @@ private:
     bool initFileSystem();
     size_t writeSamples(const void* buffer, size_t bytes);
     void notifyPlaybackState(bool playing);
+    void generateTone(float frequency, float volume, int16_t* buffer, size_t samples, uint32_t sampleRate);
     
-    // Tone generation
-    static void generateTone(float frequency, float volume, 
-                           int16_t* buffer, size_t samples,
-                           uint32_t sampleRate);
 };
 
 #endif // SPEAKER_H

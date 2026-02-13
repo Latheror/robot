@@ -46,6 +46,11 @@ bool WiFiManager::checkConnection() {
     return connect();
 }
 
+/**
+ * @brief Get string representation of WiFi status.
+ * @param status The WiFi status.
+ * @return Status string.
+ */
 String WiFiManager::getStatusString(wl_status_t status) {
     switch (status) {
         case WL_IDLE_STATUS:     return "Idle";

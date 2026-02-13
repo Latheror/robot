@@ -10,10 +10,10 @@ OLEDDisplay::OLEDDisplay() : display(OledDisplayConfig::SCREEN_WIDTH, OledDispla
 /// Initialize the OLED display.
 /// </summary>
 bool OLEDDisplay::begin() {
-    delay(100);
+    delay(SystemConfig::OLED_INIT_DELAY_MS);
 
     if (!display.begin(OledDisplayConfig::OLED_ADDR, true)) {
-        Serial.println(F("Failed to initialize SH1106"));
+        Serial.println(F("[OLED] Failed to initialize SH1106"));
         initialized = false;
         return false; // Don't halt, just return false
     }

@@ -74,6 +74,8 @@ struct SystemConfig {
     static const int MUTEX_TIMEOUT_MS = 100;      ///< Mutex wait timeout
     static const int RECONNECT_DELAY_MS = 5000;   ///< MQTT reconnect delay
     static const int AUDIO_JSON_DOC_SIZE = 16384; ///< JSON document size for audio messages
+    static const int SERIAL_INIT_DELAY_MS = 10;     ///< Delay between serial checks
+    static const int OLED_INIT_DELAY_MS = 100;     ///< OLED initialization delay
 };
 
 /**
@@ -89,6 +91,7 @@ struct TaskConfig {
     static const int HEAP_CHECK_INTERVAL_MS = 5000;    ///< Heap check interval
     static const int MQTT_RECONNECT_DELAY_MS = 1000; ///< Delay after MQTT reconnect
     static const int SERIAL_INIT_TIMEOUT_MS = 2000;    ///< Serial init timeout
+    static const int WIFI_STATUS_CHECK_INTERVAL_MS = 1000; ///< WiFi status check interval
 };
 
 #endif // SETTINGS_H

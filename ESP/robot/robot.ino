@@ -168,7 +168,7 @@ void WiFiTask(void *pvParameters)
         }
 
         //Serial.printf("WiFi status: %d\n", status);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(TaskConfig::WIFI_STATUS_CHECK_INTERVAL_MS));
     }
 }
 
@@ -266,7 +266,7 @@ void setup()
     unsigned long serialStart = millis();
     while (!Serial && millis() - serialStart < TaskConfig::SERIAL_INIT_TIMEOUT_MS)
     {
-        delay(10);
+        delay(SystemConfig::SERIAL_INIT_DELAY_MS);
     }
     Serial.println("Serial initialized.");
 
@@ -277,7 +277,7 @@ void setup()
     strip.begin();
     indicators.begin();
     if (!oled.begin()) {
-        Serial.println("OLED initialization failed - display disabled");
+        Serial.println("[OLED] Initialization failed - display disabled");
     }
     if (!ServoController::begin()) {
         indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 255, 0, 0); // Red if not initialized
@@ -286,7 +286,7 @@ void setup()
     }
     roboEyes.begin();
     if (!speaker.begin()) {
-        Serial.println("Speaker initialization failed");
+        Serial.println("[SPEAKER] Initialization failed");
     }
     speaker.setPlaybackCallback([](bool isPlaying) {
         // Blue when speaking, off when silent
@@ -321,7 +321,7 @@ void setup()
     }
     else
     {
-        Serial.println("Microphone initialization failed.");
+        Serial.println("[MIC] Initialization failed.");
     }
 
     speaker.listFiles();

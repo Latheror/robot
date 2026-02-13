@@ -1,12 +1,10 @@
-#pragma once
+#ifndef OLED_DISPLAY_H
+#define OLED_DISPLAY_H
+
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH110X.h>
 #include "settings.h"
-
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_ADDR 0x3C
 
 /**
  * @brief Manages the initialization and control of an SH1106 OLED display.
@@ -46,3 +44,5 @@ private:
     Adafruit_SH1106G display;
     bool initialized = false; ///< Tracks if the display was successfully initialized
 };
+
+#endif // OLED_DISPLAY_H

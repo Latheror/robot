@@ -8,7 +8,7 @@ LEDStrip::LEDStrip(uint8_t pin, uint8_t numLeds)
 void LEDStrip::begin() {
     _strip.begin();
     _strip.show(); // Initialize all LEDs to off
-    setBrightness(LED_BRIGHTNESS);
+    setBrightness(OledDisplayConfig::LED_BRIGHTNESS);
 }
 
 void LEDStrip::setColor(LedName led, uint32_t color) {

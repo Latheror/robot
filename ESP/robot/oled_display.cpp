@@ -4,7 +4,7 @@
 /// Constructor for OLEDDisplay.
 /// Initializes the Adafruit_SH1106G member.
 /// </summary>
-OLEDDisplay::OLEDDisplay() : display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1) {}
+OLEDDisplay::OLEDDisplay() : display(OledDisplayConfig::SCREEN_WIDTH, OledDisplayConfig::SCREEN_HEIGHT, &Wire, -1) {}
 
 /// <summary>
 /// Initialize the OLED display.
@@ -12,7 +12,7 @@ OLEDDisplay::OLEDDisplay() : display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1) {}
 bool OLEDDisplay::begin() {
     delay(100);
 
-    if (!display.begin(OLED_ADDR, true)) {
+    if (!display.begin(OledDisplayConfig::OLED_ADDR, true)) {
         Serial.println(F("Failed to initialize SH1106"));
         initialized = false;
         return false; // Don't halt, just return false

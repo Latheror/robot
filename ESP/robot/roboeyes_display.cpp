@@ -16,7 +16,7 @@ void RoboEyesDisplay::begin() {
         Serial.println("RoboEyes: OLED display not available, eye animations disabled");
     }
 
-    roboEyes->begin(SCREEN_WIDTH, SCREEN_HEIGHT, 100);
+    roboEyes->begin(OledDisplayConfig::SCREEN_WIDTH, OledDisplayConfig::SCREEN_HEIGHT, 100);
     roboEyes->setAutoblinker(true, 3, 2);
     roboEyes->setIdleMode(true, 2, 2);
 

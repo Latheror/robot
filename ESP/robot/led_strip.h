@@ -1,10 +1,9 @@
-#pragma once
+#ifndef LED_STRIP_H
+#define LED_STRIP_H
+
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
-
-#define LED_STRIP_PIN 13
-#define STRIP_LED_COUNT 5
-#define LED_BRIGHTNESS 3
+#include "settings.h"
 
 /**
  * @enum LedName
@@ -29,7 +28,7 @@ public:
      * @param pin The GPIO pin connected to the LED strip.
      * @param numLeds The number of LEDs in the strip.
      */
-    LEDStrip(uint8_t pin = LED_STRIP_PIN, uint8_t numLeds = STRIP_LED_COUNT);
+    LEDStrip(uint8_t pin = PinConfig::LED_STRIP_PIN, uint8_t numLeds = OledDisplayConfig::STRIP_LED_COUNT);
 
     /**
      * @brief Initializes the LED strip.
@@ -82,3 +81,5 @@ private:
     uint8_t _hue;
     Adafruit_NeoPixel _strip;
 };
+
+#endif // LED_STRIP_H

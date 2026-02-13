@@ -1,4 +1,6 @@
-#pragma once
+#ifndef ROBOEYES_DISPLAY_H
+#define ROBOEYES_DISPLAY_H
+
 #include <Arduino.h>
 #include "oled_display.h"
 
@@ -160,3 +162,5 @@ private:
     static constexpr unsigned long oledInterval = 100;     ///< 10 FPS
     static constexpr unsigned long changeInterval = 10000; ///< 10s
 };
+
+#endif // ROBOEYES_DISPLAY_H

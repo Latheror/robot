@@ -23,7 +23,7 @@ public:
         IS_LISTENING  = LED_NAME_3,  ///< Currently listening indicator
         IS_SPEAKING   = LED_NAME_4,  ///< Currently speaking indicator
         MOTORS_MOVING = LED_NAME_5,  ///< Robot arm movement indicator
-        COUNT = STRIP_LED_COUNT      ///< Number of available LEDs
+        COUNT = OledDisplayConfig::STRIP_LED_COUNT      ///< Number of available LEDs
     };
 
     /**

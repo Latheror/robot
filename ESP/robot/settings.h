@@ -42,11 +42,22 @@ struct PinConfig {
     // I2C Pins
     static const int I2C_SDA = 17;  ///< I2C Data
     static const int I2C_SCL = 18;  ///< I2C Clock
+
+    // LED Strip
+    static const int LED_STRIP_PIN = 13;  ///< LED strip data pin
 };
 
 /**
- * @brief System-wide constants.
+ * @brief OLED display and LED strip configuration settings.
  */
+struct OledDisplayConfig {
+    static const int SCREEN_WIDTH = 128;   ///< OLED screen width
+    static const int SCREEN_HEIGHT = 64;   ///< OLED screen height
+    static const int OLED_ADDR = 0x3C;     ///< OLED I2C address
+    static const int LED_BRIGHTNESS = 3;   ///< Default LED brightness
+    static const int STRIP_LED_COUNT = 5;  ///< Number of LEDs in strip
+};
+
 struct SystemConfig {
     static const int SERIAL_BAUD_RATE = 115200;   ///< Serial baud rate
     static const int MQTT_BUFFER_SIZE = 50000;    ///< MQTT message buffer size

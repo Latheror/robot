@@ -18,6 +18,12 @@ The `Wire` library is typically included automatically with ESP32 support.
 
 Select "ESP32 Dev Module" or appropriate ESP32 board in the Arduino IDE.
 
+## Arduino CLI Tools
+
+The Arduino CLI tools are located in the `Arduino/` folder:
+- `arduino-cli.exe` - Command-line Arduino development tools
+- `arduino-cli.zip` - Original download archive
+
 ## Troubleshooting
 
 - **VS Code Include Errors**: If you see "cannot open source file" errors in VS Code, install the Arduino extension and configure the board/intellisense properly.

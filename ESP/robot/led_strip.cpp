@@ -20,9 +20,6 @@ void LEDStrip::setAll(uint32_t color) {
     _strip.show();
 }
 
-/**
- * @brief Shows the current LED colors.
- */
 void LEDStrip::show() {
     _strip.show();
 }

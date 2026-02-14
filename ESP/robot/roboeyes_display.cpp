@@ -76,11 +76,6 @@ void RoboEyesDisplay::update() {
     }
 }
 
-/**
- * @brief Set the mood of the RoboEyes.
- * @param mood The mood to set.
- * @return True if the mood was set successfully, false otherwise.
- */
 bool RoboEyesDisplay::setMood(Mood mood) {
     if (!oledAvailable) {
         return false;

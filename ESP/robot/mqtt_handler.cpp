@@ -96,12 +96,6 @@ void MqttHandler::handle() {
     mqttClient.loop();
 }
 
-/**
- * @brief Publishes a message to an MQTT topic.
- * @param topic The topic to publish to.
- * @param message The message to publish.
- * @return true if successful, false otherwise.
- */
 bool MqttHandler::publishMessage(const char* topic, const char* message) {
     Serial.printf("[MQTT] Publishing to %s: %s\n", topic, message);
     return mqttClient.connected() && mqttClient.publish(topic, message);

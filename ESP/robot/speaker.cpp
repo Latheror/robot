@@ -225,10 +225,7 @@ bool Speaker::isPlaying() const {
     return _playing;
 }
 
-/**
- * @brief Lists files in a directory.
- * @param directory The directory path.
- */
+
 void Speaker::listFiles(const char* directory) {
     File root = LittleFS.open(directory);
     if (!root || !root.isDirectory()) {

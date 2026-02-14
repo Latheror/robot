@@ -162,10 +162,6 @@ void INMP441::detectDoubleClap() {
         _firstClapTime = 0;
 }
 
-/**
- * @brief Reads a single sample from the microphone.
- * @return The sample value.
- */
 int32_t INMP441::readSample() {
     int32_t sample = 0;
     size_t bytes_read = 0;

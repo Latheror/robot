@@ -46,14 +46,4 @@ describe('Set Face Tool', () => {
     expect(result.content[0].text).toContain('"position":"ne"');
     expect(result.content[0].text).toContain('"curiosity":true');
   });
-
-  it('should handle complex eye control', async () => {
-    const result = await setFaceHandler({
-      eyes: {
-        open: { left: true, right: false },
-      },
-    });
-    expect(result.content[0].text).toContain('Sending face command');
-    expect(result.content[0].text).toContain('"eyes":{"open":{"left":true,"right":false}}');
-  });
 });

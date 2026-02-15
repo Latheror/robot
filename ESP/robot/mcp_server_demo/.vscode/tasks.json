@@ -102,7 +102,7 @@
       "label": "Docker Compose Up",
       "type": "shell",
       "command": "docker-compose",
-      "args": ["up", "--build"],
+      "args": ["up", "--build", "-d"],
       "group": "build",
       "presentation": {
         "echo": true,

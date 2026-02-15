@@ -9,21 +9,25 @@ const textResponse = (text: string) => ({
   content: [{ type: 'text' as const, text }],
 });
 
+// Define enum values for better maintainability and sharing
+export const FACE_ENUMS = {
+  moods: ['happy', 'tired', 'angry', 'default'] as const,
+  positions: ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw', 'default'] as const,
+  animations: ['blink', 'laugh', 'confused'] as const,
+};
+
+// Create Zod enums
+const MoodEnum = z.enum(FACE_ENUMS.moods);
+const PositionEnum = z.enum(FACE_ENUMS.positions);
+const AnimationEnum = z.enum(FACE_ENUMS.animations);
+
 // Define the face message interface
 interface FaceMessage {
-  mood?: string;
-  position?: string;
-  animation?: string;
+  mood?: z.infer<typeof MoodEnum>;
+  position?: z.infer<typeof PositionEnum>;
+  animation?: z.infer<typeof AnimationEnum>;
   curiosity?: boolean;
   sweat?: boolean;
-  h_flicker?: { enabled: boolean; amplitude: number };
-  v_flicker?: { enabled: boolean; amplitude: number };
-  autoblinker?: { enabled: boolean; interval: number; variation: number };
-  idle_mode?: { enabled: boolean; interval: number; variation: number };
-  eyes?: {
-    open?: { left: boolean; right: boolean };
-    close?: { left: boolean; right: boolean };
-  };
 }
 
 // MQTT client instance
@@ -44,84 +48,26 @@ function getMqttClient(): mqtt.MqttClient {
 }
 
 export async function setFaceHandler(args: {
-  mood?: string;
-  position?: string;
-  animation?: string;
+  mood?: z.infer<typeof MoodEnum>;
+  position?: z.infer<typeof PositionEnum>;
+  animation?: z.infer<typeof AnimationEnum>;
   curiosity?: boolean;
   sweat?: boolean;
-  h_flicker?: { enabled: boolean; amplitude?: number };
-  v_flicker?: { enabled: boolean; amplitude?: number };
-  autoblinker?: { enabled: boolean; interval?: number; variation?: number };
-  idle_mode?: { enabled: boolean; interval?: number; variation?: number };
-  eyes?: {
-    open?: { left?: boolean; right?: boolean };
-    close?: { left?: boolean; right?: boolean };
-  };
 }) {
   try {
     const client = getMqttClient();
 
     // Build the JSON message based on provided arguments
-    const message: FaceMessage = {};
+    const message = Object.fromEntries(
+      Object.entries({
+        mood: args.mood,
+        position: args.position,
+        animation: args.animation,
+        curiosity: args.curiosity,
+        sweat: args.sweat,
+      }).filter(([, v]) => v !== undefined)
+    ) as FaceMessage;
 
-    if (args.mood) {
-      message.mood = args.mood;
-    }
-    if (args.position) {
-      message.position = args.position;
-    }
-    if (args.animation) {
-      message.animation = args.animation;
-    }
-    if (args.curiosity !== undefined) {
-      message.curiosity = args.curiosity;
-    }
-    if (args.sweat !== undefined) {
-      message.sweat = args.sweat;
-    }
-    if (args.h_flicker) {
-      message.h_flicker = {
-        enabled: args.h_flicker.enabled,
-        amplitude: args.h_flicker.amplitude || 2,
-      };
-    }
-    if (args.v_flicker) {
-      message.v_flicker = {
-        enabled: args.v_flicker.enabled,
-        amplitude: args.v_flicker.amplitude || 2,
-      };
-    }
-    if (args.autoblinker) {
-      message.autoblinker = {
-        enabled: args.autoblinker.enabled,
-        interval: args.autoblinker.interval || 3,
-        variation: args.autoblinker.variation || 2,
-      };
-    }
-    if (args.idle_mode) {
-      message.idle_mode = {
-        enabled: args.idle_mode.enabled,
-        interval: args.idle_mode.interval || 2,
-        variation: args.idle_mode.variation || 2,
-      };
-    }
-    if (args.eyes) {
-      message.eyes = {};
-      if (args.eyes.open) {
-        message.eyes.open = {
-          left: args.eyes.open.left !== false,
-          right: args.eyes.open.right !== false,
-        };
-      }
-      if (args.eyes.close) {
-        message.eyes.close = {
-          left: args.eyes.close.left !== false,
-          right: args.eyes.close.right !== false,
-        };
-      }
-    }
-
-    // Send the message
     const jsonMessage = JSON.stringify(message);
     client.publish(MQTT_TOPIC_FACE, jsonMessage, { qos: 1 }, (error) => {
       if (error) {
@@ -146,69 +92,25 @@ export function registerSetFaceTool(server: McpServer) {
     'set_robot_face',
     {
       description:
-        'Change the robot face expression by sending MQTT commands. All parameters are optional - only specify what you want to change.',
+        'Change the robot face expression by sending MQTT commands. Use simple parameters for basic control.',
       inputSchema: z.object({
-        mood: z
-          .enum(['happy', 'tired', 'angry', 'default'])
+        mood: MoodEnum.optional().describe(
+          `Set the mood of the robot face. Options: ${FACE_ENUMS.moods.join(', ')}`
+        ),
+        position: PositionEnum.optional().describe(
+          `Set the eye position. Options: ${FACE_ENUMS.positions.join(', ')}`
+        ),
+        animation: AnimationEnum.optional().describe(
+          `Trigger an animation. Options: ${FACE_ENUMS.animations.join(', ')}`
+        ),
+        curiosity: z
+          .boolean()
           .optional()
-          .describe('Set the mood of the robot face'),
-        position: z
-          .enum(['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw', 'default'])
+          .describe('Enable or disable curiosity mode.'),
+        sweat: z
+          .boolean()
           .optional()
-          .describe('Set the eye position'),
-        animation: z
-          .enum(['blink', 'laugh', 'confused'])
-          .optional()
-          .describe('Trigger an animation'),
-        curiosity: z.boolean().optional().describe('Enable or disable curiosity mode'),
-        sweat: z.boolean().optional().describe('Enable or disable sweat effect'),
-        h_flicker: z
-          .object({
-            enabled: z.boolean(),
-            amplitude: z.number().min(0).max(255).optional().default(2),
-          })
-          .optional()
-          .describe('Configure horizontal flicker'),
-        v_flicker: z
-          .object({
-            enabled: z.boolean(),
-            amplitude: z.number().min(0).max(255).optional().default(2),
-          })
-          .optional()
-          .describe('Configure vertical flicker'),
-        autoblinker: z
-          .object({
-            enabled: z.boolean(),
-            interval: z.number().min(0).optional().default(3),
-            variation: z.number().min(0).optional().default(2),
-          })
-          .optional()
-          .describe('Configure automatic blinking'),
-        idle_mode: z
-          .object({
-            enabled: z.boolean(),
-            interval: z.number().min(0).optional().default(2),
-            variation: z.number().min(0).optional().default(2),
-          })
-          .optional()
-          .describe('Configure idle mode'),
-        eyes: z
-          .object({
-            open: z
-              .object({
-                left: z.boolean().optional().default(true),
-                right: z.boolean().optional().default(true),
-              })
-              .optional(),
-            close: z
-              .object({
-                left: z.boolean().optional().default(true),
-                right: z.boolean().optional().default(true),
-              })
-              .optional(),
-          })
-          .optional()
-          .describe('Control eye opening/closing'),
+          .describe('Enable or disable sweat effect.'),
       }),
     },
     setFaceHandler

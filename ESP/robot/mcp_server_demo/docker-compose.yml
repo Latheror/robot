@@ -1,0 +1,8 @@
+services:
+  mcp-server:
+    build: .
+    ports:
+      - "1303:1303"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production

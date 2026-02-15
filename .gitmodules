@@ -4,6 +4,3 @@
 [submodule "TextToSpeech/Chatterbox-TTS-Server"]
 	path = TextToSpeech/Chatterbox-TTS-Server
 	url = https://github.com/Latheror/chatterbox-tts-server-french.git
-[submodule "ESP/robot/mcp_server_demo"]
-	path = ESP/robot/mcp_server_demo
-	url = https://github.com/Latheror/mcp_server_demo.git

@@ -1,7 +1,7 @@
 process.env.NODE_OPTIONS = '--experimental-vm-modules';
 
 module.exports = {
-  preset: 'ts-jest',
+  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts'],
@@ -13,5 +13,10 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+  globals: {
+    'ts-jest': {
+      useESM: true,
+    },
   },
 };

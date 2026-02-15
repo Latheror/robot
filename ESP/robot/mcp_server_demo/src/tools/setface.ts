@@ -69,18 +69,20 @@ export async function setFaceHandler(args: {
     ) as FaceMessage;
 
     const jsonMessage = JSON.stringify(message);
-    client.publish(MQTT_TOPIC_FACE, jsonMessage, { qos: 1 }, (error) => {
-      if (error) {
-        console.error('[MCP] Failed to publish face message:', error);
-        return textResponse(`Error: Failed to send face command - ${error.message}`);
-      } else {
-        console.log('[MCP] Published face message:', jsonMessage);
-        return textResponse(`Successfully sent face command: ${jsonMessage}`);
-      }
+
+    // Await the publish to confirm delivery
+    await new Promise<void>((resolve, reject) => {
+      client.publish(MQTT_TOPIC_FACE, jsonMessage, { qos: 1 }, (error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
     });
 
-    // Since publish is async, return a response immediately
-    return textResponse(`Sending face command: ${jsonMessage}`);
+    console.log('[MCP] Published face message:', jsonMessage);
+    return textResponse(`Successfully sent face command: ${jsonMessage}`);
   } catch (error) {
     console.error('[MCP] Error in setFaceHandler:', error);
     return textResponse(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -91,27 +93,65 @@ export function registerSetFaceTool(server: McpServer) {
   server.registerTool(
     'set_robot_face',
     {
-      description:
-        'Change the robot face expression by sending MQTT commands. Use simple parameters for basic control.',
-      inputSchema: z.object({
-        mood: MoodEnum.optional().describe(
-          `Set the mood of the robot face. Options: ${FACE_ENUMS.moods.join(', ')}`
+      description: `Control the robot's face expression and eye behavior via MQTT.
+
+Use this tool whenever the user asks the robot to change its facial expression,
+emotion, eye direction, or facial animation.
+
+You can combine multiple parameters in one command.
+
+Rules:
+- "mood" sets the base facial expression.
+- "animation" plays a temporary animation on top of the mood.
+- "position" controls eye direction.
+- If animation is used, mood remains active after animation ends.
+- If no parameters are provided, do not call this tool.
+
+Examples:
+- "Make the robot happy" → mood: happy
+- "Look left" → position: w
+- "Laugh" → animation: laugh
+- "Happy and looking up-right" → mood: happy, position: ne`,
+      inputSchema: z
+        .object({
+          mood: MoodEnum.optional().describe(`Base facial emotion.
+
+happy   → smiling expression
+tired   → droopy eyes / low energy
+angry   → frowning expression
+default → neutral face
+
+Only one mood can be active at a time.`),
+          position: PositionEnum.optional().describe(`Eye direction.
+
+n  → up
+ne → up-right
+e  → right
+se → down-right
+s  → down
+sw → down-left
+w  → left
+nw → up-left
+default → center`),
+          animation: AnimationEnum.optional().describe(`Temporary facial animation.
+
+blink     → eyes blink once
+laugh     → laughing motion
+confused  → puzzled expression
+
+Animations play once and do not replace the current mood.`),
+          curiosity: z.boolean().optional().describe('Adds curious eye movement overlay'),
+          sweat: z.boolean().optional().describe('Adds sweat drop effect'),
+        })
+        .refine(
+          (data) =>
+            data.mood ||
+            data.position ||
+            data.animation ||
+            data.curiosity !== undefined ||
+            data.sweat !== undefined,
+          { message: 'At least one parameter must be provided.' }
         ),
-        position: PositionEnum.optional().describe(
-          `Set the eye position. Options: ${FACE_ENUMS.positions.join(', ')}`
-        ),
-        animation: AnimationEnum.optional().describe(
-          `Trigger an animation. Options: ${FACE_ENUMS.animations.join(', ')}`
-        ),
-        curiosity: z
-          .boolean()
-          .optional()
-          .describe('Enable or disable curiosity mode.'),
-        sweat: z
-          .boolean()
-          .optional()
-          .describe('Enable or disable sweat effect.'),
-      }),
     },
     setFaceHandler
   );

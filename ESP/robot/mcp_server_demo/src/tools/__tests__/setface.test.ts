@@ -5,10 +5,17 @@ import { jest, beforeEach } from '@jest/globals';
 jest.mock('mqtt', () => ({
   connect: jest.fn(() => ({
     on: jest.fn(),
-    publish: jest.fn((topic: string, message: string, options: any, callback?: (error?: Error) => void) => {
-      // Simulate successful publish
-      if (callback) callback();
-    }),
+    publish: jest.fn(
+      (
+        topic: string,
+        message: string,
+        options: { qos: number },
+        callback?: (error?: Error | null) => void
+      ) => {
+        // Simulate successful publish
+        if (callback) callback();
+      }
+    ),
   })),
 }));
 
@@ -19,19 +26,19 @@ describe('Set Face Tool', () => {
 
   it('should send a mood command', async () => {
     const result = await setFaceHandler({ mood: 'happy' });
-    expect(result.content[0].text).toContain('Sending face command');
+    expect(result.content[0].text).toContain('Successfully sent face command');
     expect(result.content[0].text).toContain('"mood":"happy"');
   });
 
   it('should send a position command', async () => {
     const result = await setFaceHandler({ position: 'n' });
-    expect(result.content[0].text).toContain('Sending face command');
+    expect(result.content[0].text).toContain('Successfully sent face command');
     expect(result.content[0].text).toContain('"position":"n"');
   });
 
   it('should send an animation command', async () => {
     const result = await setFaceHandler({ animation: 'blink' });
-    expect(result.content[0].text).toContain('Sending face command');
+    expect(result.content[0].text).toContain('Successfully sent face command');
     expect(result.content[0].text).toContain('"animation":"blink"');
   });
 
@@ -41,7 +48,7 @@ describe('Set Face Tool', () => {
       position: 'ne',
       curiosity: true,
     });
-    expect(result.content[0].text).toContain('Sending face command');
+    expect(result.content[0].text).toContain('Successfully sent face command');
     expect(result.content[0].text).toContain('"mood":"happy"');
     expect(result.content[0].text).toContain('"position":"ne"');
     expect(result.content[0].text).toContain('"curiosity":true');

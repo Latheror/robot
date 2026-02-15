@@ -5,6 +5,7 @@ import * as http from 'http';
 import { registerAddTool } from './tools/add.js';
 import { registerHealthTool } from './tools/health.js';
 import { registerWeatherTool } from './tools/getweather.js';
+import { registerSetFaceTool } from './tools/setface.js';
 
 const PORT = 1303;
 const HOST = '0.0.0.0';
@@ -14,6 +15,7 @@ function registerTools(server: McpServer) {
   registerAddTool(server);
   registerHealthTool(server);
   registerWeatherTool(server);
+  registerSetFaceTool(server);
 }
 
 // Export the request handler for testing

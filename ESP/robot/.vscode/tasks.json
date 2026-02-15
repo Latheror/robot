@@ -120,7 +120,7 @@
       "label": "[MCP] Docker Compose Up",
       "type": "shell",
       "command": "docker-compose",
-      "args": ["-f", "${workspaceFolder}/mcp_server_demo/docker-compose.yml", "up", "--build"],
+      "args": ["-f", "${workspaceFolder}/mcp_server_demo/docker-compose.yml", "up", "--build", "-d"],
       "group": "build",
       "presentation": {
         "echo": true,
@@ -129,6 +129,23 @@
         "panel": "shared"
       },
       "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/mcp_server_demo"
+      }
+    },
+    {
+      "label": "[MCP] Docker Compose Down",
+      "type": "shell",
+      "command": "docker-compose",
+      "args": ["-f", "${workspaceFolder}/mcp_server_demo/docker-compose.yml", "down"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
       "problemMatcher": [],
       "options": {
         "cwd": "${workspaceFolder}/mcp_server_demo"

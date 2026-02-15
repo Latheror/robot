@@ -1,0 +1,203 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "[MCP] Build MCP Server",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/mcp_server_demo"
+      }
+    },
+    {
+      "label": "[MCP] Run MCP Server (HTTP)",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "start:http"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/mcp_server_demo"
+      }
+    },
+    {
+      "label": "[MCP] Test MCP Server",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-File",
+        "test-mcp.ps1"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/mcp_server_demo"
+      }
+    },
+    {
+      "label": "[MCP] Test MCP Server (Jest)",
+      "type": "shell",
+      "command": "npm",
+      "args": ["test"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/mcp_server_demo"
+      }
+    },
+    {
+      "label": "[MCP] Build Docker Image",
+      "type": "shell",
+      "command": "docker",
+      "args": ["build", "-t", "mcp-server-demo", "${workspaceFolder}/mcp_server_demo"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/mcp_server_demo"
+      }
+    },
+    {
+      "label": "[MCP] Run Docker Container",
+      "type": "shell",
+      "command": "docker",
+      "args": ["run", "-p", "1303:1303", "mcp-server-demo"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/mcp_server_demo"
+      }
+    },
+    {
+      "label": "[MCP] Docker Compose Up",
+      "type": "shell",
+      "command": "docker-compose",
+      "args": ["-f", "${workspaceFolder}/mcp_server_demo/docker-compose.yml", "up", "--build"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/mcp_server_demo"
+      }
+    },
+    {
+      "label": "[MCP] Lint Code",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "lint"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": ["$eslint-stylish"],
+      "options": {
+        "cwd": "${workspaceFolder}/mcp_server_demo"
+      }
+    },
+    {
+      "label": "[MCP] Fix Linting Issues",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "lint:fix"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/mcp_server_demo"
+      }
+    },
+    {
+      "label": "[MCP] Format Code",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "format"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/mcp_server_demo"
+      }
+    },
+    {
+      "label": "[MCP] Check Code Formatting",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "format:check"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/mcp_server_demo"
+      }
+    }
+  ]
+}

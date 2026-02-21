@@ -5,6 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include <vector>
 
 // Custom headers
 #include "wifi_manager.h"
@@ -15,6 +16,7 @@
 #include "speaker.h"
 #include "indicators.h"
 #include "INMP441.h"
+#include "audio_recording.h"
 #include "rgb_led.h"
 #include "led_strip.h"
 #include "i2c_scanner.h"
@@ -28,6 +30,7 @@ Indicators indicators(strip);
 MqttHandler mqttHandler;
 Speaker speaker;
 INMP441 mic;
+AudioRecording audioRecording(indicators);
 RGBLed rgbLed;
 OLEDDisplay oled;
 RoboEyesDisplay roboEyes(oled);
@@ -107,9 +110,25 @@ void ServoTask(void *pvParameters)
 
 void MicTask(void *pvParameters)
 {
+    const int NUM_SAMPLES = SystemConfig::MIC_NUM_SAMPLES;  // 256 samples
+    int32_t buffer[NUM_SAMPLES];
+    
     while (true)
     {
         mic.update();
+        
+        // Update audio recording with current volume for auto-stop detection
+        audioRecording.update(mic.getVolume());
+        
+        // If recording, read samples and add to buffer
+        if (audioRecording.isRecording()) {
+            int samplesRead = mic.readSamplesForRecording(buffer, NUM_SAMPLES);
+            if (samplesRead > 0) {
+                std::vector<int32_t> samples(buffer, buffer + samplesRead);
+                audioRecording.addSamples(samples);
+            }
+        }
+        
         vTaskDelay(pdMS_TO_TICKS(TaskConfig::MIC_UPDATE_DELAY_MS));
     }
 }
@@ -309,15 +328,15 @@ void setup()
         Serial.println("Microphone ready.");
         mic.setClapCallback([]()
                             {
-                                Serial.println("Clap detected!");
+                                Serial.println("Double clap detected - starting audio recording!");
                                 speaker.playWav("/yesilisten.wav");
+                                audioRecording.startRecording();
                             });
-        mic.setIsRecordingCallback([](bool recording)
-                                   {
-                                       Serial.print("Recording state: ");
-                                       Serial.println(recording ? "START" : "STOP");
-                                       indicators.set(Indicators::LED_PINS::IS_LISTENING, recording);
-                                   });
+        
+        // Set up audio recording callback
+        audioRecording.setRecordingFinishedCallback([](const char* filePath) {
+            Serial.printf("Audio recording finished: %s\n", filePath);
+        });
     }
     else
     {

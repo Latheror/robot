@@ -44,10 +44,12 @@ public:
     void update();
 
     /**
-     * @brief Read a raw sample from I2S.
-     * @return 24-bit aligned sample
+     * @brief Read multiple samples for recording purposes.
+     * @param buffer Buffer to store samples
+     * @param numSamples Number of samples to read
+     * @return Number of samples actually read
      */
-    int32_t readSample();
+    int readSamplesForRecording(int32_t* buffer, int numSamples);
 
     /**
      * @brief Get current RMS volume.
@@ -72,22 +74,6 @@ public:
      * @param callback Function returning true if recording, false otherwise
      */
     void setIsRecordingCallback(std::function<void(bool)> callback);
-
-    /**
-     * @brief Start recording audio into internal buffer.
-     */
-    void startRecording();
-
-    /**
-     * @brief Stop recording audio.
-     */
-    void stopRecording();
-
-    /**
-     * @brief Get the recorded audio buffer.
-     * @return Vector of int32_t samples
-     */
-    const std::vector<int32_t>& getBuffer() const;
 
     /**
      * @brief Enable clap detection
@@ -118,9 +104,7 @@ private:
     std::function<void()> _clapCallback;    ///< Double-clap callback
     std::function<void(bool)> _isRecordingCallback; ///< Callback to check if recording is active
 
-    bool _recording = false;                ///< Recording flag
     bool _clapDetectionEnabled = true;      ///< Clap detection enabled flag
-    std::vector<int32_t> _recordBuffer;     ///< Audio buffer for recording
 
     static constexpr unsigned long UPDATE_INTERVAL = 20;  
     static constexpr double MAX_24BIT = 8388607.0;

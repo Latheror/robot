@@ -74,12 +74,6 @@ void INMP441::update() {
     readSamplesAndComputeVolume();
     updateActivityLed();
     detectDoubleClap();
-
-    // If recording, append sample to buffer
-    if (_recording) {
-        int32_t sample = readSample();
-        _recordBuffer.push_back(sample);
-    }
 }
 
 /**
@@ -120,8 +114,6 @@ void INMP441::readSamplesAndComputeVolume() {
         int32_t aligned = buffer[i] >> 8;
         double normalized = (double)aligned / INMP441::MAX_24BIT;
         sumSquares += normalized * normalized;
-
-        if (_recording) _recordBuffer.push_back(aligned);
     }
 
     _currentVolume = sqrt(sumSquares / samplesRead);
@@ -162,14 +154,21 @@ void INMP441::detectDoubleClap() {
         _firstClapTime = 0;
 }
 
-int32_t INMP441::readSample() {
-    int32_t sample = 0;
-    size_t bytes_read = 0;
-
-    if (i2s_read(_i2sPort, &sample, sizeof(sample), &bytes_read, portMAX_DELAY) == ESP_OK) {
-        return sample >> SystemConfig::MIC_BIT_SHIFT;  // 24 valid bits
+int INMP441::readSamplesForRecording(int32_t* buffer, int numSamples) {
+    size_t bytesToRead = numSamples * sizeof(int32_t);
+    size_t bytesRead = 0;
+    
+    esp_err_t res = i2s_read(_i2sPort, (char*)buffer, bytesToRead, &bytesRead, pdMS_TO_TICKS(100));
+    if (res != ESP_OK) {
+        return 0;
     }
-    return 0;
+    
+    int samplesRead = bytesRead / sizeof(int32_t);
+    // Convert to 24-bit samples
+    for (int i = 0; i < samplesRead; i++) {
+        buffer[i] = buffer[i] >> SystemConfig::MIC_BIT_SHIFT;
+    }
+    return samplesRead;
 }
 
 float INMP441::getVolume() const {
@@ -178,21 +177,4 @@ float INMP441::getVolume() const {
 
 bool INMP441::isVolumeAboveThreshold() const {
     return _currentVolume > AudioConfig::VOLUME_THRESHOLD;
-}
-
-// ---- Recording functions ----
-
-void INMP441::startRecording() {
-    _recordBuffer.clear();
-    _recording = true;
-    Serial.println("[MIC] Recording started");
-}
-
-void INMP441::stopRecording() {
-    _recording = false;
-    Serial.printf("[MIC] Recording stopped, %d samples captured\n", (int)_recordBuffer.size());
-}
-
-const std::vector<int32_t>& INMP441::getBuffer() const {
-    return _recordBuffer;
 }

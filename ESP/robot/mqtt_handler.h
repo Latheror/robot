@@ -52,6 +52,7 @@ public:
     // --- MQTT Topics accessible outside ---
     static constexpr const char* MQTT_TOPIC_COMMANDS = "robot/1/commands";  ///< Topic for receiving robot commands
     static constexpr const char* MQTT_TOPIC_AUDIO    = "robot/1/audio";     ///< Topic for receiving audio chunks
+    static constexpr const char* MQTT_TOPIC_MICROPHONE = "robot/1/microphone"; ///< Topic for sending microphone recordings
     static constexpr const char* MQTT_TOPIC_SENSORS  = "robot/1/sensors";   ///< Topic for publishing sensor data
     static constexpr const char* MQTT_TOPIC_FACE     = "robot/1/face";      ///< Topic for setting face expressions
 

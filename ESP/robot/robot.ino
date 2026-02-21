@@ -331,11 +331,15 @@ void setup()
                                 Serial.println("Double clap detected - starting audio recording!");
                                 speaker.playWav("/yesilisten.wav");
                                 audioRecording.startRecording();
+                                // Disable clap detection during recording to prevent noise from restarting it
+                                mic.disableClapDetection();
                             });
         
         // Set up audio recording callback
         audioRecording.setRecordingFinishedCallback([](const char* filePath) {
             Serial.printf("Audio recording finished: %s\n", filePath);
+            // Re-enable clap detection after recording finishes
+            mic.enableClapDetection();
         });
     }
     else

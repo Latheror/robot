@@ -49,12 +49,28 @@
     {
       "label": "[WHISPER] Test Sample",
       "type": "shell",
-      "command": "SpeechToText/whisper/examples/main.exe",
+      "command": "SpeechToText/whisper/build/bin/Debug/whisper-cli.exe",
       "args": [
         "-m",
-        "SpeechToText/whisper/models/ggml-base.en.bin",
+        "SpeechToText/whisper/models/ggml-small.bin",
         "-f",
         "SpeechToText/whisper/samples/jfk.wav"
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "[WHISPER] Test API",
+      "type": "shell",
+      "command": "curl.exe",
+      "args": [
+        "-X",
+        "POST",
+        "http://localhost:8000/transcribe",
+        "-F",
+        "file=@SpeechToText/whisper/samples/jfk.wav"
       ],
       "group": "test",
       "presentation": {

@@ -168,13 +168,18 @@ void AudioRecording::sendWavViaMQTT(const char* filePath) {
         size_t chunkStart = i * CHUNK_SIZE;
         size_t chunkSize = std::min(CHUNK_SIZE, base64Size - chunkStart);
 
-        // Create JSON message
-        char message[5120]; // Large buffer for chunk
-        snprintf(message, sizeof(message),
+        // Create JSON message using heap allocation to avoid stack overflow
+        std::unique_ptr<char[]> message(new char[5120]);
+        if (!message) {
+            Serial.println("[AUDIO_REC] Failed to allocate message buffer");
+            break;
+        }
+        
+        snprintf(message.get(), 5120,
                  "{\"message\":\"%.*s\",\"chunk_index\":%d,\"total_chunks\":%d}",
                  (int)chunkSize, base64Buffer.get() + chunkStart, i, totalChunks);
 
-        mqttHandler.publishMessage("robot/1/microphone", message);
+        mqttHandler.publishMessage("robot/1/microphone", message.get());
 
         // Small delay between chunks to avoid overwhelming MQTT
         delay(10);

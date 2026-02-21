@@ -356,7 +356,7 @@ void setup()
     // Core 1: Real-time tasks (audio, display, servos)
     xTaskCreatePinnedToCore(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle, 1);
     //xTaskCreatePinnedToCore(ServoTask, "Servo", 4096, NULL, 3, &servoTaskHandle, 1);
-    xTaskCreatePinnedToCore(MicTask, "Mic", 4096, NULL, 4, &micTaskHandle, 1);
+    xTaskCreatePinnedToCore(MicTask, "Mic", 10240, NULL, 4, &micTaskHandle, 1);
 
     // Configure Robot Arm LED based on initialization status
     if (!ServoController::isInitialized()) {

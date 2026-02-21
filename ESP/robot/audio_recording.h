@@ -72,11 +72,13 @@ private:
     bool _recording = false;                    ///< Recording state flag
     std::vector<int32_t> _recordBuffer;         ///< Audio sample buffer
     unsigned long _lowSignalStart = 0;          ///< Timestamp when signal became low
+    unsigned long _lastPrintTime = 0;           ///< Last time sound level was printed
     std::function<void(const char* filePath)> _recordingFinishedCallback; ///< Callback when recording finishes
     Indicators& _indicators;                    ///< Reference to indicators system
 
     static constexpr unsigned long SILENCE_TIMEOUT_MS = 3000; ///< 3 seconds of low signal to stop
-    static constexpr float SILENCE_THRESHOLD = 0.01f;         ///< Volume threshold for silence detection
+    static constexpr float SILENCE_THRESHOLD = 0.003f;        ///< Volume threshold for silence detection (much lower than clap threshold)
+    static constexpr unsigned long PRINT_INTERVAL_MS = 500;   ///< Print sound level every 500ms
     static constexpr const char* TEMP_RECORDING_FILE = "/temp_recording.wav"; ///< Temporary WAV file path
 
     /**

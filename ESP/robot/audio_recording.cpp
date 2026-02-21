@@ -29,6 +29,12 @@ void AudioRecording::update(float currentVolume) {
 
     unsigned long now = millis();
 
+    // Periodically print sound level
+    if (now - _lastPrintTime >= PRINT_INTERVAL_MS) {
+        Serial.printf("[AUDIO_REC] Current sound level: %.4f\n", currentVolume);
+        _lastPrintTime = now;
+    }
+
     if (currentVolume < SILENCE_THRESHOLD) {
         if (_lowSignalStart == 0) {
             _lowSignalStart = now;

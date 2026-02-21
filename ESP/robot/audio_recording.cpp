@@ -188,7 +188,7 @@ void AudioRecording::sendWavViaMQTT(const char* filePath) {
         mqttHandler.publishMessage("robot/1/microphone", message.get());
 
         // Small delay between chunks to avoid overwhelming MQTT
-        delay(10);
+        delay(50);
     }
 
     Serial.println("[AUDIO_REC] Audio transmission completed");

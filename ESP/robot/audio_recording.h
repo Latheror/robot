@@ -9,6 +9,7 @@
 #include <mbedtls/base64.h>
 #include "settings.h"
 #include "indicators.h"
+#include "speaker.h"
 
 /**
  * @class AudioRecording
@@ -24,8 +25,9 @@ public:
     /**
      * @brief Constructor.
      * @param indicators Reference to the indicators system
+     * @param speaker Reference to the speaker system
      */
-    AudioRecording(Indicators& indicators);
+    AudioRecording(Indicators& indicators, Speaker& speaker);
 
     /**
      * @brief Set callback for when recording is finished and ready to send.
@@ -75,6 +77,7 @@ private:
     unsigned long _lastPrintTime = 0;           ///< Last time sound level was printed
     std::function<void(const char* filePath)> _recordingFinishedCallback; ///< Callback when recording finishes
     Indicators& _indicators;                    ///< Reference to indicators system
+    Speaker& _speaker;                          ///< Reference to speaker system
 
     static constexpr unsigned long SILENCE_TIMEOUT_MS = 3000; ///< 3 seconds of low signal to stop
     static constexpr float SILENCE_THRESHOLD = 0.003f;        ///< Volume threshold for silence detection (much lower than clap threshold)

@@ -30,7 +30,7 @@ Indicators indicators(strip);
 MqttHandler mqttHandler;
 Speaker speaker;
 INMP441 mic;
-AudioRecording audioRecording(indicators);
+AudioRecording audioRecording(indicators, speaker);
 RGBLed rgbLed;
 OLEDDisplay oled;
 RoboEyesDisplay roboEyes(oled);

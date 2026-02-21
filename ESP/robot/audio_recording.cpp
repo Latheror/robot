@@ -4,7 +4,7 @@
 
 extern MqttHandler mqttHandler;
 
-AudioRecording::AudioRecording(Indicators& indicators) : _indicators(indicators) {}
+AudioRecording::AudioRecording(Indicators& indicators, Speaker& speaker) : _indicators(indicators), _speaker(speaker) {}
 
 void AudioRecording::setRecordingFinishedCallback(std::function<void(const char* filePath)> callback) {
     _recordingFinishedCallback = callback;
@@ -53,6 +53,9 @@ void AudioRecording::stopRecording() {
     _recording = false;
     _indicators.set(Indicators::LED_PINS::IS_LISTENING, false);
     Serial.printf("[AUDIO_REC] Recording stopped, %d samples captured\n", (int)_recordBuffer.size());
+
+    // Play "thinking" sound to indicate processing has started
+    _speaker.playWav("/ok_im_thinking.wav");
 
     if (_recordBuffer.empty()) {
         Serial.println("[AUDIO_REC] No samples recorded");

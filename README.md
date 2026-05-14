@@ -28,7 +28,7 @@ The robot operates through a modular pipeline:
 | **Speech Recognition** | Whisper.cpp | Converts audio to text locally on device |
 | **MQTT Broker** | EMQX | Message bus for robot-to-system communication |
 | **Orchestration** | N8N Workflow | Connects signals → LLM → actions in a structured flow |
-| **Language Model** | Ollama | Processes context and decides robot actions |
+| **Language Model** | vLLM | Processes context and decides robot actions through an OpenAI-compatible API |
 | **MCP Server** | Node.js REST API | Validates actions and ensures safe execution |
 | **Text-to-Speech** | Chatterbox TTS | Generates natural speech responses in French |
 
@@ -36,7 +36,7 @@ The robot operates through a modular pipeline:
 
 1. **Robot Senses** → ESP32 publishes sensor data (MQTT)
 2. **System Listens** → N8N workflow receives the signal
-3. **LLM Decides** → Queries Ollama with available capabilities
+3. **LLM Decides** → Queries vLLM with available capabilities
 4. **Action Executes** → MCP validates and publishes command back to robot
 5. **Robot Responds** → Executes action (movement, LED, speech)
 
@@ -84,7 +84,7 @@ Local speech-to-text processing using OpenAI Whisper:
 ### 🧠 LLM & Orchestration
 **Location**: `LLM/` and `N8N/`
 
-**Ollama LLM**: Language model inference server (runs locally or cloud)
+**vLLM LLM**: OpenAI-compatible local language model inference server
 - Processes context and makes decisions
 - Selects appropriate robot actions
 
@@ -159,7 +159,7 @@ French text-to-speech synthesis using Chatterbox TTS:
 
 4. **Configure and start services**
    - Import N8N workflow from `N8N/n8n_workflow.json`
-   - Start Ollama for LLM inference
+   - Start vLLM for LLM inference
    - Start Chatterbox TTS server
    - See detailed guides in `docs/guides/`
 

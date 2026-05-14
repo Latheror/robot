@@ -1,26 +1,60 @@
-version: '3.8'
-
 services:
-  ollama:
-    image: ollama/ollama:latest
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm
+    command:
+      - --model
+      - ${VLLM_MODEL:-Qwen/Qwen2.5-7B-Instruct}
+      - --served-model-name
+      - ${VLLM_SERVED_MODEL_NAME:-robot-llm}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --max-model-len
+      - ${VLLM_MAX_MODEL_LEN:-4096}
+      - --gpu-memory-utilization
+      - ${VLLM_GPU_MEMORY_UTILIZATION:-0.85}
     ports:
-      - "11434:11434"
+      - "8001:8000"
+    environment:
+      - HF_HOME=/root/.cache/huggingface
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     volumes:
-      - ollama:/root/.ollama
+      - vllm-cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 5m
     restart: unless-stopped
 
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
     ports:
       - "3000:8080"
     environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - ENABLE_OLLAMA_API=false
+      - OPENAI_API_BASE_URL=http://vllm:8000/v1
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed-local-vllm}
     volumes:
       - open-webui:/app/backend/data
     restart: unless-stopped
     depends_on:
-      - ollama
+      vllm:
+        condition: service_healthy
 
 volumes:
-  ollama:
+  vllm-cache:
   open-webui:

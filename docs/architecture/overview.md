@@ -5,7 +5,7 @@
 The robot operates through an integrated pipeline:
 
 ```
-Microphone → Whisper (STT) → N8N Workflow → Ollama (LLM) → MCP → MQTT → ESP32 → Robot Actions → Speaker
+Microphone → Whisper (STT) → N8N Workflow → vLLM (LLM) → MCP → MQTT → ESP32 → Robot Actions → Speaker
 ```
 
 ## Detailed Architecture
@@ -35,7 +35,7 @@ The workflow handles the main pipeline:
    └─ Discovers available actions
 
 3. Query LLM
-   └─ Sends sensor data + capabilities to Ollama
+   └─ Sends sensor data + capabilities to vLLM
    └─ LLM decides best action
 
 4. Execute Action
@@ -44,15 +44,15 @@ The workflow handles the main pipeline:
    └─ ESP32 receives and executes
 ```
 
-### 3. **Decision Layer: LLM (Ollama)**
+### 3. **Decision Layer: LLM (vLLM)**
 
-**Component**: Ollama (`LLM/docker-compose.yml`)
+**Component**: vLLM (`LLM/docker-compose.yml`)
 
 - Processes input context (sensor data, capabilities)
 - Makes intelligent decisions
 - Returns structured action: `{ action: string, parameters: object }`
 - Runs in Docker container
-- Configurable model (default: llama2)
+- Configurable model (default served name: `robot-llm`)
 
 ### 4. **Communication Layer: MQTT**
 
@@ -133,7 +133,7 @@ Core modules:
                          │ Receive available actions
                          │
 ┌────────────────────────▼────────────────────────────────────┐
-│ 4. LLM DECISION (Ollama)                                    │
+│ 4. LLM DECISION (vLLM)                                      │
 │    Input: transcribed text + available capabilities         │
 │    Output: { action: "...", parameters: {...} }            │
 └────────────────────────┬────────────────────────────────────┘
@@ -178,7 +178,7 @@ Core modules:
 |-------|-----------|---------|
 | **Speech Recognition** | Whisper.cpp | Local STT without external APIs |
 | **Orchestration** | N8N | Visual workflow automation |
-| **AI/LLM** | Ollama | Local LLM inference |
+| **AI/LLM** | vLLM | Local OpenAI-compatible LLM inference |
 | **Communication** | EMQX MQTT | Lightweight pub/sub messaging |
 | **Hardware Control** | ESP32 | Microcontroller with wireless |
 | **Text-to-Speech** | Chatterbox-TTS | Local voice synthesis |
@@ -208,7 +208,7 @@ The architecture allows easy integration:
 2. **New Actions**: Register in MCP capabilities endpoint
 3. **New Commands**: LLM adapts to available capabilities
 4. **Multiple Robots**: Add more ESP32 devices on same MQTT broker
-5. **Cloud Integration**: Can replace Ollama with cloud LLM API
+5. **Cloud Integration**: Can replace local vLLM with any OpenAI-compatible LLM API
 
 ---
 

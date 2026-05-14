@@ -15,7 +15,7 @@ Audio Stream (Whisper.cpp)
     ↓
 Get Capabilities (HTTP → MCP)
     ↓
-Query LLM (HTTP → Ollama)
+Query LLM (OpenAI-compatible HTTP → vLLM)
     ↓
 Parse Decision
     ↓
@@ -135,14 +135,18 @@ Body: { "audio": "base64_encoded_audio" }
 
 **Configuration**:
 - **Method**: POST
-- **URL**: `http://localhost:11434/api/generate`
+- **URL**: `http://host.docker.internal:8001/v1/chat/completions`
 - **Body**:
 
 ```json
 {
-  "model": "llama2",
-  "prompt": "You are a friendly robot. Based on this input and available actions, decide what to do.\n\nSensor Input: {{ $node.MQTT_Input.json.message }}\n\nAvailable Actions: {{ $node.GetCapabilities.json.actions }}\n\nRespond in JSON with: {\"action\": \"...\", \"parameters\": {...}}",
-  "stream": false
+  "model": "robot-llm",
+  "messages": [
+    {"role": "system", "content": "You are a friendly robot. Decide only from available actions."},
+    {"role": "user", "content": "Sensor Input: {{ $node.MQTT_Input.json.message }}\nAvailable Actions: {{ $node.GetCapabilities.json.actions }}"}
+  ],
+  "max_tokens": 120,
+  "temperature": 0.2
 }
 ```
 
@@ -262,7 +266,7 @@ If importing doesn't work, manually recreate:
 
 1. Ensure all services running:
    - MQTT Broker
-   - Ollama LLM
+  - vLLM LLM
    - Chatterbox TTS
    - MCP Server
    - ESP32
@@ -292,7 +296,7 @@ Set via N8N settings or docker environment:
 ```env
 MQTT_HOST=localhost
 MQTT_PORT=1883
-LLM_URL=http://localhost:11434
+LLM_URL=http://localhost:8001/v1
 WHISPER_URL=http://localhost:8000
 TTS_URL=http://localhost:8000
 MCP_URL=http://localhost:3000
@@ -373,7 +377,7 @@ Log to Database
 ### Add New Action
 
 1. Update MCP capabilities endpoint
-2. Add to Ollama system prompt
+2. Add to the vLLM system prompt
 3. Add handler in ESP32 firmware
 4. Test in N8N workflow
 
@@ -382,7 +386,7 @@ Log to Database
 In "Query LLM" node:
 ```json
 {
-  "model": "mistral"  // Change from llama2 to mistral
+  "model": "robot-llm"
 }
 ```
 
@@ -419,10 +423,10 @@ In "Query LLM" node:
 
 ### LLM Not Responding
 
-**Problem**: HTTP timeout to Ollama
+**Problem**: HTTP timeout to vLLM
 
 **Solutions**:
-1. Check Ollama is running
+1. Check vLLM is running and healthy
 2. Verify URL is correct
 3. Increase timeout value
 4. Check LLM model is loaded

@@ -1,472 +1,171 @@
-# LLM Setup Guide (Ollama)
+# LLM Setup Guide (vLLM)
 
 ## Overview
 
-Ollama is an easy way to run large language models locally. We use it for the robot's decision-making capability - processing sensor data and capabilities to determine appropriate actions.
+The robot uses **vLLM** as the local language-model inference backend. vLLM exposes an OpenAI-compatible HTTP API, which lets n8n and Open WebUI call the local model through standard `/v1` endpoints.
 
 **Location**: `LLM/docker-compose.yml`
 
-## Why Ollama?
+## Runtime Services
 
-- ✅ Runs entirely locally (no cloud API calls)
-- ✅ Supports multiple models (Llama, Mistral, Dolphin, etc.)
-- ✅ GPU acceleration support
-- ✅ Simple API interface
-- ✅ Easy model management
+| Service | Image | Purpose | Host Port |
+|---------|-------|---------|-----------|
+| `vllm` | `vllm/vllm-openai:latest` | OpenAI-compatible LLM inference | `8001` |
+| `openwebui` | `ghcr.io/open-webui/open-webui:main` | Optional web UI connected to vLLM | `3000` |
 
-## Installation
+The Compose file uses a persistent `vllm-cache` volume for Hugging Face model files and a health check on `/health`.
 
-### Option 1: Docker (Recommended)
+## Model Selection
 
-```bash
-docker run -d -v ollama:/root/.ollama -p 11434:11434 ollama/ollama
+Default model:
+
+```env
+VLLM_MODEL=Qwen/Qwen2.5-7B-Instruct
+VLLM_SERVED_MODEL_NAME=robot-llm
 ```
 
-### Option 2: Using Docker Compose
+This replaces the previous local `llama3.2` workflow model with a broadly supported instruction model that works well with vLLM. The served name `robot-llm` is intentionally stable so n8n does not need edits when the underlying Hugging Face model changes.
 
-Create `LLM/docker-compose.yml`:
+Override the model by copying `LLM/.env.example` to `LLM/.env` and changing `VLLM_MODEL`.
 
-```yaml
-version: '3'
-services:
-  ollama:
-    image: ollama/ollama
-    container_name: ollama
-    pull_policy: always
-    tty: true
-    restart: always
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    ports:
-      - 11434:11434
-    volumes:
-      - ollama:/root/.ollama
-    stdin_open: true
-    # GPU support (uncomment for NVIDIA)
-    # runtime: nvidia
-    # environment:
-    #   - NVIDIA_VISIBLE_DEVICES=all
-
-volumes:
-  ollama:
-```
-
-Run:
-```bash
-cd LLM
-docker-compose up -d
-```
-
-### Option 3: Direct Installation
-
-Visit: https://ollama.ai/download
-
-## Downloading Models
-
-### Pull a Model
+## Start the Stack
 
 ```bash
-# Via Docker
-docker exec ollama ollama pull llama2
-
-# Via Ollama CLI (if installed locally)
-ollama pull llama2
-```
-
-### Available Models
-
-| Model | Size | Speed | Capability |
-|-------|------|-------|-----------|
-| llama2 | 3.8 GB | Fast | Good reasoning |
-| mistral | 4.1 GB | Fast | Very capable |
-| neural-chat | 3.8 GB | Fast | Optimized for chat |
-| dolphin-mixtral | 26 GB | Slow | Very capable |
-| orca-mini | 1.3 GB | Very Fast | Quick decisions |
-
-**Recommendation for Robot**: `llama2` or `neural-chat` for balance of speed and capability.
-
-Pull multiple models:
-```bash
-docker exec ollama ollama pull llama2
-docker exec ollama ollama pull mistral
-docker exec ollama ollama pull neural-chat
+docker compose -f LLM/docker-compose.yml pull
+docker compose -f LLM/docker-compose.yml up -d
 ```
 
 ## API Usage
 
-### REST API Endpoint
+Base URL from the host:
 
-Base URL: `http://localhost:11434`
-
-### 1. Generate Text
-
-**Endpoint**: `POST /api/generate`
-
-```bash
-curl http://localhost:11434/api/generate -d '{
-  "model": "llama2",
-  "prompt": "The capital of France is",
-  "stream": false
-}'
+```text
+http://localhost:8001/v1
 ```
 
-**Python**:
+Base URL from containers that can reach the host:
+
+```text
+http://host.docker.internal:8001/v1
+```
+
+Base URL from services inside `LLM/docker-compose.yml`:
+
+```text
+http://vllm:8000/v1
+```
+
+### Health Check
+
+```bash
+curl http://localhost:8001/health
+```
+
+### List Models
+
+```bash
+curl http://localhost:8001/v1/models
+```
+
+### Chat Completion
+
+```bash
+curl http://localhost:8001/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "robot-llm",
+    "messages": [
+      {"role": "user", "content": "Réponds en trois mots: bonjour robot"}
+    ],
+    "max_tokens": 32,
+    "temperature": 0.2
+  }'
+```
+
+### Python Example
+
 ```python
 import requests
-import json
 
-def query_ollama(prompt, model="llama2"):
+VLLM_URL = "http://localhost:8001/v1"
+VLLM_MODEL = "robot-llm"
+
+def chat_with_vllm(prompt: str) -> str:
     response = requests.post(
-        "http://localhost:11434/api/generate",
+        f"{VLLM_URL}/chat/completions",
         json={
-            "model": model,
-            "prompt": prompt,
-            "stream": False
-        }
+            "model": VLLM_MODEL,
+            "messages": [
+                {"role": "system", "content": "Tu es Margot, un robot assistant amical."},
+                {"role": "user", "content": prompt},
+            ],
+            "max_tokens": 120,
+            "temperature": 0.7,
+        },
+        timeout=120,
     )
-    return response.json()["response"]
-
-# Usage
-result = query_ollama("Tell me about robotics")
-print(result)
+    response.raise_for_status()
+    return response.json()["choices"][0]["message"]["content"].strip()
 ```
 
-**Node.js**:
-```javascript
-const axios = require('axios');
+## Integration with n8n
 
-async function queryOllama(prompt, model = 'llama2') {
-  const response = await axios.post('http://localhost:11434/api/generate', {
-    model: model,
-    prompt: prompt,
-    stream: false
-  });
-  return response.data.response;
-}
+The workflow in `N8N/n8n_workflow.json` now uses the n8n **OpenAI Chat Model** node with:
 
-// Usage
-queryOllama('Tell me about robotics').then(console.log);
+```text
+Base URL: http://host.docker.internal:8001/v1
+Model: robot-llm
+Responses API: disabled
 ```
 
-### 2. Chat Mode
+The API key can be any non-empty placeholder for local vLLM unless API-key enforcement is enabled in vLLM.
 
-**Endpoint**: `POST /api/chat`
+## Open WebUI
 
-```bash
-curl http://localhost:11434/api/chat -d '{
-  "model": "llama2",
-  "messages": [
-    {"role": "user", "content": "Hello, how are you?"}
-  ],
-  "stream": false
-}'
+Open WebUI is configured with:
+
+```env
+ENABLE_OLLAMA_API=false
+OPENAI_API_BASE_URL=http://vllm:8000/v1
+OPENAI_API_KEY=not-needed-local-vllm
 ```
 
-**Python**:
-```python
-def chat_with_ollama(messages, model="llama2"):
-    response = requests.post(
-        "http://localhost:11434/api/chat",
-        json={
-            "model": model,
-            "messages": messages,
-            "stream": False
-        }
-    )
-    return response.json()["message"]["content"]
+Access it at:
 
-# Usage
-messages = [
-    {"role": "user", "content": "What should the robot do when it sees motion?"}
-]
-response = chat_with_ollama(messages)
-print(response)
-```
-
-### 3. List Available Models
-
-```bash
-curl http://localhost:11434/api/tags
-```
-
-```python
-def list_models():
-    response = requests.get("http://localhost:11434/api/tags")
-    return response.json()["models"]
-
-models = list_models()
-for model in models:
-    print(f"{model['name']}: {model['size']}")
-```
-
-## Robot Decision-Making Integration
-
-### Flow
-
-```
-Sensor Input + Available Capabilities → LLM → Action Decision
-```
-
-### Example: Motion Detection Response
-
-**Sensor Data**:
-```json
-{
-  "sensor": "motion",
-  "event": "motion_detected",
-  "confidence": 0.95
-}
-```
-
-**Available Capabilities**:
-```json
-{
-  "actions": [
-    "greet_person",
-    "blink_eyes",
-    "play_sound",
-    "move_head",
-    "show_emotion"
-  ],
-  "emotions": ["happy", "curious", "neutral", "confused"]
-}
-```
-
-**LLM Prompt**:
-```
-You are a friendly robot. Based on the following information, decide what action to take.
-
-Current Sensor: Motion detected (95% confidence)
-Available Actions: greet_person, blink_eyes, play_sound, move_head, show_emotion
-Available Emotions: happy, curious, neutral, confused
-
-Respond in JSON format:
-{
-  "action": "action_name",
-  "parameters": {
-    "key": "value"
-  },
-  "reasoning": "brief explanation"
-}
-```
-
-**LLM Response**:
-```json
-{
-  "action": "greet_person",
-  "parameters": {
-    "emotion": "happy",
-    "gesture": "wave"
-  },
-  "reasoning": "Motion detected likely means someone is approaching, so greet them warmly"
-}
-```
-
-### Python Integration Script
-
-Create `robot_decision.py`:
-
-```python
-import requests
-import json
-import time
-
-OLLAMA_URL = "http://localhost:11434"
-OLLAMA_MODEL = "llama2"
-
-def get_robot_decision(sensor_data, available_actions, available_emotions):
-    """Get LLM decision based on sensor input"""
-    
-    prompt = f"""You are a friendly robot. Based on the following information, decide what action to take.
-
-Current Sensor: {sensor_data['event']} (confidence: {sensor_data.get('confidence', 0.9)})
-Available Actions: {', '.join(available_actions)}
-Available Emotions: {', '.join(available_emotions)}
-
-Respond ONLY in valid JSON format (no markdown, no extra text):
-{{
-  "action": "action_name",
-  "parameters": {{}},
-  "reasoning": "brief explanation"
-}}
-
-If no suitable action exists, use "neutral" emotion and "idle" action."""
-
-    try:
-        response = requests.post(
-            f"{OLLAMA_URL}/api/generate",
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "temperature": 0.7
-            },
-            timeout=30
-        )
-        
-        response_text = response.json()["response"].strip()
-        
-        # Extract JSON from response
-        start = response_text.find("{")
-        end = response_text.rfind("}") + 1
-        json_str = response_text[start:end]
-        
-        decision = json.loads(json_str)
-        return decision
-        
-    except Exception as e:
-        print(f"Error querying LLM: {e}")
-        return {"action": "idle", "parameters": {}, "reasoning": "Error occurred"}
-
-# Example usage
-if __name__ == "__main__":
-    sensor_data = {
-        "event": "motion_detected",
-        "confidence": 0.95
-    }
-    
-    actions = ["greet_person", "blink_eyes", "move_head", "show_emotion"]
-    emotions = ["happy", "curious", "neutral", "confused"]
-    
-    decision = get_robot_decision(sensor_data, actions, emotions)
-    print(json.dumps(decision, indent=2))
-```
-
-## Integration with N8N
-
-In N8N workflow:
-
-1. **HTTP Request Node** (to Ollama)
-   - URL: `http://localhost:11434/api/generate`
-   - Method: POST
-   - Body:
-     ```json
-     {
-       "model": "llama2",
-       "prompt": "{{ $node.previousNode.json.prompt }}",
-       "stream": false
-     }
-     ```
-
-2. **Extract response**:
-   ```
-   {{ $node.OllamaRequest.json.response }}
-   ```
-
-3. **Parse as JSON** to extract action and parameters
-
-## Performance Optimization
-
-### 1. Keep Model in Memory
-
-By default, models are unloaded after 5 minutes. To keep in memory:
-
-```python
-# Ping the model periodically
-import requests
-import time
-
-def keep_model_loaded(model="llama2", interval=300):
-    while True:
-        requests.post(
-            "http://localhost:11434/api/generate",
-            json={"model": model, "prompt": "ok", "stream": False}
-        )
-        time.sleep(interval)
-
-# Run in background thread
-import threading
-thread = threading.Thread(target=keep_model_loaded, daemon=True)
-thread.start()
-```
-
-### 2. Use Smaller Model for Fast Responses
-
-For time-critical decisions:
-```bash
-docker exec ollama ollama pull orca-mini  # 1.3 GB, very fast
-```
-
-### 3. GPU Acceleration
-
-For NVIDIA GPUs:
-
-```bash
-docker run -d --gpus all -v ollama:/root/.ollama -p 11434:11434 ollama/ollama
-```
-
-For AMD GPUs:
-```bash
-docker run -d --device=/dev/kfd --device=/dev/dri -v ollama:/root/.ollama -p 11434:11434 ollama/ollama
+```text
+http://localhost:3000
 ```
 
 ## Troubleshooting
 
-### Connection Refused
+### vLLM container is unhealthy
 
-**Problem**: `Connection refused` when accessing `localhost:11434`
+1. Inspect logs: `docker logs vllm --tail 200`
+2. Confirm GPU availability: `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi`
+3. Lower memory pressure in `LLM/.env`:
+   ```env
+   VLLM_GPU_MEMORY_UTILIZATION=0.75
+   VLLM_MAX_MODEL_LEN=2048
+   ```
 
-**Solutions**:
-1. Check container is running: `docker ps | grep ollama`
-2. Verify port: `docker logs ollama`
-3. Restart: `docker restart ollama`
+### Model download fails
 
-### Model Not Found
+1. Confirm internet access from Docker.
+2. For gated models, set `HUGGING_FACE_HUB_TOKEN` in `LLM/.env`.
+3. Use a public model such as `Qwen/Qwen2.5-7B-Instruct`.
 
-**Problem**: `Error: model not found` when using model
+### n8n cannot connect
 
-**Solutions**:
-1. Pull the model: `docker exec ollama ollama pull llama2`
-2. List available: `curl http://localhost:11434/api/tags`
-
-### Slow Responses
-
-**Problem**: LLM responses take too long
-
-**Solutions**:
-1. Use faster model: `ollama pull orca-mini`
-2. Enable GPU acceleration
-3. Reduce prompt length
-4. Use streaming for long responses
-
-### High Memory Usage
-
-**Problem**: Container using too much RAM
-
-**Solutions**:
-1. Use smaller model (orca-mini instead of llama2)
-2. Unload model to free memory: `docker exec ollama ollama serve`
-3. Limit memory: `docker run -m 4g ...`
-
-## Advanced: Custom Models
-
-### Fine-tune a Model
-
-```bash
-# Create custom model from llama2
-ollama create custom-robot -f Modelfile
-```
-
-**Modelfile**:
-```
-FROM llama2
-SYSTEM You are a helpful robot assistant focused on robotics and automation.
-PARAMETER temperature 0.7
-PARAMETER top_p 0.9
-```
-
-## Next Steps
-
-- Integrate with N8N workflow
-- Connect to Whisper for STT processing
-- Set up response generation for TTS
+1. Confirm `curl http://localhost:8001/health` succeeds from the host.
+2. Confirm `host.docker.internal` works from the n8n container.
+3. Confirm the n8n OpenAI credential uses any non-empty API key and the node option `baseURL` remains `http://host.docker.internal:8001/v1`.
 
 ## Resources
 
-- **Ollama**: https://ollama.ai
-- **Models Available**: https://ollama.ai/library
-- **API Docs**: https://github.com/ollama/ollama/blob/main/docs/api.md
+- **vLLM**: https://docs.vllm.ai
+- **OpenAI-compatible server**: https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html
+- **Hugging Face models**: https://huggingface.co/models
 
 ---
 
-Last updated: December 2025
+Last updated: May 2026

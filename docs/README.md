@@ -10,7 +10,7 @@ Welcome to the Robot project documentation! This guide covers all aspects of the
 - **[ESP32 Robot](./guides/esp32-robot.md)** - Hardware setup and firmware
 - **[Speech Recognition (Whisper)](./guides/whisper-setup.md)** - Audio transcription backend
 - **[Text-to-Speech (Chatterbox)](./guides/tts-setup.md)** - Voice generation
-- **[LLM Integration (Ollama)](./guides/llm-setup.md)** - AI decision-making
+- **[LLM Integration (vLLM)](./guides/llm-setup.md)** - AI decision-making
 - **[N8N Workflow](./guides/n8n-workflow.md)** - Automation pipeline
 - **[Hardware (Meca)](./guides/hardware.md)** - 3D models and mechanical design
 
@@ -18,7 +18,7 @@ Welcome to the Robot project documentation! This guide covers all aspects of the
 
 This is an intelligent robot project that combines:
 - **Audio Input**: Speech recognition via Whisper.cpp
-- **AI Decision Making**: Large language models (Ollama)
+- **AI Decision Making**: Large language models (vLLM)
 - **Audio Output**: Text-to-speech via Chatterbox-TTS
 - **Robot Control**: ESP32-based hardware with MQTT communication
 - **Automation**: N8N workflows orchestrating the entire system
@@ -45,7 +45,7 @@ The robot can listen to voice commands, understand them with AI, decide on appro
          ┌───────────┴───────────┐
          │                       │
 ┌────────▼──────────┐  ┌────────▼──────────┐
-│ Ollama (LLM)      │  │ MQTT Broker       │
+│ vLLM (LLM)        │  │ MQTT Broker       │
 │ LLM Decision      │  │ (EMQX)            │
 └────────┬──────────┘  │ Communication     │
          │             └────────┬──────────┘
@@ -77,7 +77,7 @@ The robot can listen to voice commands, understand them with AI, decide on appro
 | **Whisper.cpp** | `Backend/whisper.cpp` | Speech-to-text transcription |
 | **ESP32 Robot** | `ESP/robot/` | Robot firmware and hardware control |
 | **MQTT Broker** | `MQTT/Broker` | Message broker for robot communication |
-| **LLM** | `LLM/` | Ollama container for AI decisions |
+| **LLM** | `LLM/` | vLLM container for AI decisions |
 | **Chatterbox TTS** | `TextToSpeech/Chatterbox-TTS-Server` | Text-to-speech engine |
 | **N8N** | `N8N/` | Workflow automation |
 | **Hardware** | `Meca/3D/` | 3D models and mechanical designs |
@@ -94,7 +94,7 @@ The robot can listen to voice commands, understand them with AI, decide on appro
 Robot/
 ├── Backend/               # Speech recognition (Whisper.cpp)
 ├── ESP/                   # ESP32 firmware and hardware code
-├── LLM/                   # Large Language Model (Ollama)
+├── LLM/                   # Large Language Model (vLLM)
 ├── MQTT/                  # MQTT broker configuration
 ├── N8N/                   # Workflow automation
 ├── TextToSpeech/          # Text-to-speech (Chatterbox)
@@ -112,7 +112,7 @@ When making changes, please:
 ## Support & Resources
 
 - **Whisper.cpp**: https://github.com/ggml-org/whisper.cpp
-- **Ollama**: https://ollama.ai
+- **vLLM**: https://docs.vllm.ai
 - **N8N**: https://n8n.io
 - **EMQX MQTT**: https://www.emqx.io
 - **Chatterbox TTS**: https://github.com/devnen/Chatterbox-TTS-Server

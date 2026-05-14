@@ -160,9 +160,9 @@
       }
     },
     {
-      "label": "[LLM] Pull Images",
+      "label": "[LLM] Pull vLLM Images",
       "type": "shell",
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "LLM/docker-compose.yml",
@@ -174,9 +174,9 @@
       }
     },
     {
-      "label": "[LLM] Start Services",
+      "label": "[LLM] Start vLLM Services",
       "type": "shell",
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "LLM/docker-compose.yml",
@@ -189,13 +189,58 @@
       }
     },
     {
-      "label": "[LLM] Stop Services",
+      "label": "[LLM] Stop vLLM Services",
       "type": "shell",
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "LLM/docker-compose.yml",
         "down"
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "[LLM] Test vLLM Health",
+      "type": "shell",
+      "command": "curl.exe",
+      "args": [
+        "-f",
+        "http://localhost:8001/health"
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "[LLM] Test vLLM Models",
+      "type": "shell",
+      "command": "curl.exe",
+      "args": [
+        "-f",
+        "http://localhost:8001/v1/models"
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "[LLM] Test vLLM Chat",
+      "type": "shell",
+      "command": "curl.exe",
+      "args": [
+        "-f",
+        "-X",
+        "POST",
+        "http://localhost:8001/v1/chat/completions",
+        "-H",
+        "Content-Type: application/json",
+        "-d",
+        "{\"model\":\"robot-llm\",\"messages\":[{\"role\":\"user\",\"content\":\"Réponds en trois mots: bonjour robot\"}],\"max_tokens\":16,\"temperature\":0}"
       ],
       "group": "test",
       "presentation": {

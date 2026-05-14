@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MQTT handler for communication
 
 ### LLM & Orchestration
-- Ollama LLM server with Docker setup
+- vLLM LLM server with Docker setup
 - N8N workflow automation
 - MCP Server pattern for safe action execution
 

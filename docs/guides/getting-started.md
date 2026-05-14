@@ -73,15 +73,11 @@ docker run -d --name robot_emqx \
 
 Access dashboard: http://localhost:18083 (admin/public)
 
-### Start Ollama LLM
+### Start vLLM LLM
 
 ```bash
-docker run -d --gpus all -p 11434:11434 ollama/ollama
-```
-
-Then pull a model:
-```bash
-docker exec ollama ollama pull llama2
+docker compose -f LLM/docker-compose.yml pull
+docker compose -f LLM/docker-compose.yml up -d
 ```
 
 ### Start Chatterbox TTS Server
@@ -97,7 +93,7 @@ Once docker services are running, refer to component guides:
 
 1. **[MQTT Setup](./mqtt-setup.md)** - Configure broker and client
 2. **[Whisper Setup](./whisper-setup.md)** - Speech recognition
-3. **[LLM Setup](./llm-setup.md)** - Ollama configuration
+3. **[LLM Setup](./llm-setup.md)** - vLLM configuration
 4. **[TTS Setup](./tts-setup.md)** - Text-to-speech
 5. **[ESP32 Setup](./esp32-robot.md)** - Hardware firmware
 6. **[N8N Setup](./n8n-workflow.md)** - Workflow automation
@@ -112,7 +108,7 @@ docker ps
 
 Should show running containers:
 - `robot_emqx` - MQTT broker
-- `ollama` - LLM service
+- `vllm` - LLM service
 - `chatterbox-tts-server` - TTS service
 
 ### Check Python Environment
@@ -140,9 +136,9 @@ MQTT_PORT=1883
 MQTT_USER=admin
 MQTT_PASSWORD=public
 
-# Ollama LLM
-OLLAMA_HOST=http://localhost:11434
-OLLAMA_MODEL=llama2
+# vLLM LLM
+VLLM_BASE_URL=http://localhost:8001/v1
+VLLM_MODEL=robot-llm
 
 # Chatterbox TTS
 TTS_HOST=http://localhost:8000

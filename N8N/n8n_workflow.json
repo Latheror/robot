@@ -1,4 +1,6 @@
 {
+  "name": "Margot Robot vLLM Workflow",
+  "active": false,
   "nodes": [
     {
       "parameters": {

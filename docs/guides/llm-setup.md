@@ -20,11 +20,11 @@ The Compose file uses a persistent `vllm-cache` volume for Hugging Face model fi
 Default model:
 
 ```env
-VLLM_MODEL=Qwen/Qwen2.5-7B-Instruct
+VLLM_MODEL=Qwen/Qwen2.5-3B-Instruct
 VLLM_SERVED_MODEL_NAME=robot-llm
 ```
 
-This replaces the previous local `llama3.2` workflow model with a broadly supported instruction model that works well with vLLM. The served name `robot-llm` is intentionally stable so n8n does not need edits when the underlying Hugging Face model changes.
+This replaces the previous local `llama3.2` workflow model with a similar-size, broadly supported instruction model that works well with vLLM. The served name `robot-llm` is intentionally stable so n8n does not need edits when the underlying Hugging Face model changes.
 
 Override the model by copying `LLM/.env.example` to `LLM/.env` and changing `VLLM_MODEL`.
 
@@ -144,7 +144,7 @@ http://localhost:3000
 2. Confirm GPU availability: `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi`
 3. Lower memory pressure in `LLM/.env`:
    ```env
-   VLLM_GPU_MEMORY_UTILIZATION=0.75
+  VLLM_GPU_MEMORY_UTILIZATION=0.65
    VLLM_MAX_MODEL_LEN=2048
    ```
 
@@ -152,7 +152,7 @@ http://localhost:3000
 
 1. Confirm internet access from Docker.
 2. For gated models, set `HUGGING_FACE_HUB_TOKEN` in `LLM/.env`.
-3. Use a public model such as `Qwen/Qwen2.5-7B-Instruct`.
+3. Use a public model such as `Qwen/Qwen2.5-3B-Instruct`.
 
 ### n8n cannot connect
 

@@ -4,7 +4,7 @@ services:
     container_name: vllm
     command:
       - --model
-      - ${VLLM_MODEL:-Qwen/Qwen2.5-7B-Instruct}
+      - ${VLLM_MODEL:-Qwen/Qwen2.5-3B-Instruct}
       - --served-model-name
       - ${VLLM_SERVED_MODEL_NAME:-robot-llm}
       - --host
@@ -14,7 +14,7 @@ services:
       - --max-model-len
       - ${VLLM_MAX_MODEL_LEN:-4096}
       - --gpu-memory-utilization
-      - ${VLLM_GPU_MEMORY_UTILIZATION:-0.85}
+      - ${VLLM_GPU_MEMORY_UTILIZATION:-0.75}
     ports:
       - "8001:8000"
     environment:
@@ -36,7 +36,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 5m
+      start_period: 10m
     restart: unless-stopped
 
   openwebui:

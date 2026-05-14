@@ -1,187 +1,21 @@
 {
   "nodes": [
     {
-      "parameters": {},
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        -368,
-        -1088
-      ],
-      "id": "142f279b-1e81-415c-a560-4441bd472524",
-      "name": "When clicking ‘Test workflow’"
-    },
-    {
       "parameters": {
-        "method": "POST",
-        "url": "=http://host.docker.internal:8004/tts",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"text\": \"{{ $json.text }}\",\n  \"voice_mode\": \"predefined\",\n  \"predefined_voice_id\": \"French.mp3\",\n  \"output_format\": \"wav\",\n  \"split_text\": true,\n  \"chunk_size\": 120,\n  \"temperature\": 0.8,\n  \"exaggeration\": 1.3,\n  \"cfg_weight\": 0.5,\n  \"speed_factor\": 1,\n  \"language\": \"fr\"\n}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        688,
-        -1104
-      ],
-      "id": "1f4be51f-2f2d-41c6-b062-37edcf5e2916",
-      "name": "HTTP Request1"
-    },
-    {
-      "parameters": {
-        "jsCode": "return [\n  {\n    json: {\n      text: \"Coucou, je suis le robot ! Tu veux être mon pote ?\"\n    }\n  }\n];\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        464,
-        -1104
-      ],
-      "id": "a0298673-d719-461b-9c3d-9027e6b66526",
-      "name": "Code6"
-    },
-    {
-      "parameters": {
-        "jsCode": "const CHUNK_SIZE = /*8000*/500; // ~8 KB per chunk, adjust if needed\nconst itemsOut = [];\n\n// Loop over all input items (from HTTP Request node)\nitems.forEach(item => {\n    const binaryItem = item.binary?.data;\n    if (!binaryItem) return;\n\n    // Convert WAV to Base64\n    const wavBase64 = binaryItem.data.toString('base64');\n\n    // Calculate number of chunks\n    const totalChunks = Math.ceil(wavBase64.length / CHUNK_SIZE);\n\n    for (let i = 0; i < totalChunks; i++) {\n        const start = i * CHUNK_SIZE;\n        const end = Math.min(start + CHUNK_SIZE, wavBase64.length);\n        const chunk = wavBase64.slice(start, end);\n\n        itemsOut.push({\n            json: {\n                topic: \"robot/1/audio\",\n                chunk_index: i,\n                total_chunks: totalChunks,\n                message: chunk\n            }\n        });\n    }\n});\n\nreturn itemsOut;\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        912,
-        -1104
-      ],
-      "id": "204d63b7-10ee-4a04-8cd0-6d081a7e33d3",
-      "name": "Code7"
-    },
-    {
-      "parameters": {
-        "topic": "robot/1/audio",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.mqtt",
-      "typeVersion": 1,
-      "position": [
-        1120,
-        -1104
-      ],
-      "id": "4d18df0a-601c-4dc1-a8a3-ad8cda4ff667",
-      "name": "MQTT3",
-      "credentials": {
-        "mqtt": {
-          "id": "QNkEkFR5XkAgbE0j",
-          "name": "MQTT account"
+        "topics": "robot/1/microphone",
+        "options": {
+          "jsonParseBody": false,
+          "parallelProcessing": false
         }
-      }
-    },
-    {
-      "parameters": {
-        "topic": "robot/1/audio",
-        "options": {}
       },
-      "type": "n8n-nodes-base.mqtt",
-      "typeVersion": 1,
-      "position": [
-        1104,
-        -800
-      ],
-      "id": "615ef5b7-1d33-4ca2-a854-1268b2ee32a0",
-      "name": "MQTT1",
-      "credentials": {
-        "mqtt": {
-          "id": "QNkEkFR5XkAgbE0j",
-          "name": "MQTT account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const CHUNK_SIZE = /*8000*/500; // ~8 KB per chunk, adjust if needed\nconst itemsOut = [];\n\n// Loop over all input items (from HTTP Request node)\nitems.forEach(item => {\n    const binaryItem = item.binary?.data;\n    if (!binaryItem) return;\n\n    // Convert WAV to Base64\n    const wavBase64 = binaryItem.data.toString('base64');\n\n    // Calculate number of chunks\n    const totalChunks = Math.ceil(wavBase64.length / CHUNK_SIZE);\n\n    for (let i = 0; i < totalChunks; i++) {\n        const start = i * CHUNK_SIZE;\n        const end = Math.min(start + CHUNK_SIZE, wavBase64.length);\n        const chunk = wavBase64.slice(start, end);\n\n        itemsOut.push({\n            json: {\n                topic: \"robot/1/audio\",\n                chunk_index: i,\n                total_chunks: totalChunks,\n                message: chunk\n            }\n        });\n    }\n});\n\nreturn itemsOut;\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        880,
-        -800
-      ],
-      "id": "789b47be-3daf-4218-b184-ef7806b6cbdb",
-      "name": "Code4"
-    },
-    {
-      "parameters": {
-        "jsCode": "return [\n  {\n    json: {\n      text: \"Parle de Pixel le chat. Maximum 10 mots.\"\n    }\n  }\n];\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -160,
-        -800
-      ],
-      "id": "aab6466d-f876-4d3f-a663-72e2097ae779",
-      "name": "Code3"
-    },
-    {
-      "parameters": {
-        "jsCode": "return [\n  {\n    json: {\n      text: $input.first().json.output\n    }\n  }\n];\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        448,
-        -800
-      ],
-      "id": "4c738c8a-c68e-49dc-bd36-ae16a691b118",
-      "name": "Code2"
-    },
-    {
-      "parameters": {
-        "model": "=llama3.2:latest",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
-      "typeVersion": 1,
-      "position": [
-        64,
-        -688
-      ],
-      "id": "95505815-39f7-4fab-98e3-17dc8dcd32e5",
-      "name": "Ollama Chat Model",
-      "credentials": {
-        "ollamaApi": {
-          "id": "u8dbPjFare1xUjIl",
-          "name": "Ollama account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "={{ $json.text }}",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.9,
-      "position": [
-        64,
-        -896
-      ],
-      "id": "f8eb8a64-a9de-4d17-9914-48bf7606c51e",
-      "name": "AI Agent"
-    },
-    {
-      "parameters": {
-        "topics": "robot/1/sensors",
-        "options": {}
-      },
-      "name": "MQTT Trigger",
+      "name": "MQTT Trigger1",
       "type": "n8n-nodes-base.mqttTrigger",
       "typeVersion": 1,
       "position": [
-        -384,
-        -800
+        -464,
+        -2432
       ],
-      "id": "a695b143-c998-4313-b2e1-78c11c9839ce",
+      "id": "c97fcaa5-85db-417d-8830-72ef60f3ba8e",
       "notesInFlow": true,
       "credentials": {
         "mqtt": {
@@ -192,36 +26,506 @@
     },
     {
       "parameters": {
+        "content": "## MQTT: Receive audio file chunk",
+        "height": 96,
+        "width": 336
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -464,
+        -2592
+      ],
+      "typeVersion": 1,
+      "id": "7a3fbb46-15d5-4fd8-8f48-9969886adc11",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "jsCode": "const store = $getWorkflowStaticData('global');\n\n// initialisation\nif (!store.chunks) store.chunks = [];\nif (!store.lastUpdate) store.lastUpdate = 0;\n\nconst payload = JSON.parse($json.message);\n\nconst index = payload.chunk_index;\nconst total = payload.total_chunks;\nconst chunk = payload.message;\n\nlet message_start = false;\nconst now = Date.now();\n\n/* ----------------------------\n   RESET uniquement si nouveau fichier\n   ---------------------------- */\nif (index === 0) {\n  store.chunks = [];\n  message_start = true;\n}\n\n// ne jamais écraser un chunk déjà reçu\nif (store.chunks[index] === undefined) {\n  store.chunks[index] = chunk;\n}\n\nstore.lastUpdate = now;\n\n// compter correctement les chunks reçus\nconst received = store.chunks.reduce((a, v) => v !== undefined ? a + 1 : a, 0);\n\n// tableau des indexes présents\nconst present_indexes = Object.keys(store.chunks).map(i => parseInt(i));\n\n// détecter les chunks manquants\nconst missing = [];\nfor (let i = 0; i < total; i++) {\n  if (store.chunks[i] === undefined) missing.push(i);\n}\n\nconst allReceived = received === total;\n\n/* ----------------------------\n   DEBUG / Retour intermédiaire\n   ---------------------------- */\nif (!allReceived) {\n  return [{\n    json: {\n      message_start,\n      chunk_index: index,\n      chunks_numbers: total,\n      received_chunks: received,\n      present_indexes,\n      missing_chunks: missing,\n      all_chunks_received: false\n    }\n  }];\n}\n\n/* ----------------------------\n   Tous les chunks reçus → reconstruction\n   ---------------------------- */\nconst fullBase64 = store.chunks.join('');\n\n// reset pour le prochain fichier\nstore.chunks = [];\nstore.lastUpdate = 0;\n\nreturn [{\n  json: {\n    message_start,\n    chunk_index: index,\n    chunks_numbers: total,\n    received_chunks: received,\n    present_indexes,\n    missing_chunks: [],\n    all_chunks_received: true,\n    base64: fullBase64\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        -2432
+      ],
+      "id": "0591855b-ffad-417d-be78-42931a7f6891",
+      "name": "Code7",
+      "alwaysOutputData": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const missing_chunks = $input.first().json.missing_chunks;\n\n// si tous les chunks sont reçus et que le base64 existe\nif (missing_chunks.length === 0 && $input.first().json.base64 != null) {\n\n    const base64Data = $input.first().json.base64;\n\n    // convertir en Buffer\n    const buffer = Buffer.from(base64Data, 'base64');\n\n    return [{\n        binary: {\n            audio: {\n                data: buffer.toString('base64'), // stocké en base64 pour n8n\n                mimeType: 'audio/wav',\n                fileName: 'audio.wav'\n            }\n        },\n        json: {\n            message: 'WAV file ready',\n            chunks_numbers: $input.first().json.chunks_numbers,\n            received_chunks: $input.first().json.received_chunks\n        }\n    }];\n\n} else {\n    // chunks manquants, ne rien produire pour l'instant\n    return [];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -2432
+      ],
+      "id": "068f00dd-6a77-43c4-9ef6-8ffa80c9fc1a",
+      "name": "Code10",
+      "alwaysOutputData": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const itemsOut = [];\n\nfor (let itemIndex = 0; itemIndex < items.length; itemIndex++) {\n    const item = items[itemIndex];\n    if (!item.binary) continue;\n\n    const binaryKey = Object.keys(item.binary)[0];\n    if (!binaryKey) continue;\n\n    const buffer = await this.helpers.getBinaryDataBuffer(itemIndex, binaryKey);\n\n    // --- WAV header ---\n    const audioFormat = buffer.readUInt16LE(20);\n    const numChannels = buffer.readUInt16LE(22);\n    const sampleRate = buffer.readUInt32LE(24);\n    const bitsPerSample = buffer.readUInt16LE(34);\n\n    if (audioFormat !== 1) throw new Error('Only PCM WAV supported');\n\n    const bytesPerSample = bitsPerSample / 8;\n    const dataOffset = 44;\n    const factor = 8; // amplification\n\n    // Simple one-pole high-pass filter (removes low-frequency noise)\n    const alpha = 0.99; // adjust between 0.8 - 0.99\n    let lastSample = 0;\n\n    for (let i = dataOffset; i < buffer.length; i += bytesPerSample) {\n        let sample;\n\n        if (bytesPerSample === 2) {\n            sample = buffer.readInt16LE(i);\n\n            // Amplify\n            sample = sample * factor;\n\n            // High-pass filter\n            sample = alpha * (lastSample + sample - lastSample);\n            lastSample = sample;\n\n            // Clamp\n            sample = Math.max(Math.min(sample, 32767), -32768);\n            buffer.writeInt16LE(sample, i);\n        }\n        else if (bytesPerSample === 1) {\n            sample = buffer.readUInt8(i);\n            sample = (sample - 128) * factor;\n            sample = alpha * (lastSample + sample - lastSample);\n            lastSample = sample;\n            sample = Math.max(Math.min(sample + 128, 255), 0);\n            buffer.writeUInt8(sample, i);\n        }\n    }\n\n    itemsOut.push({\n        binary: {\n            audio: {\n                data: buffer.toString('base64'),\n                mimeType: 'audio/wav',\n                fileName: 'audio_amplified_filtered.wav'\n            }\n        },\n        json: {\n            message: 'WAV amplified + filtered'\n        }\n    });\n}\n\nreturn itemsOut;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -2432
+      ],
+      "id": "76c3fa91-f2be-452e-b70e-88f6c005306d",
+      "name": "Code13"
+    },
+    {
+      "parameters": {
         "method": "POST",
-        "url": "=http://host.docker.internal:8004/tts",
+        "url": "=http://host.docker.internal:8000/transcribe",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"text\": \"{{ $json.text }}\",\n  \"voice_mode\": \"predefined\",\n  \"predefined_voice_id\": \"French.mp3\",\n  \"output_format\": \"wav\",\n  \"split_text\": true,\n  \"chunk_size\": 120,\n  \"temperature\": 0.8,\n  \"exaggeration\": 1.3,\n  \"cfg_weight\": 0.5,\n  \"speed_factor\": 1,\n  \"language\": \"fr\"\n}",
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "audio"
+            }
+          ]
+        },
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        656,
-        -800
+        464,
+        -2432
       ],
-      "id": "978cb3f3-821b-4480-8733-3bf73c07ad64",
-      "name": "HTTP Request"
+      "id": "09e30447-c295-4026-acb1-8482351527d5",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "content": "## Speech to text\n",
+        "height": 96,
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        448,
+        -2592
+      ],
+      "typeVersion": 1,
+      "id": "fa91b720-3e6c-48d5-9349-9801abb2cc86",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Amplification + Filtering",
+        "height": 96,
+        "width": 176
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        160,
+        -2592
+      ],
+      "typeVersion": 1,
+      "id": "6d052479-7e33-4eac-ae8d-04bebea332e6",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Assemble chunks",
+        "height": 96,
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -32,
+        -2592
+      ],
+      "typeVersion": 1,
+      "id": "198637a8-2050-432e-b957-826b3b033ab4",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        896,
+        -2432
+      ],
+      "id": "f6b9f90b-e673-4e62-8455-60b48680b8da",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -2224
+      ],
+      "id": "e7fe14e2-7c52-4276-9667-50bdcf526aa7",
+      "name": "Ollama Chat Model2",
+      "credentials": {
+        "ollamaApi": {
+          "id": "u8dbPjFare1xUjIl",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "topic": "robot/1/audio",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        2128,
+        -2432
+      ],
+      "id": "956f5a6a-4cd6-47b6-b403-7d5026bb3dc3",
+      "name": "MQTT4",
+      "credentials": {
+        "mqtt": {
+          "id": "QNkEkFR5XkAgbE0j",
+          "name": "MQTT account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const CHUNK_SIZE = 8000;\nconst itemsOut = [];\n\nfor (let itemIndex = 0; itemIndex < items.length; itemIndex++) {\n\n    const item = items[itemIndex];\n    if (!item.binary) continue;\n\n    const binaryKey = Object.keys(item.binary)[0];\n    if (!binaryKey) continue;\n\n    // Load real file buffer from filesystem storage\n    const buffer = await this.helpers.getBinaryDataBuffer(\n        itemIndex,\n        binaryKey\n    );\n\n    // Convert to Base64\n    const wavBase64 = buffer.toString('base64');\n\n    const totalChunks = Math.ceil(wavBase64.length / CHUNK_SIZE);\n\n    for (let i = 0; i < totalChunks; i++) {\n\n        const start = i * CHUNK_SIZE;\n        const end = start + CHUNK_SIZE;\n\n        itemsOut.push({\n            json: {\n                topic: \"robot/1/audio\",\n                chunk_index: i,\n                total_chunks: totalChunks,\n                message: wavBase64.slice(start, end)\n            }\n        });\n    }\n}\n\nreturn itemsOut;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        -2432
+      ],
+      "id": "d11ef226-87d7-4414-8166-77e71dad10d9",
+      "name": "Code15"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      text: $input.first().json.output.replace(/['\"\\n]/g, \"\")\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        -2432
+      ],
+      "id": "9036c26d-8471-4590-909f-3d73db6df908",
+      "name": "Code16"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://host.docker.internal:8004/tts",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"{{ $json.text }}\",\n  \"voice_mode\": \"predefined\",\n  \"predefined_voice_id\": \"French.mp3\",\n  \"output_format\": \"wav\",\n  \"split_text\": true,\n  \"chunk_size\": 120,\n  \"temperature\": 0.5,\n  \"exaggeration\": 1,\n  \"cfg_weight\": 0.5,\n  \"speed_factor\": 1,\n  \"language\": \"fr\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1696,
+        -2432
+      ],
+      "id": "81a0a6a3-b88e-463a-86aa-ca3744fba8cd",
+      "name": "HTTP Request4"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      text: $input\n        .first()\n        .json\n        .text\n        .replace(/['\"\\n]/g, \"\")\n        .split(/\\s+/)\n        .slice(0, 20)\n        .join(\" \")\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        -2432
+      ],
+      "id": "00ab7111-9c7e-4ec0-8fd4-5fa1829e8177",
+      "name": "Code17"
+    },
+    {
+      "parameters": {
+        "content": "## LLM: answer",
+        "height": 96,
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        896,
+        -2576
+      ],
+      "typeVersion": 1,
+      "id": "dcee8f3f-908a-4689-96f6-ceea43e5701c",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        944,
+        -2864
+      ],
+      "id": "ef503b23-4c89-4f45-a019-1e872c28b7f2",
+      "name": "AI Agent4"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://host.docker.internal:1303",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        1072,
+        -2704
+      ],
+      "id": "c2b0fb08-3be0-4e39-b13c-0b48c30b631b",
+      "name": "MCP Client1"
+    },
+    {
+      "parameters": {
+        "model": "hf.co/TeichAI/Qwen3-14B-Claude-4.5-Opus-High-Reasoning-Distill-GGUF:Q4_K_M",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        928,
+        -2704
+      ],
+      "id": "4a09f23d-9a21-424b-9c02-d09cef095665",
+      "name": "Ollama Chat Model3",
+      "credentials": {
+        "ollamaApi": {
+          "id": "u8dbPjFare1xUjIl",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Using MCP server, set robot's eyes",
+        "height": 96,
+        "width": 262
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        944,
+        -3008
+      ],
+      "typeVersion": 1,
+      "id": "dbc081bc-3748-4251-b0b3-cd5f8a9d3199",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      text: \"USE THE MCP SERVER TOOLS to set the robots eyes to reflect this sentence emotion: \" +$input.first().json.text + \" Use it, don't explain how to use it !\"\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        -2864
+      ],
+      "id": "061b79e5-6f87-4975-813d-48865e7a2d8a",
+      "name": "Code18"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      text: \"Réponds à ce texte, en quelques mots seulement: \"  +$input.first().json.text\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -2432
+      ],
+      "id": "3a4204bc-6882-4512-9acf-cf9d9a38f448",
+      "name": "Code19"
+    },
+    {
+      "parameters": {
+        "content": "## Text to speech\n",
+        "height": 96,
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1680,
+        -2592
+      ],
+      "typeVersion": 1,
+      "id": "5a973fb8-db86-4325-9bc8-e81f36b0f9c2",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## Send audio chunks\n",
+        "height": 96,
+        "width": 166
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2096,
+        -2592
+      ],
+      "typeVersion": 1,
+      "id": "1f3825a4-1bd3-41a3-b7bb-448785d89c3a",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      text: \"Tu es un assistant utile. Donne l'heure et le jour, et la météo, en utilisant les tools. Fais une phrase française avec.\"\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        -2080
+      ],
+      "id": "2e97c06e-cfdc-4e72-a71b-0e4a043e856f",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -64,
+        -2080
+      ],
+      "id": "d8106645-227b-4596-8366-ccbc7978bfe9",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "kimi-k2.5:cloud",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -1872
+      ],
+      "id": "d7e1fef3-8bca-466b-8a21-aaaa326b66b0",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "u8dbPjFare1xUjIl",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Function Node\n// input: $input.all() qui contient un tableau d'objets avec \"output\"\n\nreturn $input.all().map(item => {\n    const text = item.json.output;\n\n    // Supprime toutes les balises <think>...</think>\n    const withoutThink = text.replace(/<think>[\\s\\S]*?<\\/think>/g, '');\n\n    // Découpe en lignes, enlève les espaces et les lignes vides\n    const lines = withoutThink.split(/\\r?\\n/).map(l => l.trim()).filter(l => l.length > 0);\n\n    // Prend la dernière ligne comme réponse finale\n    const finalResponse = lines[lines.length - 1] || '';\n\n    return {\n        json: {\n            cleanedText: finalResponse\n        }\n    };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        -2080
+      ],
+      "id": "6607b967-1007-4e49-a55d-21e0ea71063b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -1872
+      ],
+      "id": "581be588-15cb-4aac-8a03-3e2dc5dfc98a",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -480,
+        -2080
+      ],
+      "id": "f3409be9-63f4-4413-9439-29968c233b4a",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        -1888
+      ],
+      "id": "0b867aaa-d113-4bb2-9f67-32a705fa228d",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "cityName": "Chantepie, fr"
+      },
+      "type": "n8n-nodes-base.openWeatherMapTool",
+      "typeVersion": 1,
+      "position": [
+        192,
+        -1872
+      ],
+      "id": "a68e9d61-1887-4410-8f72-e6546c63a8de",
+      "name": "OpenWeatherMap",
+      "credentials": {
+        "openWeatherMapApi": {
+          "id": "KZpgdeAg8i3dL66D",
+          "name": "OpenWeatherMap account"
+        }
+      }
     }
   ],
   "connections": {
-    "When clicking ‘Test workflow’": {
-      "main": [
-        [
-          {
-            "node": "Code3",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Request1": {
+    "MQTT Trigger1": {
       "main": [
         [
           {
@@ -232,40 +536,171 @@
         ]
       ]
     },
-    "Code6": {
-      "main": [
-        [
-          {
-            "node": "HTTP Request1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Code7": {
       "main": [
         [
           {
-            "node": "MQTT3",
+            "node": "Code10",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code4": {
+    "Code10": {
       "main": [
         [
           {
-            "node": "MQTT1",
+            "node": "Code13",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code3": {
+    "Code13": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "Code18",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code19",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Code16",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MQTT4": {
+      "main": [
+        []
+      ]
+    },
+    "Code15": {
+      "main": [
+        [
+          {
+            "node": "MQTT4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code16": {
+      "main": [
+        [
+          {
+            "node": "Code17",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "Code15",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code17": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code18": {
+      "main": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code19": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
       "main": [
         [
           {
@@ -276,11 +711,11 @@
         ]
       ]
     },
-    "Code2": {
+    "AI Agent": {
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "Code in JavaScript",
             "type": "main",
             "index": 0
           }
@@ -298,34 +733,45 @@
         ]
       ]
     },
-    "AI Agent": {
+    "Date & Time": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
       "main": [
         [
           {
-            "node": "Code2",
+            "node": "Code",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "MQTT Trigger": {
+    "When clicking ‘Execute workflow’": {
       "main": [
         [
           {
-            "node": "Code3",
+            "node": "Code",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "HTTP Request": {
-      "main": [
+    "OpenWeatherMap": {
+      "ai_tool": [
         [
           {
-            "node": "Code4",
-            "type": "main",
+            "node": "AI Agent",
+            "type": "ai_tool",
             "index": 0
           }
         ]

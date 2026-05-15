@@ -4,7 +4,7 @@
 
 Whisper is OpenAI's speech-to-text (STT) model that runs locally without requiring external APIs. Whisper.cpp is an optimized C++ implementation for fast, CPU-friendly inference.
 
-**Location**: `Backend/whisper.cpp/`
+**Location**: `SpeechToText/whisper/` for the native binaries and `SpeechToText/whisper-api/` for the optional HTTP service.
 
 ## Features
 
@@ -34,13 +34,13 @@ Whisper is OpenAI's speech-to-text (STT) model that runs locally without requiri
 - C++ compiler (MSVC on Windows, GCC on Linux)
 - Git
 
-### 2. Clone Repository
+### 2. Use the bundled repository
 
 ```bash
-cd Backend
-git clone https://github.com/ggml-org/whisper.cpp.git
-cd whisper.cpp
+cd SpeechToText/whisper
 ```
+
+If the folder is missing dependencies, run `git submodule update --init --recursive` from the repository root.
 
 ### 3. Download Model
 
@@ -105,9 +105,9 @@ Should output transcribed text.
 import subprocess
 import json
 
-def transcribe_audio(audio_file, model_path="Backend/whisper.cpp/models/ggml-base.en.bin"):
+def transcribe_audio(audio_file, model_path="SpeechToText/whisper/models/ggml-base.en.bin"):
     cmd = [
-        "Backend/whisper.cpp/build/bin/whisper-cli",
+        "SpeechToText/whisper/build/bin/whisper-cli",
         "-m", model_path,
         "-f", audio_file,
         "-ojson"
@@ -298,7 +298,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY . .
 
-RUN cd Backend/whisper.cpp && \
+RUN cd SpeechToText/whisper && \
     cmake -B build && \
     cmake --build build -j4
 
@@ -325,8 +325,8 @@ import os
 
 app = Flask(__name__)
 
-WHISPER_BIN = "Backend/whisper.cpp/build/bin/whisper-cli"
-MODEL = "Backend/whisper.cpp/models/ggml-base.en.bin"
+WHISPER_BIN = "SpeechToText/whisper/build/bin/whisper-cli"
+MODEL = "SpeechToText/whisper/models/ggml-base.en.bin"
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():

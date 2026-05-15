@@ -1,3 +1,8 @@
+/**
+ * @file roboeyes_display.h
+ * @brief RoboEyes animation facade for MQTT-controlled and autonomous facial expressions.
+ */
+
 #ifndef ROBOEYES_DISPLAY_H
 #define ROBOEYES_DISPLAY_H
 

@@ -1,3 +1,8 @@
+/**
+ * @file indicators.h
+ * @brief High-level status LED mapping for WiFi, MQTT, audio, and servo activity.
+ */
+
 #ifndef INDICATORS_H
 #define INDICATORS_H
 

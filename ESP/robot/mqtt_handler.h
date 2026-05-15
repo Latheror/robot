@@ -1,3 +1,8 @@
+/**
+ * @file mqtt_handler.h
+ * @brief MQTT interface for robot commands, status publishing, face control, and audio transfer.
+ */
+
 #ifndef MQTT_HANDLER_H
 #define MQTT_HANDLER_H
 
@@ -42,6 +47,12 @@ public:
      * @return True if the message was successfully published.
      */
     bool publishMessage(const char* topic, const char* message);
+
+    /**
+     * @brief Returns whether the MQTT client is currently connected.
+     * @return true if connected, false otherwise.
+     */
+    bool isConnected();
 
     /**
      * @brief Registers a callback function that will be called after a command is received and executed.
@@ -106,6 +117,12 @@ private:
      * @param message The JSON message containing face settings.
      */
     void handleFaceSetMessage(const char* message);
+
+    /**
+     * @brief Safely resets temporary audio reception state.
+     * @param removeTempFile Whether the partially received file should be removed.
+     */
+    void resetAudioState(bool removeTempFile = false);
 };
 
 #endif // MQTT_HANDLER_H

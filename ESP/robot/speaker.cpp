@@ -1,5 +1,11 @@
+/**
+ * @file speaker.cpp
+ * @brief Implements I2S audio playback and LittleFS WAV streaming.
+ */
+
 #include "speaker.h"
 #include <LittleFS.h>
+#include <algorithm>
 #include <math.h>
 
 SemaphoreHandle_t audioMutex = nullptr;
@@ -17,6 +23,7 @@ bool Speaker::begin(const AudioConfig& config) {
     audioMutex = xSemaphoreCreateMutex();
     if (audioMutex == nullptr) {
         Serial.println("[AUDIO] Failed to create audio mutex");
+        i2s_driver_uninstall(_i2sPort);
         return false;
     }
     
@@ -73,6 +80,7 @@ bool Speaker::initI2S() {
 
     if (i2s_set_pin(_i2sPort, &pins) != ESP_OK) {
         Serial.println("[AUDIO] Failed to set I2S pins");
+        i2s_driver_uninstall(_i2sPort);
         return false;
     }
 
@@ -124,11 +132,16 @@ bool Speaker::playTone(float frequency, uint32_t durationMs, float volume) {
 }
 
 bool Speaker::playWav(const char* path, bool skipHeader) {
+    if (!_initialized || !path) {
+        Serial.println("[AUDIO] Cannot play WAV: speaker not initialized or path is null");
+        return false;
+    }
+    if (!audioMutex) {
+        Serial.println("[AUDIO] Cannot play WAV: audio mutex is unavailable");
+        return false;
+    }
 
     Serial.printf("[AUDIO] Playing WAV file: %s\n", path);
-    
-    if (!_initialized || !path) return false;
-    if (!audioMutex) return false;
 
     MutexGuard guard(audioMutex, SystemConfig::MUTEX_TIMEOUT_MS);  // 100ms timeout
     if (!guard.isAcquired()) {
@@ -144,7 +157,11 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
     
     // Skip WAV header if requested (typically 44 bytes)
     if (skipHeader) {
-        file.seek(SystemConfig::WAV_HEADER_SIZE);
+        if (file.size() <= SystemConfig::WAV_HEADER_SIZE || !file.seek(SystemConfig::WAV_HEADER_SIZE)) {
+            Serial.println("[AUDIO] Invalid or truncated WAV file");
+            file.close();
+            return false;
+        }
     }
     
     _playing = true;
@@ -154,6 +171,11 @@ bool Speaker::playWav(const char* path, bool skipHeader) {
     
     while (file.available()) {
         size_t bytesRead = file.read(buffer, sizeof(buffer));
+        if (bytesRead == 0) {
+            Serial.println("[AUDIO] WAV read returned no data before EOF");
+            success = false;
+            break;
+        }
         if (!writeSamples(buffer, bytesRead)) {
             success = false;
             break;
@@ -254,6 +276,15 @@ void Speaker::listFiles(const char* directory) {
 size_t Speaker::writeSamples(const void* buffer, size_t bytes) {
     size_t bytesWritten = 0;
     esp_err_t err = i2s_write(_i2sPort, buffer, bytes, &bytesWritten, portMAX_DELAY);
+    if (err != ESP_OK) {
+        Serial.printf("[AUDIO] I2S write failed: %d\n", err);
+        return 0;
+    }
+    if (bytesWritten != bytes) {
+        Serial.printf("[AUDIO] Partial I2S write: %u/%u bytes\n",
+                      static_cast<unsigned>(bytesWritten),
+                      static_cast<unsigned>(bytes));
+    }
     return (err == ESP_OK) ? bytesWritten : 0;
 }
 

@@ -1,3 +1,8 @@
+/**
+ * @file wifi_manager.cpp
+ * @brief Implements WiFi connection/reconnect helpers and status logging.
+ */
+
 #include "wifi_manager.h"
 #include "settings.h"
 #include <Arduino.h>

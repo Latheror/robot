@@ -1,3 +1,8 @@
+/**
+ * @file servos.h
+ * @brief PCA9685-backed servo controller for the robot arm joints.
+ */
+
 #ifndef SERVOS_H
 #define SERVOS_H
 
@@ -106,7 +111,6 @@ private:
     // State tracking
     static std::array<float, static_cast<size_t>(Joint::COUNT)> currentAngles; ///< Current angles
     static std::array<float, static_cast<size_t>(Joint::COUNT)> targetAngles; ///< Target angles
-    static std::array<float, static_cast<size_t>(Joint::COUNT)> speeds;       ///< Movement speeds
     static bool _initialized; ///< Initialization flag
 
     // Internal helpers

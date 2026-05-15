@@ -1,3 +1,8 @@
+/**
+ * @file INMP441.cpp
+ * @brief Implements INMP441 I2S capture, volume estimation, and clap detection.
+ */
+
 #include "INMP441.h"
 
 INMP441::INMP441(int sampleRate) : _sampleRate(sampleRate) {}
@@ -58,6 +63,7 @@ bool INMP441::configureI2S() const {
     err = i2s_set_pin(_i2sPort, &pins);
     if (err != ESP_OK) {
         Serial.printf("[MIC] I2S pin configuration failed: %d\n", err);
+        i2s_driver_uninstall(_i2sPort);
         return false;
     }
 
@@ -94,10 +100,14 @@ void INMP441::readSamplesAndComputeVolume() {
         } else {
             Serial.printf("[MIC] I2S read error: %d\n", res);
         }
+        _currentVolume = 0.0f;
         return;
     }
     
-    if (bytesRead == 0) return;
+    if (bytesRead == 0) {
+        _currentVolume = 0.0f;
+        return;
+    }
 
     int samplesRead = bytesRead / sizeof(int32_t);
     
@@ -134,6 +144,10 @@ void INMP441::detectDoubleClap() {
     
     unsigned long now = millis();
 
+    if (_firstClapTime && (now - _firstClapTime) > INMP441::DOUBLE_CLAP_MAX_DELAY) {
+        _firstClapTime = 0;
+    }
+
     if (_currentVolume * 100 <= INMP441::CLAP_THRESHOLD) return;
     if (now - _lastClapTime <= INMP441::CLAP_DEBOUNCE) return;
 
@@ -149,17 +163,20 @@ void INMP441::detectDoubleClap() {
     }
 
     _lastClapTime = now;
-
-    if (_firstClapTime && (now - _firstClapTime) > INMP441::DOUBLE_CLAP_MAX_DELAY)
-        _firstClapTime = 0;
 }
 
 int INMP441::readSamplesForRecording(int32_t* buffer, int numSamples) {
+    if (!buffer || numSamples <= 0) {
+        Serial.println("[MIC] Invalid recording sample buffer");
+        return 0;
+    }
+
     size_t bytesToRead = numSamples * sizeof(int32_t);
     size_t bytesRead = 0;
     
-    esp_err_t res = i2s_read(_i2sPort, (char*)buffer, bytesToRead, &bytesRead, pdMS_TO_TICKS(100));
+    esp_err_t res = i2s_read(_i2sPort, (char*)buffer, bytesToRead, &bytesRead, pdMS_TO_TICKS(SystemConfig::MIC_READ_TIMEOUT_MS));
     if (res != ESP_OK) {
+        Serial.printf("[MIC] Failed to read recording samples: %d\n", res);
         return 0;
     }
     

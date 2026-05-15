@@ -1,3 +1,8 @@
+/**
+ * @file led_strip.cpp
+ * @brief Implements bounded NeoPixel strip operations.
+ */
+
 #include "led_strip.h"
 
 LEDStrip::LEDStrip(uint8_t pin, uint8_t numLeds)
@@ -12,7 +17,9 @@ void LEDStrip::begin() {
 }
 
 void LEDStrip::setColor(LedName led, uint32_t color) {
-    if (led < _numLeds) _strip.setPixelColor(led, color);
+    if (led >= 0 && static_cast<uint8_t>(led) < _numLeds) {
+        _strip.setPixelColor(static_cast<uint16_t>(led), color);
+    }
 }
 
 void LEDStrip::setAll(uint32_t color) {

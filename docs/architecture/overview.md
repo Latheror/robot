@@ -12,7 +12,7 @@ Microphone → Whisper (STT) → N8N Workflow → vLLM (LLM) → MCP → MQTT �
 
 ### 1. **Input Layer: Speech Recognition**
 
-**Component**: Whisper.cpp (`Backend/whisper.cpp`)
+**Component**: Whisper.cpp (`SpeechToText/whisper`) and optional HTTP wrapper (`SpeechToText/whisper-api`)
 
 - Captures audio from microphone or file
 - Converts speech to text using OpenAI's Whisper model
@@ -56,7 +56,7 @@ The workflow handles the main pipeline:
 
 ### 4. **Communication Layer: MQTT**
 
-**Component**: EMQX (`MQTT/Broker`)
+**Component**: EMQX (`MQTT/`)
 
 - Pub/Sub messaging system
 - Topics:
@@ -212,4 +212,4 @@ The architecture allows easy integration:
 
 ---
 
-Last updated: December 2025
+Last updated: May 2026

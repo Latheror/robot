@@ -1,3 +1,11 @@
+/**
+ * @file settings.h
+ * @brief Central compile-time configuration for network, pins, audio, display, and task timing.
+ *
+ * Keep hardware timings and pin assignments synchronized with the physical robot wiring.
+ * This file is ignored by Git so local WiFi credentials can be customized per developer/device.
+ */
+
 #ifndef SETTINGS_H
 #define SETTINGS_H
 

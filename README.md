@@ -25,7 +25,7 @@ The robot operates through a modular pipeline:
 | Component | Technology | Role |
 |-----------|-----------|------|
 | **ESP32 Robot** | C++ Arduino | Reads sensors, controls actuators, communicates via MQTT |
-| **Speech Recognition** | Whisper.cpp | Converts audio to text locally on device |
+| **Speech Recognition** | Whisper.cpp + optional FastAPI wrapper | Converts audio to text locally via CLI or HTTP API |
 | **MQTT Broker** | EMQX | Message bus for robot-to-system communication |
 | **Orchestration** | N8N Workflow | Connects signals → LLM → actions in a structured flow |
 | **Language Model** | vLLM | Processes context and decides robot actions through an OpenAI-compatible API |
@@ -72,12 +72,13 @@ The embedded system running on the ESP32 microcontroller:
 - `speaker.cpp/h` - Audio playback
 
 ### 🎤 Speech Recognition
-**Location**: `SpeechToText/whisper/`
+**Location**: `SpeechToText/whisper/` and `SpeechToText/whisper-api/`
 
 Local speech-to-text processing using OpenAI Whisper:
 - Runs on the device for privacy and low latency
 - Supports multiple languages
 - Lightweight and efficient for embedded systems
+- Optional HTTP wrapper exposes `/transcribe` for N8N or external services
 
 **Setup Guide**: See `docs/guides/whisper-setup.md`
 
@@ -96,7 +97,7 @@ Local speech-to-text processing using OpenAI Whisper:
 - Configuration: `N8N/n8n_workflow.json`
 
 ### 🔗 Message Broker (MQTT)
-**Location**: `MQTT/` and `LLM/docker-compose.yml`
+**Location**: `MQTT/`
 
 **EMQX**: Open-source MQTT broker
 - Message bus between robot and system
@@ -143,23 +144,28 @@ French text-to-speech synthesis using Chatterbox TTS:
    git submodule update --init --recursive
    ```
 
-2. **Set up infrastructure** (MQTT + LLM)
+2. **Start AI services** (vLLM + Open WebUI)
    ```bash
-   # Start MQTT broker
-   cd LLM
-   docker-compose pull
-   docker-compose up -d
+   docker compose -f LLM/docker-compose.yml pull
+   docker compose -f LLM/docker-compose.yml up -d
    ```
 
-3. **Flash ESP32**
+3. **Start MQTT broker**
+   - Follow `docs/guides/mqtt-setup.md`
+   - Quick local option:
+     ```bash
+     docker run -d --name robot_emqx -p 1883:1883 -p 18083:18083 emqx/emqx:latest
+     ```
+
+4. **Flash ESP32**
    - Open `ESP/robot/robot.ino` in Arduino IDE
    - Install required libraries
    - Configure WiFi credentials in `settings.h`
    - Upload to board
 
-4. **Configure and start services**
+5. **Configure and start services**
    - Import N8N workflow from `N8N/n8n_workflow.json`
-   - Start vLLM for LLM inference
+   - Start Whisper API if the workflow uses `POST /transcribe`
    - Start Chatterbox TTS server
    - See detailed guides in `docs/guides/`
 
@@ -202,9 +208,9 @@ The project includes pre-configured tasks for development:
 - `[CHATTERBOX] Launch container (NVIDIA)` - GPU-accelerated TTS
 
 **Infrastructure**
-- `[LLM] Pull Images` - Download Docker images
-- `[LLM] Start Services` - Launch MQTT and LLM
-- `[LLM] Stop Services` - Stop services
+- `[LLM] Pull vLLM Images` - Download Docker images
+- `[LLM] Start vLLM Services` - Launch vLLM and Open WebUI
+- `[LLM] Stop vLLM Services` - Stop vLLM services
 
 ---
 

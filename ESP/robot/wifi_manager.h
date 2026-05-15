@@ -1,3 +1,8 @@
+/**
+ * @file wifi_manager.h
+ * @brief Blocking WiFi connection helper retained for standalone/network diagnostics.
+ */
+
 #ifndef WIFI_MANAGER_H
 #define WIFI_MANAGER_H
 

@@ -1,5 +1,11 @@
+/**
+ * @file INMP441.h
+ * @brief I2S microphone driver with RMS volume tracking and double-clap detection.
+ */
+
 #ifndef INMP441_H
 #define INMP441_H
+
 
 #include <Arduino.h>
 #include "driver/i2s.h"
@@ -102,7 +108,7 @@ private:
     unsigned long _firstClapTime = 0;       ///< First clap timestamp for double detection
 
     std::function<void()> _clapCallback;    ///< Double-clap callback
-    std::function<void(bool)> _isRecordingCallback; ///< Callback to check if recording is active
+    std::function<void(bool)> _isRecordingCallback; ///< Reserved recording-state callback for API compatibility
 
     bool _clapDetectionEnabled = true;      ///< Clap detection enabled flag
 

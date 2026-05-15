@@ -1,3 +1,8 @@
+/**
+ * @file indicators.cpp
+ * @brief Implements status LED helper methods on top of the NeoPixel strip.
+ */
+
 #include "indicators.h"
 
 Indicators::Indicators(LEDStrip& strip) : _strip(strip) {}
@@ -61,5 +66,9 @@ void Indicators::blink(LED_PINS led, uint8_t times, uint16_t delayMs) {
  * @return true if the LED is valid, false otherwise.
  */
 bool Indicators::isValidLED(LED_PINS led) const {
-    return led < COUNT;
+    const bool valid = led < COUNT;
+    if (!valid) {
+        Serial.printf("[Indicators] Invalid LED index: %u\n", static_cast<unsigned>(led));
+    }
+    return valid;
 }

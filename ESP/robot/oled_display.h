@@ -1,3 +1,8 @@
+/**
+ * @file oled_display.h
+ * @brief SH1106 OLED display wrapper with initialization-state tracking.
+ */
+
 #ifndef OLED_DISPLAY_H
 #define OLED_DISPLAY_H
 

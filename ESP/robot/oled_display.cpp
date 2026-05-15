@@ -1,3 +1,8 @@
+/**
+ * @file oled_display.cpp
+ * @brief Implements safe SH1106 OLED initialization and access helpers.
+ */
+
 #include "oled_display.h"
 
 OLEDDisplay::OLEDDisplay() : display(OledDisplayConfig::SCREEN_WIDTH, OledDisplayConfig::SCREEN_HEIGHT, &Wire, -1) {}
@@ -18,6 +23,10 @@ bool OLEDDisplay::begin() {
 }
 
 void OLEDDisplay::clear() {
+    if (!initialized) {
+        return;
+    }
+
     display.clearDisplay();
     display.display();
 }

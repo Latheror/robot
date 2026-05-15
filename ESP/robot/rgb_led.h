@@ -1,3 +1,8 @@
+/**
+ * @file rgb_led.h
+ * @brief Single onboard NeoPixel RGB LED wrapper.
+ */
+
 #ifndef RGB_LED_H
 #define RGB_LED_H
 

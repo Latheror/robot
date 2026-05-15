@@ -1,3 +1,8 @@
+/**
+ * @file roboeyes_display.cpp
+ * @brief Implements OLED eye animations and face-expression control.
+ */
+
 #include "roboeyes_display.h"
 #include <FluxGarage_RoboEyes.h>
 
@@ -10,10 +15,16 @@ RoboEyesDisplay::RoboEyesDisplay(OLEDDisplay& oledRef)
 
 void RoboEyesDisplay::begin() {
     auto roboEyes = static_cast<RoboEyes<Adafruit_SH1106G>*>(roboEyesPtr);
+    if (!roboEyes) {
+        Serial.println("RoboEyes: allocation failed, eye animations disabled");
+        oledAvailable = false;
+        return;
+    }
 
     oledAvailable = oled.isInitialized();
     if (!oledAvailable) {
         Serial.println("RoboEyes: OLED display not available, eye animations disabled");
+        return;
     }
 
     roboEyes->begin(OledDisplayConfig::SCREEN_WIDTH, OledDisplayConfig::SCREEN_HEIGHT, 100);

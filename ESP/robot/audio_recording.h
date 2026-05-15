@@ -1,3 +1,8 @@
+/**
+ * @file audio_recording.h
+ * @brief Records microphone samples, writes temporary WAV files, and publishes them over MQTT.
+ */
+
 #ifndef AUDIO_RECORDING_H
 #define AUDIO_RECORDING_H
 
@@ -82,6 +87,7 @@ private:
     static constexpr unsigned long SILENCE_TIMEOUT_MS = 3000; ///< 3 seconds of low signal to stop
     static constexpr float SILENCE_THRESHOLD = 0.003f;        ///< Volume threshold for silence detection (much lower than clap threshold)
     static constexpr unsigned long PRINT_INTERVAL_MS = 500;   ///< Print sound level every 500ms
+    static constexpr size_t MAX_RECORDING_SAMPLES = AudioConfig::SAMPLING_RATE * 12; ///< Safety cap: 12 seconds at 16 kHz
     static constexpr const char* TEMP_RECORDING_FILE = "/temp_recording.wav"; ///< Temporary WAV file path
 
     /**

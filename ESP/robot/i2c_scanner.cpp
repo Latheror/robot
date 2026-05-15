@@ -1,3 +1,8 @@
+/**
+ * @file i2c_scanner.cpp
+ * @brief Scans the configured I2C bus and logs discovered device addresses.
+ */
+
 #include "i2c_scanner.h"
 #include <Wire.h>
 

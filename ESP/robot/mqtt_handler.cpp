@@ -1,12 +1,19 @@
+/**
+ * @file mqtt_handler.cpp
+ * @brief Implements MQTT connectivity, servo commands, face commands, and chunked audio playback.
+ */
+
 #include "mqtt_handler.h"
 #include "settings.h"
 #include "servos.h"
-#include "Speaker.h"
+#include "speaker.h"
 #include "indicators.h"
 #include "roboeyes_display.h"
 #include <LittleFS.h>
 #include <mbedtls/base64.h>
 #include <Arduino.h>
+#include <memory>
+#include <new>
 
 extern Speaker speaker;
 extern Indicators indicators;
@@ -16,6 +23,10 @@ extern RoboEyesDisplay roboEyes;
 MqttHandler::MqttHandler() {
     // mqttClient is already initialized internally with wifiClient
     audioState = {};
+}
+
+namespace {
+constexpr size_t MQTT_LOG_PREVIEW_LENGTH = 160;
 }
 
 bool MqttHandler::setup() {
@@ -31,7 +42,7 @@ bool MqttHandler::setup() {
         }
         
         // Allocate message buffer dynamically to avoid stack overflow
-        std::unique_ptr<char[]> message(new char[length + 1]);
+        std::unique_ptr<char[]> message(new (std::nothrow) char[length + 1]);
         if (!message) {
             Serial.println("[MQTT] Failed to allocate message buffer");
             return;
@@ -96,13 +107,50 @@ void MqttHandler::handle() {
     mqttClient.loop();
 }
 
+bool MqttHandler::isConnected() {
+    return mqttClient.connected();
+}
+
 bool MqttHandler::publishMessage(const char* topic, const char* message) {
-    Serial.printf("[MQTT] Publishing to %s: %s\n", topic, message);
+    if (!topic || !message) {
+        Serial.println("[MQTT] Refusing to publish null topic or payload");
+        return false;
+    }
+
+    const size_t messageLength = strlen(message);
+    Serial.printf(
+        "[MQTT] Publishing to %s (%u bytes)%s%s\n",
+        topic,
+        static_cast<unsigned>(messageLength),
+        messageLength > MQTT_LOG_PREVIEW_LENGTH ? ": " : "",
+        messageLength > MQTT_LOG_PREVIEW_LENGTH ? "preview truncated" : message
+    );
+
+    if (messageLength > MQTT_LOG_PREVIEW_LENGTH) {
+        Serial.printf("[MQTT] Payload preview: %.*s...\n",
+                      static_cast<int>(MQTT_LOG_PREVIEW_LENGTH),
+                      message);
+    }
+
     return mqttClient.connected() && mqttClient.publish(topic, message);
 }
 
 void MqttHandler::setOnCommandReceivedCallback(std::function<void()> callback) {
     onCommandReceivedCallback = callback;
+}
+
+void MqttHandler::resetAudioState(bool removeTempFile) {
+    if (audioState.audioFile) {
+        audioState.audioFile.close();
+    }
+
+    audioState.expectedChunks = 0;
+    audioState.lastChunkIndex = -1;
+    audioState.audioFile = File();
+
+    if (removeTempFile && LittleFS.exists(TEMP_AUDIO_FILE)) {
+        LittleFS.remove(TEMP_AUDIO_FILE);
+    }
 }
 
 // --- Command handling ---
@@ -211,20 +259,30 @@ void MqttHandler::handleAudio(const char* message) {
     int totalChunks = doc["total_chunks"];
     const char* base64Data = doc["message"];
 
-    Serial.printf("[MQTT] Processing chunk %d/%d, base64 length: %u\n", chunkIndex, totalChunks, strlen(base64Data));
+    if (!base64Data || totalChunks <= 0 || chunkIndex < 0 || chunkIndex >= totalChunks) {
+        Serial.printf("[MQTT] Invalid audio chunk metadata (chunk=%d, total=%d)\n", chunkIndex, totalChunks);
+        resetAudioState(true);
+        xSemaphoreGive(audioMutex);
+        return;
+    }
+
+    const size_t base64Length = strlen(base64Data);
+    if (base64Length == 0) {
+        Serial.println("[MQTT] Empty base64 audio chunk received");
+        resetAudioState(true);
+        xSemaphoreGive(audioMutex);
+        return;
+    }
+
+    Serial.printf("[MQTT] Processing chunk %d/%d, base64 length: %u\n", chunkIndex, totalChunks, static_cast<unsigned>(base64Length));
 
     if (chunkIndex == 0) {
-        // Reset previous state if exists
-        if (audioState.audioFile) {
-            audioState.audioFile.close();
-        }
-        
-        if (LittleFS.exists(TEMP_AUDIO_FILE)) LittleFS.remove(TEMP_AUDIO_FILE);
+        resetAudioState(true);
 
         audioState.audioFile = LittleFS.open(TEMP_AUDIO_FILE, FILE_WRITE);
         if (!audioState.audioFile) {
             Serial.println("[MQTT] Failed to open temp audio file");
-            audioState = {};  // Reset state
+            resetAudioState(true);
             xSemaphoreGive(audioMutex);
             return;
         }
@@ -232,11 +290,18 @@ void MqttHandler::handleAudio(const char* message) {
         audioState.expectedChunks = totalChunks;
         audioState.lastChunkIndex = -1;
         Serial.println("[MQTT] Started writing audio file...");
+    } else if (audioState.expectedChunks != totalChunks) {
+        Serial.printf("[MQTT] Audio chunk count mismatch: expected %d, got %d\n",
+                      audioState.expectedChunks,
+                      totalChunks);
+        resetAudioState(true);
+        xSemaphoreGive(audioMutex);
+        return;
     }
 
     if (!audioState.audioFile) {
         Serial.println("[MQTT] Audio file not open! Aborting audio transfer");
-        audioState = {};  // Reset state
+        resetAudioState(true);
         xSemaphoreGive(audioMutex);
         return;
     }
@@ -245,14 +310,25 @@ void MqttHandler::handleAudio(const char* message) {
     if (chunkIndex != audioState.lastChunkIndex + 1) {
         Serial.printf("[MQTT] Out-of-order chunk: expected %d, got %d. Resetting audio state.\n", 
                       audioState.lastChunkIndex + 1, chunkIndex);
-        audioState.audioFile.close();
-        audioState = {};  // Reset state
+        resetAudioState(true);
         xSemaphoreGive(audioMutex);
         return;
     }
 
     size_t decodedLen = 0;
-    mbedtls_base64_decode(nullptr, 0, &decodedLen, (const unsigned char*)base64Data, strlen(base64Data));
+    if (mbedtls_base64_decode(nullptr, 0, &decodedLen, (const unsigned char*)base64Data, base64Length) != MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL) {
+        Serial.println("[MQTT] Invalid base64 metadata while sizing audio chunk");
+        resetAudioState(true);
+        xSemaphoreGive(audioMutex);
+        return;
+    }
+
+    if (decodedLen == 0) {
+        Serial.println("[MQTT] Decoded audio chunk is empty");
+        resetAudioState(true);
+        xSemaphoreGive(audioMutex);
+        return;
+    }
 
     // Check heap before allocation - reserve at least 50% free
     uint32_t freeHeap = ESP.getFreeHeap();
@@ -262,33 +338,47 @@ void MqttHandler::handleAudio(const char* message) {
         return;
     }
 
-    std::unique_ptr<uint8_t[]> buffer(new uint8_t[decodedLen]);
+    std::unique_ptr<uint8_t[]> buffer(new (std::nothrow) uint8_t[decodedLen]);
     if (!buffer) {
         Serial.println("[MQTT] Failed to allocate buffer for decoding");
         xSemaphoreGive(audioMutex);
         return;
     }
 
-    if (mbedtls_base64_decode(buffer.get(), decodedLen, &decodedLen, (const unsigned char*)base64Data, strlen(base64Data)) != 0) {
+    if (mbedtls_base64_decode(buffer.get(), decodedLen, &decodedLen, (const unsigned char*)base64Data, base64Length) != 0) {
         Serial.println("[MQTT] Base64 decode failed");
-        audioState.audioFile.close();
-        audioState = {};  // Reset audio state
+        resetAudioState(true);
         xSemaphoreGive(audioMutex);
         return;
     }
 
-    audioState.audioFile.write(buffer.get(), decodedLen);
+    const size_t bytesWritten = audioState.audioFile.write(buffer.get(), decodedLen);
+    if (bytesWritten != decodedLen) {
+        Serial.printf("[MQTT] Failed to write complete audio chunk to LittleFS (%u/%u bytes)\n",
+                      static_cast<unsigned>(bytesWritten),
+                      static_cast<unsigned>(decodedLen));
+        resetAudioState(true);
+        xSemaphoreGive(audioMutex);
+        return;
+    }
+
+    audioState.lastChunkIndex = chunkIndex;
 
     if (chunkIndex == totalChunks - 1) {
         audioState.audioFile.close();
         Serial.println("[MQTT] Finished writing audio file, playing...");
         xSemaphoreGive(audioMutex);  // Release before playback
-        speaker.playWav(TEMP_AUDIO_FILE);
-        xSemaphoreTake(audioMutex, pdMS_TO_TICKS(SystemConfig::MUTEX_TIMEOUT_MS));  // Re-acquire to reset state safely
-        audioState = {};  // reset
-        xSemaphoreGive(audioMutex);
+        if (!speaker.playWav(TEMP_AUDIO_FILE)) {
+            Serial.println("[MQTT] Audio playback failed for received file");
+        }
+
+        if (xSemaphoreTake(audioMutex, pdMS_TO_TICKS(SystemConfig::MUTEX_TIMEOUT_MS)) == pdTRUE) {
+            resetAudioState(true);
+            xSemaphoreGive(audioMutex);
+        } else {
+            Serial.println("[MQTT] Failed to re-acquire audio mutex after playback; temp state may persist until next chunk");
+        }
     } else {
-        audioState.lastChunkIndex = chunkIndex;
         xSemaphoreGive(audioMutex);  // Release mutex
     }
 }
@@ -367,9 +457,13 @@ void MqttHandler::handleFaceSetMessage(const char* message) {
 
     // Handle mood
     if (doc.containsKey("mood")) {
-        const char* moodStr = doc["mood"];
-        Mood mood;
-        if (strcmp(moodStr, "happy") == 0) {
+        const char* moodStr = doc["mood"] | "";
+        Mood mood = Mood::MOOD_DEFAULT;
+        bool moodKnown = true;
+        if (moodStr[0] == '\0') {
+            Serial.println("[MQTT] Invalid mood value");
+            moodKnown = false;
+        } else if (strcmp(moodStr, "happy") == 0) {
             mood = Mood::MOOD_HAPPY;
         } else if (strcmp(moodStr, "tired") == 0) {
             mood = Mood::MOOD_TIRED;
@@ -379,18 +473,22 @@ void MqttHandler::handleFaceSetMessage(const char* message) {
             mood = Mood::MOOD_DEFAULT;
         } else {
             Serial.printf("[MQTT] Unknown mood '%s'\n", moodStr);
-            success = false;
+            moodKnown = false;
         }
-        if (roboEyes.setMood(mood)) {
+        if (moodKnown && roboEyes.setMood(mood)) {
             success = true;
         }
     }
 
     // Handle position
     if (doc.containsKey("position")) {
-        const char* posStr = doc["position"];
-        Position position;
-        if (strcmp(posStr, "n") == 0) {
+        const char* posStr = doc["position"] | "";
+        Position position = Position::POS_DEFAULT;
+        bool positionKnown = true;
+        if (posStr[0] == '\0') {
+            Serial.println("[MQTT] Invalid position value");
+            positionKnown = false;
+        } else if (strcmp(posStr, "n") == 0) {
             position = Position::POS_N;
         } else if (strcmp(posStr, "ne") == 0) {
             position = Position::POS_NE;
@@ -410,18 +508,22 @@ void MqttHandler::handleFaceSetMessage(const char* message) {
             position = Position::POS_DEFAULT;
         } else {
             Serial.printf("[MQTT] Unknown position '%s'\n", posStr);
-            success = false;
+            positionKnown = false;
         }
-        if (roboEyes.setPosition(position)) {
+        if (positionKnown && roboEyes.setPosition(position)) {
             success = true;
         }
     }
 
     // Handle animation
     if (doc.containsKey("animation")) {
-        const char* animStr = doc["animation"];
-        Animation animation;
-        if (strcmp(animStr, "blink") == 0) {
+        const char* animStr = doc["animation"] | "";
+        Animation animation = Animation::ANIM_BLINK;
+        bool animationKnown = true;
+        if (animStr[0] == '\0') {
+            Serial.println("[MQTT] Invalid animation value");
+            animationKnown = false;
+        } else if (strcmp(animStr, "blink") == 0) {
             animation = Animation::ANIM_BLINK;
         } else if (strcmp(animStr, "laugh") == 0) {
             animation = Animation::ANIM_LAUGH;
@@ -429,9 +531,9 @@ void MqttHandler::handleFaceSetMessage(const char* message) {
             animation = Animation::ANIM_CONFUSED;
         } else {
             Serial.printf("[MQTT] Unknown animation '%s'\n", animStr);
-            success = false;
+            animationKnown = false;
         }
-        if (roboEyes.triggerAnimation(animation)) {
+        if (animationKnown && roboEyes.triggerAnimation(animation)) {
             success = true;
         }
     }

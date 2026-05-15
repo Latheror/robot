@@ -34,7 +34,7 @@ The robot can listen to voice commands, understand them with AI, decide on appro
                      │
 ┌────────────────────▼────────────────────────────────────────┐
 │        Whisper.cpp (Speech Recognition Backend)             │
-│              TextToSpeech/Backend/whisper.cpp               │
+│    SpeechToText/whisper + SpeechToText/whisper-api          │
 └────────────────────┬────────────────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────────────────┐
@@ -74,9 +74,10 @@ The robot can listen to voice commands, understand them with AI, decide on appro
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| **Whisper.cpp** | `Backend/whisper.cpp` | Speech-to-text transcription |
+| **Whisper.cpp** | `SpeechToText/whisper/` | Speech-to-text transcription |
+| **Whisper API** | `SpeechToText/whisper-api/` | HTTP wrapper around Whisper for workflows |
 | **ESP32 Robot** | `ESP/robot/` | Robot firmware and hardware control |
-| **MQTT Broker** | `MQTT/Broker` | Message broker for robot communication |
+| **MQTT Broker** | `MQTT/` | Message broker for robot communication |
 | **LLM** | `LLM/` | vLLM container for AI decisions |
 | **Chatterbox TTS** | `TextToSpeech/Chatterbox-TTS-Server` | Text-to-speech engine |
 | **N8N** | `N8N/` | Workflow automation |
@@ -92,11 +93,11 @@ The robot can listen to voice commands, understand them with AI, decide on appro
 
 ```
 Robot/
-├── Backend/               # Speech recognition (Whisper.cpp)
 ├── ESP/                   # ESP32 firmware and hardware code
 ├── LLM/                   # Large Language Model (vLLM)
 ├── MQTT/                  # MQTT broker configuration
 ├── N8N/                   # Workflow automation
+├── SpeechToText/          # Whisper.cpp and Whisper HTTP API
 ├── TextToSpeech/          # Text-to-speech (Chatterbox)
 ├── Meca/                  # Mechanical design and 3D models
 └── docs/                  # This documentation
@@ -119,4 +120,4 @@ When making changes, please:
 
 ---
 
-Last updated: December 2025
+Last updated: May 2026

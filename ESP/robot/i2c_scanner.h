@@ -1,3 +1,8 @@
+/**
+ * @file i2c_scanner.h
+ * @brief I2C bus discovery utility for hardware diagnostics.
+ */
+
 #ifndef I2C_SCANNER_H
 #define I2C_SCANNER_H
 

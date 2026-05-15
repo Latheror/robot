@@ -1,3 +1,8 @@
+/**
+ * @file led_strip.h
+ * @brief NeoPixel strip wrapper used by robot status indicators.
+ */
+
 #ifndef LED_STRIP_H
 #define LED_STRIP_H
 

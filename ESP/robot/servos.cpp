@@ -1,5 +1,12 @@
+/**
+ * @file servos.cpp
+ * @brief Implements smooth logical joint motion over mapped physical servos.
+ */
+
 #include "servos.h"
 #include "indicators.h"
+#include <algorithm>
+#include <cmath>
 
 extern Indicators indicators;  // External variable declaration
 
@@ -141,7 +148,8 @@ bool ServoController::atTarget(Joint joint) {
  * @return The PWM value.
  */
 uint16_t ServoController::angleToPWM(float angle) {
-    return map((int)angle, 0, 180, PWM_MIN, PWM_MAX);
+    const float safeAngle = std::clamp(angle, 0.0f, 180.0f);
+    return map(static_cast<int>(safeAngle), 0, 180, PWM_MIN, PWM_MAX);
 }
 
 // -------------------------------------------------------
@@ -184,7 +192,8 @@ void ServoController::updateJoint(Joint joint) {
     }
 
     // Apply to each physical servo
-    for (uint8_t i = 0; i < config.servoCount; i++) {
+    const uint8_t servoCount = std::min<uint8_t>(config.servoCount, config.servos.size());
+    for (uint8_t i = 0; i < servoCount; i++) {
         int8_t servoIndex = config.servos[i];
         if (servoIndex < 0 || (size_t)servoIndex >= ServoController::servos.size()) continue;
 

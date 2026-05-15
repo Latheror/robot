@@ -1,6 +1,23 @@
+/**
+ * @file audio_recording.cpp
+ * @brief Implements bounded audio capture, WAV generation, and chunked MQTT upload.
+ */
+
 #include "audio_recording.h"
 #include "mqtt_handler.h"
 #include <algorithm>
+#include <memory>
+#include <new>
+
+namespace {
+constexpr size_t MQTT_RAW_AUDIO_CHUNK_SIZE = 3 * 1024;
+constexpr size_t MQTT_BASE64_CHUNK_BUFFER_SIZE = ((MQTT_RAW_AUDIO_CHUNK_SIZE + 2) / 3) * 4 + 1;
+constexpr size_t MQTT_JSON_MESSAGE_BUFFER_SIZE = MQTT_BASE64_CHUNK_BUFFER_SIZE + 128;
+
+bool writeExact(File& file, const void* data, size_t length) {
+    return file.write(static_cast<const uint8_t*>(data), length) == length;
+}
+}
 
 extern MqttHandler mqttHandler;
 
@@ -12,6 +29,7 @@ void AudioRecording::setRecordingFinishedCallback(std::function<void(const char*
 
 void AudioRecording::startRecording() {
     _recordBuffer.clear();
+    _recordBuffer.reserve(MAX_RECORDING_SAMPLES);
     _recording = true;
     _lowSignalStart = 0;
     _indicators.set(Indicators::LED_PINS::IS_LISTENING, true);
@@ -19,8 +37,20 @@ void AudioRecording::startRecording() {
 }
 
 void AudioRecording::addSamples(const std::vector<int32_t>& samples) {
-    if (_recording) {
-        _recordBuffer.insert(_recordBuffer.end(), samples.begin(), samples.end());
+    if (!_recording || samples.empty()) {
+        return;
+    }
+
+    const size_t remainingCapacity = MAX_RECORDING_SAMPLES - _recordBuffer.size();
+    const size_t samplesToCopy = std::min(samples.size(), remainingCapacity);
+
+    if (samplesToCopy > 0) {
+        _recordBuffer.insert(_recordBuffer.end(), samples.begin(), samples.begin() + samplesToCopy);
+    }
+
+    if (_recordBuffer.size() >= MAX_RECORDING_SAMPLES) {
+        Serial.println("[AUDIO_REC] Maximum recording duration reached, stopping recording");
+        stopRecording();
     }
 }
 
@@ -73,6 +103,12 @@ void AudioRecording::stopRecording() {
 bool AudioRecording::createWavFile() {
     if (_recordBuffer.empty()) return false;
 
+    const size_t maxSamplesForWav = (UINT32_MAX - SystemConfig::WAV_HEADER_SIZE) / sizeof(int16_t);
+    if (_recordBuffer.size() > maxSamplesForWav) {
+        Serial.println("[AUDIO_REC] Recording too large to encode as WAV");
+        return false;
+    }
+
     File file = LittleFS.open(TEMP_RECORDING_FILE, FILE_WRITE);
     if (!file) {
         Serial.println("[AUDIO_REC] Failed to create WAV file");
@@ -87,37 +123,47 @@ bool AudioRecording::createWavFile() {
     const uint32_t fileSize = 44 + dataSize - 8; // Total file size minus "RIFF" + size
 
     // Write WAV header
-    file.write((const uint8_t*)"RIFF", 4);
-    file.write((const uint8_t*)&fileSize, 4);
-    file.write((const uint8_t*)"WAVE", 4);
-    file.write((const uint8_t*)"fmt ", 4);
+    bool ok = true;
+    ok = ok && writeExact(file, "RIFF", 4);
+    ok = ok && writeExact(file, &fileSize, 4);
+    ok = ok && writeExact(file, "WAVE", 4);
+    ok = ok && writeExact(file, "fmt ", 4);
 
     uint32_t fmtSize = 16;
-    file.write((const uint8_t*)&fmtSize, 4);
+    ok = ok && writeExact(file, &fmtSize, 4);
 
     uint16_t audioFormat = 1; // PCM
-    file.write((const uint8_t*)&audioFormat, 2);
-    file.write((const uint8_t*)&channels, 2);
-    file.write((const uint8_t*)&sampleRate, 4);
+    ok = ok && writeExact(file, &audioFormat, 2);
+    ok = ok && writeExact(file, &channels, 2);
+    ok = ok && writeExact(file, &sampleRate, 4);
 
     uint32_t byteRate = sampleRate * channels * (bitsPerSample / 8);
-    file.write((const uint8_t*)&byteRate, 4);
+    ok = ok && writeExact(file, &byteRate, 4);
 
     uint16_t blockAlign = channels * (bitsPerSample / 8);
-    file.write((const uint8_t*)&blockAlign, 2);
-    file.write((const uint8_t*)&bitsPerSample, 2);
+    ok = ok && writeExact(file, &blockAlign, 2);
+    ok = ok && writeExact(file, &bitsPerSample, 2);
 
-    file.write((const uint8_t*)"data", 4);
-    file.write((const uint8_t*)&dataSize, 4);
+    ok = ok && writeExact(file, "data", 4);
+    ok = ok && writeExact(file, &dataSize, 4);
 
     // Write audio data (convert from 24-bit to 16-bit)
     for (int32_t sample : _recordBuffer) {
         // Sample is already 24-bit (shifted by 8), convert to 16-bit
         int16_t sample16 = (int16_t)(sample >> 8);
-        file.write((const uint8_t*)&sample16, 2);
+        ok = ok && writeExact(file, &sample16, 2);
+        if (!ok) {
+            break;
+        }
     }
 
     file.close();
+    if (!ok) {
+        Serial.println("[AUDIO_REC] Failed while writing WAV file");
+        LittleFS.remove(TEMP_RECORDING_FILE);
+        return false;
+    }
+
     Serial.printf("[AUDIO_REC] WAV file created: %d samples, %d bytes\n", (int)_recordBuffer.size(), (int)(44 + dataSize));
     return true;
 }
@@ -136,65 +182,65 @@ void AudioRecording::sendWavViaMQTT(const char* filePath) {
         return;
     }
 
-    // Read entire file into buffer
-    std::unique_ptr<uint8_t[]> fileBuffer(new uint8_t[fileSize]);
-    if (!fileBuffer) {
-        Serial.println("[AUDIO_REC] Failed to allocate buffer for file");
+    std::unique_ptr<uint8_t[]> rawBuffer(new (std::nothrow) uint8_t[MQTT_RAW_AUDIO_CHUNK_SIZE]);
+    std::unique_ptr<char[]> base64Buffer(new (std::nothrow) char[MQTT_BASE64_CHUNK_BUFFER_SIZE]);
+    std::unique_ptr<char[]> message(new (std::nothrow) char[MQTT_JSON_MESSAGE_BUFFER_SIZE]);
+
+    if (!rawBuffer || !base64Buffer || !message) {
+        Serial.println("[AUDIO_REC] Failed to allocate MQTT transmission buffers");
         file.close();
+        LittleFS.remove(filePath);
         return;
     }
 
-    size_t bytesRead = file.read(fileBuffer.get(), fileSize);
-    file.close();
+    const int totalChunks = static_cast<int>((fileSize + MQTT_RAW_AUDIO_CHUNK_SIZE - 1) / MQTT_RAW_AUDIO_CHUNK_SIZE);
+    bool transmissionSuccess = true;
 
-    if (bytesRead != fileSize) {
-        Serial.println("[AUDIO_REC] Failed to read complete file");
-        return;
-    }
-
-    // Calculate base64 encoded size
-    size_t base64Size = 0;
-    mbedtls_base64_encode(nullptr, 0, &base64Size, fileBuffer.get(), fileSize);
-
-    std::unique_ptr<char[]> base64Buffer(new char[base64Size]);
-    if (!base64Buffer) {
-        Serial.println("[AUDIO_REC] Failed to allocate base64 buffer");
-        return;
-    }
-
-    if (mbedtls_base64_encode((unsigned char*)base64Buffer.get(), base64Size, &base64Size, fileBuffer.get(), fileSize) != 0) {
-        Serial.println("[AUDIO_REC] Base64 encoding failed");
-        return;
-    }
-
-    // Split into chunks and send via MQTT
-    const size_t CHUNK_SIZE = 4096; // 4KB chunks
-    int totalChunks = (base64Size + CHUNK_SIZE - 1) / CHUNK_SIZE; // Ceiling division
-
-    Serial.printf("[AUDIO_REC] Sending %d bytes as base64 in %d chunks\n", (int)base64Size, totalChunks);
+    Serial.printf("[AUDIO_REC] Sending %u bytes in %d MQTT chunks\n", static_cast<unsigned>(fileSize), totalChunks);
 
     for (int i = 0; i < totalChunks; i++) {
-        size_t chunkStart = i * CHUNK_SIZE;
-        size_t chunkSize = std::min(CHUNK_SIZE, base64Size - chunkStart);
-
-        // Create JSON message using heap allocation to avoid stack overflow
-        std::unique_ptr<char[]> message(new char[5120]);
-        if (!message) {
-            Serial.println("[AUDIO_REC] Failed to allocate message buffer");
+        const size_t bytesRead = file.read(rawBuffer.get(), MQTT_RAW_AUDIO_CHUNK_SIZE);
+        if (bytesRead == 0) {
+            Serial.printf("[AUDIO_REC] Failed to read audio chunk %d/%d from file\n", i + 1, totalChunks);
+            transmissionSuccess = false;
             break;
         }
-        
-        snprintf(message.get(), 5120,
-                 "{\"message\":\"%.*s\",\"chunk_index\":%d,\"total_chunks\":%d}",
-                 (int)chunkSize, base64Buffer.get() + chunkStart, i, totalChunks);
 
-        mqttHandler.publishMessage("robot/1/microphone", message.get());
+        size_t encodedLen = 0;
+        if (mbedtls_base64_encode(
+                reinterpret_cast<unsigned char*>(base64Buffer.get()),
+                MQTT_BASE64_CHUNK_BUFFER_SIZE,
+                &encodedLen,
+                rawBuffer.get(),
+                bytesRead) != 0) {
+            Serial.printf("[AUDIO_REC] Base64 encoding failed for chunk %d/%d\n", i + 1, totalChunks);
+            transmissionSuccess = false;
+            break;
+        }
+
+        base64Buffer[encodedLen] = '\0';
+
+        snprintf(message.get(), MQTT_JSON_MESSAGE_BUFFER_SIZE,
+                 "{\"message\":\"%.*s\",\"chunk_index\":%d,\"total_chunks\":%d}",
+                 static_cast<int>(encodedLen), base64Buffer.get(), i, totalChunks);
+
+        if (!mqttHandler.publishMessage(MqttHandler::MQTT_TOPIC_MICROPHONE, message.get())) {
+            Serial.printf("[AUDIO_REC] MQTT publish failed for chunk %d/%d\n", i + 1, totalChunks);
+            transmissionSuccess = false;
+            break;
+        }
 
         // Small delay between chunks to avoid overwhelming MQTT
         delay(50);
     }
 
-    Serial.println("[AUDIO_REC] Audio transmission completed");
+    file.close();
+
+    if (transmissionSuccess) {
+        Serial.println("[AUDIO_REC] Audio transmission completed");
+    } else {
+        Serial.println("[AUDIO_REC] Audio transmission aborted");
+    }
 
     // Clean up temporary file
     LittleFS.remove(filePath);

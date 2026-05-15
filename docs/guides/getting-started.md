@@ -33,7 +33,7 @@ cd robot
 
 ### 2. Initialize Submodules
 
-The project uses submodules for Whisper.cpp and Chatterbox-TTS-Server:
+The project includes external components such as Whisper.cpp and Chatterbox-TTS-Server. Initialize submodules to ensure nested dependencies are present:
 
 ```bash
 git submodule update --init --recursive
@@ -110,6 +110,7 @@ Should show running containers:
 - `robot_emqx` - MQTT broker
 - `vllm` - LLM service
 - `chatterbox-tts-server` - TTS service
+- `whisper-stt` - optional STT HTTP API if you use `SpeechToText/whisper-api`
 
 ### Check Python Environment
 
@@ -121,8 +122,8 @@ pip list          # Should show installed packages
 ### Test MQTT Connection
 
 ```bash
-# Using docker-compose to test
-docker run --rm --net host eqmx/mqttx-cli sub -h 127.0.0.1 -t "robot/test"
+# Using Docker to test
+docker run --rm emqx/mqttx-cli sub -h host.docker.internal -t "robot/test"
 ```
 
 ## Environment Variables
@@ -187,4 +188,4 @@ WIFI_PASSWORD=your-password
 
 ---
 
-Last updated: December 2025
+Last updated: May 2026

@@ -1,3 +1,8 @@
+/**
+ * @file speaker.h
+ * @brief I2S speaker playback, LittleFS audio file access, and shared audio mutex utilities.
+ */
+
 #ifndef SPEAKER_H
 #define SPEAKER_H
 

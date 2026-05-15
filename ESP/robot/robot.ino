@@ -1,3 +1,8 @@
+/**
+ * @file robot.ino
+ * @brief Main ESP32 robot firmware entry point and FreeRTOS task orchestration.
+ */
+
 // Standard libraries
 #include <Arduino.h>
 #include <Wire.h>
@@ -46,8 +51,38 @@ TaskHandle_t ledTaskHandle;
 
 // --- Global WiFi state flag ---
 volatile bool wifiConnected = false;
+bool micReady = false;
+bool speakerReady = false;
 
 // --- Functions ---
+/**
+ * @brief Create a pinned FreeRTOS task and log creation failures.
+ */
+bool createPinnedTask(TaskFunction_t taskFunction,
+                      const char* taskName,
+                      uint32_t stackDepth,
+                      UBaseType_t priority,
+                      TaskHandle_t* taskHandle,
+                      BaseType_t coreId)
+{
+    BaseType_t result = xTaskCreatePinnedToCore(
+        taskFunction,
+        taskName,
+        stackDepth,
+        nullptr,
+        priority,
+        taskHandle,
+        coreId);
+
+    if (result != pdPASS) {
+        Serial.printf("[TASK] Failed to create task '%s' (error=%ld)\n", taskName, static_cast<long>(result));
+        return false;
+    }
+
+    Serial.printf("[TASK] Created task '%s' on core %ld\n", taskName, static_cast<long>(coreId));
+    return true;
+}
+
 /**
  * @brief Sends mock sensor data via MQTT.
  * 
@@ -144,6 +179,7 @@ void WiFiTask(void *pvParameters)
 
     unsigned long lastAttempt = 0;
     const unsigned long retryInterval = TaskConfig::WIFI_RETRY_INTERVAL_MS;
+    const unsigned long attemptTimeout = NetworkConfig::WIFI_TIMEOUT_MS;
     bool attempting = false;
 
     while (true)
@@ -177,7 +213,14 @@ void WiFiTask(void *pvParameters)
             }
 
             unsigned long now = millis();
-            if (!attempting && (now - lastAttempt > retryInterval))
+            if (attempting && (now - lastAttempt > attemptTimeout))
+            {
+                Serial.println("WiFi connection attempt timed out; scheduling retry...");
+                WiFi.disconnect(false, false);
+                attempting = false;
+            }
+
+            if (!attempting && (lastAttempt == 0 || now - lastAttempt > retryInterval))
             {
                 Serial.println("Attempting WiFi reconnect...");
                 WiFi.begin(NetworkConfig::WIFI_SSID, NetworkConfig::WIFI_PASSWORD);
@@ -243,7 +286,7 @@ void SensorTask(void *pvParameters)
 {
     while (true)
     {
-        if (!wifiConnected)
+        if (!wifiConnected || !mqttHandler.isConnected())
         {
             vTaskDelay(pdMS_TO_TICKS(2000)); // Wait for WiFi
             continue;
@@ -304,32 +347,38 @@ void setup()
         indicators.setColor(Indicators::LED_PINS::MOTORS_MOVING, 0, 255, 0); // Green if initialized
     }
     roboEyes.begin();
-    if (!speaker.begin()) {
+    speakerReady = speaker.begin();
+    if (!speakerReady) {
         Serial.println("[SPEAKER] Initialization failed");
+    } else {
+        speaker.setPlaybackCallback([](bool isPlaying) {
+            indicators.setColor(Indicators::LED_PINS::IS_SPEAKING, 0, 0, isPlaying ? 255 : 0);
+            if (isPlaying) {
+                mic.disableClapDetection();
+            } else if (!audioRecording.isRecording()) {
+                mic.enableClapDetection();
+            }
+        });
     }
-    speaker.setPlaybackCallback([](bool isPlaying) {
-        // Blue when speaking, off when silent
-        indicators.setColor(Indicators::LED_PINS::IS_SPEAKING, isPlaying ? 0 : 0, isPlaying ? 0 : 0, isPlaying ? 255 : 0);
-        // Disable clap detection during playback to prevent false triggers
-        if (isPlaying) {
-            mic.disableClapDetection();
-        } else {
-            mic.enableClapDetection();
-        }
-    });
     rgbLed.begin();
     rgbLed.setBrightness(0);
     rgbLed.clear();
-    strip.begin();
 
     // --- Microphone setup ---
-    if (mic.begin())
+    micReady = mic.begin();
+    if (micReady)
     {
         Serial.println("Microphone ready.");
         mic.setClapCallback([]()
                             {
+                                if (audioRecording.isRecording()) {
+                                    Serial.println("Recording already in progress, ignoring clap trigger");
+                                    return;
+                                }
                                 Serial.println("Double clap detected - starting audio recording!");
-                                speaker.playWav("/yesilisten.wav");
+                                if (speakerReady) {
+                                    speaker.playWav("/yesilisten.wav");
+                                }
                                 audioRecording.startRecording();
                                 // Disable clap detection during recording to prevent noise from restarting it
                                 mic.disableClapDetection();
@@ -347,20 +396,26 @@ void setup()
         Serial.println("[MIC] Initialization failed.");
     }
 
-    speaker.listFiles();
-    speaker.playWav("/start_speech.wav");
+    if (speakerReady) {
+        speaker.listFiles();
+        speaker.playWav("/start_speech.wav");
+    }
 
     // --- Create FreeRTOS tasks AFTER all hardware is initialized ---
     // Core 0: Network and background tasks
-    xTaskCreatePinnedToCore(WiFiTask, "WiFi", 4096, NULL, 2, NULL, 0);
-    xTaskCreatePinnedToCore(MqttTask, "MQTT", 4096, NULL, 1, &mqttTaskHandle, 0);
-    xTaskCreatePinnedToCore(SensorTask, "Sensor", 4096, NULL, 1, &sensorTaskHandle, 0);
-    xTaskCreatePinnedToCore(CheckHeapTask, "CheckHeap", 4096, NULL, 1, &checkHeapTaskHandle, 0);
+    createPinnedTask(WiFiTask, "WiFi", 4096, 2, NULL, 0);
+    createPinnedTask(MqttTask, "MQTT", 4096, 1, &mqttTaskHandle, 0);
+    createPinnedTask(SensorTask, "Sensor", 4096, 1, &sensorTaskHandle, 0);
+    createPinnedTask(CheckHeapTask, "CheckHeap", 4096, 1, &checkHeapTaskHandle, 0);
 
     // Core 1: Real-time tasks (audio, display, servos)
-    xTaskCreatePinnedToCore(RoboEyesTask, "RoboEyes", 4096, NULL, 2, &roboEyesTaskHandle, 1);
-    //xTaskCreatePinnedToCore(ServoTask, "Servo", 4096, NULL, 3, &servoTaskHandle, 1);
-    xTaskCreatePinnedToCore(MicTask, "Mic", 10240, NULL, 4, &micTaskHandle, 1);
+    createPinnedTask(RoboEyesTask, "RoboEyes", 4096, 2, &roboEyesTaskHandle, 1);
+    if (ServoController::isInitialized()) {
+        createPinnedTask(ServoTask, "Servo", 4096, 3, &servoTaskHandle, 1);
+    }
+    if (micReady) {
+        createPinnedTask(MicTask, "Mic", 10240, 4, &micTaskHandle, 1);
+    }
 
     // Configure Robot Arm LED based on initialization status
     if (!ServoController::isInitialized()) {

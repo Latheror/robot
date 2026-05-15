@@ -88,13 +88,13 @@ Should output transcribed text.
 
 ```bash
 # Basic transcription
-./build/bin/whisper-cli -m models/ggml-base.en.bin -f audio.wav
+./build/bin/whisper-cli -m models/ggml-base.fr.bin -f audio.wav
 
 # With options
 ./build/bin/whisper-cli \
-  -m models/ggml-base.en.bin \
+    -m models/ggml-base.fr.bin \
   -f audio.wav \
-  --language en \
+    --language fr \
   --output-txt \
   --output-vtt
 ```

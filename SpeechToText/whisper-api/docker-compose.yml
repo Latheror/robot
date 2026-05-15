@@ -1,9 +1,17 @@
-version: '3.8'
-
 services:
   whisper-stt:
     build: .
     ports:
       - "8000:8000"
+    environment:
+      - WHISPER_MODEL=${WHISPER_MODEL:-small}
+      - WHISPER_MAX_UPLOAD_SIZE_MB=${WHISPER_MAX_UPLOAD_SIZE_MB:-25}
     volumes:
       - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 2m
+    restart: unless-stopped

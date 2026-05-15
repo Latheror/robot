@@ -15,6 +15,10 @@ The robot uses **vLLM** as the local language-model inference backend. vLLM expo
 
 The Compose file uses a persistent `vllm-cache` volume for Hugging Face model files and a health check on `/health`.
 
+For n8n AI Agent tool calls, vLLM must be started with auto tool choice enabled.
+The default parser in this workspace is `hermes`, which matches the Qwen2.5
+instruction model used here.
+
 ## Model Selection
 
 Default model:
@@ -33,6 +37,13 @@ Override the model by copying `LLM/.env.example` to `LLM/.env` and changing `VLL
 ```bash
 docker compose -f LLM/docker-compose.yml pull
 docker compose -f LLM/docker-compose.yml up -d
+```
+
+If you change the model, keep the tool parser aligned with the model family.
+For example, the current Qwen2.5 setup uses:
+
+```env
+VLLM_TOOL_CALL_PARSER=hermes
 ```
 
 ## API Usage
@@ -117,6 +128,9 @@ Base URL: http://host.docker.internal:8001/v1
 Model: robot-llm
 Responses API: disabled
 ```
+
+If you see the error `"auto" tool choice requires --enable-auto-tool-choice and --tool-call-parser to be set`,
+restart vLLM with the updated Compose file above.
 
 The API key can be any non-empty placeholder for local vLLM unless API-key enforcement is enabled in vLLM.
 

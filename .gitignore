@@ -6,3 +6,5 @@ ESP/robot/settings.h
 *.elf
 *.bin
 build/
+
+PCB/
